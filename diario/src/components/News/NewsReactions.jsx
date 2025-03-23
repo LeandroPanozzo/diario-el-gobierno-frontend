@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useUser } from '../UserContext';
+import { useUser } from '../../pages/context/UserContext';
 
 const NewsReactions = ({ noticiaId }) => {
   const { user } = useUser();

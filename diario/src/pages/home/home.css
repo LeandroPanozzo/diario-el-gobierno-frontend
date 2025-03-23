@@ -1,14 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;500&family=Brava+Slab:wght@700&display=swap');
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto Slab', serif;
   background-color: #fff;
   color: #333;
   margin-top: 100px;
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Merriweather', serif;
+  
   color: #156AA2;
 }
 
@@ -36,7 +35,7 @@ h1, h2, h3, h4 {
 }
 
 .section-title {
-  font-family: 'Brava Slab', serif;
+  
   font-weight: 700;
   font-size: 11px;
   color: black;
@@ -199,7 +198,7 @@ h1, h2, h3, h4 {
 }
 
 .featured-left h1 {
-  font-family: 'Brava Slab', serif;
+
   font-weight: 700;
   font-size: 23px;
   color: white;
@@ -247,7 +246,6 @@ h1, h2, h3, h4 {
 }
 
 .carousel-caption h3 {
-  font-family: 'Brava Slab', serif;
   font-weight: 700;
   font-size: 15px;
   color: white;
@@ -287,7 +285,6 @@ h1, h2, h3, h4 {
 }
 
 .recent-news-section .section-title {
-  font-family: 'Brava Slab', serif;
   font-weight: 700;
   font-size: 11px;
   color: white;
@@ -302,7 +299,7 @@ h1, h2, h3, h4 {
 }
 
 .recent-news-item {
-  font-family: 'Brava Slab', serif;
+
   display: flex;
   flex-direction: column; /* Cambia a columna para colocar la imagen arriba */
   align-items: center; /* Centra los elementos en la columna */
@@ -451,7 +448,6 @@ html, body {
   .recent-news-content h4,
   .featured-left h1,
   .carousel-caption h3 {
-    font-family: 'Brava Slab', serif;
     font-size: 16px;
     font-weight: 700;
     margin: 5px 0;

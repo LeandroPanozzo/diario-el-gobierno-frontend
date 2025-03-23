@@ -1,25 +1,26 @@
-import React from 'react';
+import '@fontsource/roboto-slab';  // Importa la fuente
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import DiarioHome from './pages/home';
-import Login from './pages/login';
-import Register from './pages/register';
-import Rol from './pages/rol';
-import Trabajadores from './pages/Trabajadores';
-import TextE from './pages/NewsArticleEditor';
-import { UserProvider } from './UserContext';
-import { EditNewsContent } from './components/EditNewsContent';
-import NewsDetailPage from './components/NewsDetailPage';
-import SectionPage from './components/SectionPage';
-import SubcategoryPage from './components/SubcategoryPage'; // Nuevo import
-import TagPage from './components/TagPage';
-import CommentsPage from './pages/CommentsPage';
-import TrabajadorProfile from './components/TrabajadorProfile';
-import UserProfile from './components/UserProfile';
-import TrabajadorNoticias from './components/TrabajadorNoticias';
-import TerminosYCondiciones from './pages/TerminosYCondiciones';
-import ComoAnunciar from './pages/ComoAnunciar';
+import Header from './components/Header/Header';
+import Footer from './components/Footer/Footer';
+import DiarioHome from './pages/home/home';
+import Login from './pages/auth/login';
+import {Register } from './pages/auth/register';
+import Rol from './pages/workers/rol';
+import Trabajadores from './pages/workers/Trabajadores'
+import NewsArticleEditor from './pages/news/NewsArticleEditor';
+import { UserProvider } from './pages/context/UserContext';
+import { EditNewsContent } from './components/EditNewsContent/EditNewsContent';
+import NewsDetailPage from './components/News/NewsDetailPage';
+import SectionPage from './components/Sections/SectionPage';
+import SubcategoryPage from './components/Sections/SubcategoryPage'
+import TagPage from './components/Sections/TagPage';
+import CommentsPage from './pages/comments/CommentsPage';
+import TrabajadorProfile from './components/Trabajador/TrabajadorProfile';
+import UserProfile from './components/User/UserProfile';
+import TrabajadorNoticias from './components/Trabajador/TrabajadorNoticias';
+import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
+import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/rol" element={<Rol />} />
-          <Route path="/ed" element={<TextE />} />
+          <Route path="/ed" element={<NewsArticleEditor />} />
           <Route path="/trabajadores" element={<Trabajadores />} />
           <Route path="/edit-content/:id" element={<EditNewsContent />} />
           <Route path="/noticia/:id" element={<NewsDetailPage />} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Input, Button, List, message, Popconfirm } from 'antd';
 import axios from 'axios';
-import { useUser } from '../UserContext'; // Adjust the path as needed
+import { useUser } from '../context/UserContext'; // Adjust the path as needed
 
 const { TextArea } = Input;
 

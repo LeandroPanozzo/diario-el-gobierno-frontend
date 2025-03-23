@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import  { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { useUser } from '../UserContext';
-import FacebookComments from './FacebookComments';
+import { useUser } from '../../pages/context/UserContext';
+import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useUser } from '../UserContext';
+import { useUser } from '../../pages/context/UserContext';
 import './Header.css';
-import logo from '../assets/images/EG 1.jpg';
-import axios from '../pages/axiosConfig'; // Import your axios instance
+import logo from '../../assets/images/EG 1.jpg';
+import axios from 'axios'; // Import your axios instance
 
 function Header() {
   const { user, setUser, logout } = useUser(); // Use the logout function from context

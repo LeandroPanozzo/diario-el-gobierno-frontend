@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom'; // Importar Link para la navegación
 import './register.css'; // Importa el archivo CSS
 
-const Register = () => {
+export const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -120,4 +120,3 @@ const Register = () => {
   );
 };
 
-export default Register;
