@@ -44,20 +44,11 @@ const NewsManagement = () => {
       ['dolar', 'Dolar']
     ]],
     ['Mundo', [
-      ['argentina', 'Argentina'],
-      ['china', 'China'],
       ['estados_unidos', 'Estados Unidos'],
-      ['brasil', 'Brasil'],
-      ['america', 'America'],
-      ['latinoamerica', 'Latinoamerica'],
+      ['politica_exterior', 'Politica Exterior'],
       ['asia', 'Asia'],
-      ['africa', 'Africa'],
-      ['oceania', 'Oceania'],
-      ['antartica', 'Antartica'],
-      ['internacional', 'Internacional'],
-      ['seguridad', 'Seguridad'],
-      ['comercio', 'Comercio'],
-      ['guerra', 'Guerra']
+      ['medio_oriente', 'Medio Oriente'],
+      ['internacional', 'Internacional']
     ]]
   ];
 

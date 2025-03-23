@@ -17,7 +17,7 @@ const SectionPage = () => {
     'politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'protestas'],
     'cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos'],
     'economia': ['finanzas', 'negocios', 'empresas', 'dolar'],
-    'mundo': ['argentina', 'china', 'estados_unidos', 'brasil', 'america', 'latinoamerica', 'asia', 'africa', 'oceania', 'antartica', 'internacional', 'seguridad', 'comercio', 'guerra']
+    'mundo': ['estados_unidos', 'politica_exterior', 'medio_oriente', 'asia', 'internacional']
   };
 
   // Función para eliminar etiquetas HTML

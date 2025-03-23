@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios'
+import axios from '../context/axiosConfig' //cuidado con esto
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext'; 
 import './login.css';

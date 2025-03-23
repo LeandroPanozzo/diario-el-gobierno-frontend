@@ -74,7 +74,7 @@ const HomePage = () => {
         'Politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'protestas'],
         'Cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos'],
         'Economia': ['finanzas', 'negocios', 'empresas', 'dolar'],
-        'Mundo': ['argentina', 'china', 'estados_unidos', 'brasil', 'america', 'latinoamerica', 'asia', 'africa', 'oceania', 'antartica', 'internacional', 'seguridad', 'comercio', 'guerra']
+        'Mundo': ['politica_exterior', 'estados_unidos', 'asia', 'medio_oriente', 'internacional']
       };
 
       try {

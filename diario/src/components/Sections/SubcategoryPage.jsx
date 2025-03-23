@@ -28,20 +28,11 @@ const SubcategoryPage = () => {
     'negocios': 'Economía',
     'empresas': 'Economía',
     'dolar': 'Economía',
-    'argentina': 'Mundo',
-    'china': 'Mundo',
     'estados_unidos': 'Mundo',
-    'brasil': 'Mundo',
-    'america': 'Mundo',
-    'latinoamerica': 'Mundo',
+    'politica_exterior': 'Mundo',
+    'medio_oriente': 'Mundo',
     'asia': 'Mundo',
-    'africa': 'Mundo',
-    'oceania': 'Mundo',
-    'antartica': 'Mundo',
     'internacional': 'Mundo',
-    'seguridad': 'Mundo',
-    'comercio': 'Mundo',
-    'guerra': 'Mundo'
   };
 
   const stripHtml = (html) => {
