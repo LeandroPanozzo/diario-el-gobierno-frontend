@@ -161,8 +161,11 @@ const HomePage = () => {
       <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
       <div className="news-grid">
         {newsArray.length > 0 && (
-          <div className="main-article" onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
-            <img src={newsArray[0].imagen_cabecera} alt={newsArray[0].nombre_noticia} />
+          <div className="main-article " onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
+              <div className='recent-new'>
+            <img src={newsArray[0].imagen_cabecera}  alt={newsArray[0].nombre_noticia} />
+
+              </div>
             <div className="main-article-content">
               <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
               {newsArray[0].autorData && (
@@ -184,7 +187,9 @@ const HomePage = () => {
               className="secondary-article"
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
+              <div className='secondary-article-img '>
               <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} />
+              </div>
               <div className="secondary-article-content">
                 <h4>{newsItem.nombre_noticia}</h4>
                 {newsItem.autorData && (
@@ -211,7 +216,9 @@ const HomePage = () => {
             className="recent-news-item"
             onClick={() => navigate(`/noticia/${newsItem.id}`)}
           >
+            <div className='recent-new'>
             <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} className="recent-news-image" />
+            </div>
             <div className="recent-news-content">
               <h4>{newsItem.nombre_noticia}</h4>
               <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
@@ -233,7 +240,10 @@ const HomePage = () => {
               className="recent-news-item"
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
+              <div className='recent-new'>
               <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} className="recent-news-image" />
+
+              </div>
               <div className="recent-news-content">
                 <h4>{newsItem.nombre_noticia}</h4>
                 <div className="news-meta">

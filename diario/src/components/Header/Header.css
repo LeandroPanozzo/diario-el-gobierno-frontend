@@ -167,6 +167,9 @@
 
 .mobile-auth-links {
   margin-top: 20px;
+  gap: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Estilos para botones sociales redondeados con imágenes */
@@ -175,26 +178,14 @@
   justify-content: center;
   gap: 10px;
   margin-bottom: 15px;
+  margin-top: 20px;
 }
 
 .social-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #00a0da; /* Fondo rojo */
-  color: white;
-  text-decoration: none;
-  padding: 8px;
-  border-radius: 20px; /* Bordes muy redondeados */
-  transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
-}
-.social-buttonx {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #03a8e4; /* Fondo rojo */
+  background-color: #156AA1; /* Fondo rojo */
   color: white;
   text-decoration: none;
   padding: 8px;
@@ -205,16 +196,12 @@
 }
 
 
-.social-button:hover {
-  background-color: #1a90ff; /* Rojo más brillante al hacer hover */
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(227, 6, 19, 0.4);
+.social-button:hover {/* Rojo más brillante al hacer hover */
+  background-color: #0e476d; /* Rojo más brillante al hacer hover */
+
+
 }
-.social-buttonx:hover {
-  background-color: #1a90ff; /* Rojo más brillante al hacer hover */
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(227, 6, 19, 0.4);
-}
+
 
 .social-icon-img {
   width: 24px;
@@ -240,9 +227,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
   position: absolute; /* Posicionar los botones a la derecha */
-  right: 20px; /* Ajustar la distancia desde el borde derecho */
+  right: 10%; /* Ajustar la distancia desde el borde derecho */
   top: 50%; /* Centrar verticalmente */
   transform: translateY(-50%); /* Ajustar para centrar exactamente */
 }
@@ -253,7 +239,10 @@
 }
 
 .button-common {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
   background-color: #156AA2;
   color: #fff;
   border: none;
@@ -261,14 +250,17 @@
   cursor: pointer;
   text-decoration: none;
   font-size: 0.9rem;
+  margin-bottom: 1rem;
+  transition: 0.3s;
 }
 
 .button-common:hover {
-  background-color: #0056b3;
+  background-color: #0e476d; /* Rojo más brillante al hacer hover */
+
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1410px) {
   .hamburger-button {
     display: block;
   }
@@ -280,6 +272,7 @@
   .header-actions {
     display: none;
   }
+  
 
   .navv-menu {
     display: block;
@@ -294,3 +287,4 @@
     margin-top: 10px;
   }
 }
+

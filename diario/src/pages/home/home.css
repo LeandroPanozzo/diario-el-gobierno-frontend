@@ -1,4 +1,12 @@
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
+* {
+  box-sizing: border-box;
+  max-width: 100%;
+}
 body {
   font-family: 'Roboto Slab', serif;
   background-color: #fff;
@@ -10,6 +18,14 @@ h1, h2, h3, h4 {
   
   color: #156AA2;
 }
+h1{
+  font-weight: 700;
+}
+
+img{
+  object-fit: cover;
+}
+
 
 .container {
   max-width: 1150px; /*Si queres achicar para los margenes cambia esto*/
@@ -19,6 +35,8 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
 }
+
+
 
 /* Estilo para las secciones de noticias */
 .news-sections {
@@ -36,7 +54,7 @@ h1, h2, h3, h4 {
 
 .section-title {
   
-  font-weight: 700;
+  font-weight: 600;
   font-size: 11px;
   color: black;
   margin-bottom: 20px;
@@ -65,11 +83,16 @@ h1, h2, h3, h4 {
   border-bottom: 1px solid #ddd;
   background-color: #fff;
   cursor: pointer;
+  overflow: hidden;
+  height: 500px; /* Altura reducida para la imagen */
 }
 
 .main-article img {
   width: 100%;
-  height: 200px; /* Altura reducida para la imagen */
+  transition: 0.3s;
+}
+.main-article:hover img{
+transform: scale(1.1);
 }
 
 .main-article-content {
@@ -82,9 +105,13 @@ h1, h2, h3, h4 {
 .featured-left h1,
 .carousel-caption h3 {
   font-size: 20px;
-  font-weight: bold;
+
   color: #156AA2;
 }
+
+
+
+
 .main-article-content h3 {
   max-width: 300px; /* Ajusta el ancho según tus necesidades */
   word-wrap: break-word; /* Permite el ajuste de línea */
@@ -94,6 +121,14 @@ h1, h2, h3, h4 {
 .main-article .date {
   font-size: 12px;
   color: #555;
+}
+.main-article:hover h3,
+.secondary-article:hover h4,
+.featured-left:hover h1,
+.carousel-caption:hover h3 {
+
+  color: #0e476d;
+
 }
 
 .main-article .description {
@@ -118,27 +153,40 @@ h1, h2, h3, h4 {
 .secondary-articles {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
   width: 500px;
+  padding-bottom:10px ;
 }
+
 .secondary-article-content {
   flex: 1;
 }
 .secondary-article {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 3fr;
   gap: 15px;
   align-items: flex-start;
   border-bottom: 1px solid #ddd;
-  padding-bottom: 15px;
   background-color: #fff;
   cursor: pointer;
   height: auto;
   width: 100%;
 }
+.secondary-article-img{
+ height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
 
-.secondary-article img {
-  width: 120px; /* Imagen más pequeña */
-  height: 100px;
+.secondary-article-img:hover img{
+  transform: scale(1.1);
+}
+
+.secondary-article-img img {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease;
+  aspect-ratio:1;
 }
 
 .secondary-article h4 {
@@ -168,6 +216,7 @@ h1, h2, h3, h4 {
   justify-content: space-between;
   padding-top: 20px;
   cursor: pointer;
+
 }
 
 .featured-left {
@@ -196,6 +245,7 @@ h1, h2, h3, h4 {
   flex-direction: column;
   justify-content: flex-end;
 }
+
 
 .featured-left h1 {
 
@@ -265,9 +315,11 @@ h1, h2, h3, h4 {
 }
 
 /* Estilos para la sección de noticias recientes */
+
 .sections-and-recent-news {
   display: flex;
   gap: 20px; /* Aumentado el espacio entre las secciones */
+
 }
 
 .recent-news {
@@ -297,19 +349,33 @@ h1, h2, h3, h4 {
   flex-direction: column;
   gap: 15px;
 }
+.recent-new{
+  overflow: hidden;
+ 
+}
+
+.recent-news-image{
+  height: 100%;
+  width: 100%;
+  transition: 0.3s ease;
+}
+.recent-news-item:hover img{
+  transform: scale(1.1);
+}
+
 
 .recent-news-item {
-
-  display: flex;
-  flex-direction: column; /* Cambia a columna para colocar la imagen arriba */
+  
+  display: grid;
+  grid-template-columns: 1fr;
   align-items: center; /* Centra los elementos en la columna */
   padding: 10px;
   border-bottom: 1px solid #ccc;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  text-align: center; /* Centra el texto */
   width: 100%; /* Asegura que use todo el ancho disponible */
-
+  
+  text-align: center;
 }
 .recent-news-content h4 {
   margin: 5px 0;
@@ -321,13 +387,12 @@ h1, h2, h3, h4 {
   white-space: normal; /* Permite saltos de línea */
 }
 .recent-news-content h4:hover {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #0582ff;
+
+  color: #0e476d;
   background-color: transparent;
 }
 .recent-news-item:hover {
-  color: #0582ff;
+    color: #0e476d;
   background-color: transparent;
 }
 .recent-news-content .date {
@@ -354,16 +419,6 @@ h1, h2, h3, h4 {
   zoom: 1;
 }
 
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-/* Asegura que todos los elementos respeten el ancho del dispositivo */
-* {
-  box-sizing: border-box;
-  max-width: 100%;
-}
 
 /* Media query para dispositivos móviles */
 @media screen and (max-width: 768px) {
@@ -381,7 +436,9 @@ html, body {
     width: 100%;
     gap: 20px;
   }
-
+  .main-article{
+    height: auto;
+  }
   /* Hacer que las secciones ocupen todo el ancho */
   .news-sections {
     width: 100%;
@@ -497,7 +554,6 @@ html, body {
   .featured-right .carousel-item:hover,
   .featured-left:hover,
   .recent-news-item:hover {
-    transform: translateY(-3px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
   }
 
@@ -531,19 +587,25 @@ html, body {
     font-size: 15px;
   }
 }
+
+
 /* Animaciones */
-.main-article:hover,
-.secondary-article:hover {
-  transform: translateY(-5px);
+
+
+.featured-right .carousel-item ,
+.featured-left {
+  overflow: hidden; /* Oculta cualquier parte de la imagen que se desborde */
+
+}
+.featured-right .carousel-item img,
+.featured-left img{
+  height: 100%;
+  object-fit: cover; /* Mantiene la imagen proporcional */
   transition: transform 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+.featured-right .carousel-item:hover img,
+.featured-left:hover img {
+  transform: scale(1.1)
 }
 
-.featured-right .carousel-item:hover,
-.featured-left:hover {
-  position: relative;
-  overflow: hidden;
-  transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), transparent;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
+

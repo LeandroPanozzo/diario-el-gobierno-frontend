@@ -31,30 +31,33 @@ function Footer() {
           <div className="footer-section">
             <h3>Redes Sociales</h3>
             <div className="social-icons">
-              <a
-                href="https://www.linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="linkedin-icon"
-              >
-                <img src="/icons/linkedinLogo.png" alt="LinkedIn" />
-              </a>
-              <a
-                href="https://www.instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="instagram-icon"
-              >
-                <img src="/icons/instagramLogo.png" alt="Instagram" />
-              </a>
-              <a
-                href="https://x.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="twitter-icon"
-              >
-                <img src="/icons/X-twitter.png" alt="Twitter/X" />
-              </a>
+            <a
+        href="https://www.linkedin.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="social-button"
+        aria-label="LinkedIn"
+      >
+        <i className="ri-linkedin-fill"></i>
+      </a>
+      <a
+        href="https://www.instagram.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="social-button"
+        aria-label="Instagram"
+      >
+       <i className="ri-instagram-line"></i>
+      </a>
+      <a
+        href="https://www.instagram.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="social-button"
+        aria-label="Instagram"
+      >
+       <i className="ri-twitter-x-line"></i>
+      </a>
             </div>
           </div>
         </div>

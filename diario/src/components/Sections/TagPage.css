@@ -20,7 +20,7 @@
 }
 
 .news-item:hover {
-  transform: translateY(-5px); /* Mover ligeramente hacia arriba al hacer hover */
+
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada al hacer hover */
 }
 
