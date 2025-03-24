@@ -1,5 +1,5 @@
 import '@fontsource/roboto-slab';  // Importa la fuente
-
+import 'remixicon/fonts/remixicon.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';

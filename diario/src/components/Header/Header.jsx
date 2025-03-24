@@ -119,7 +119,7 @@ function Header() {
   };
   
   // Componente de iconos sociales con imágenes en botones redondeados
-  const SocialIcons = () => (
+   const SocialIcons = () => (
     <div className="social-icons-container">
       <a
         href="https://www.linkedin.com"
@@ -128,11 +128,7 @@ function Header() {
         className="social-button"
         aria-label="LinkedIn"
       >
-        <img 
-          src="/icons/linkedinheader.png" 
-          alt="" 
-          className="social-icon-img" 
-        />
+        <i className="ri-linkedin-fill"></i>
       </a>
       <a
         href="https://www.instagram.com"
@@ -141,25 +137,18 @@ function Header() {
         className="social-button"
         aria-label="Instagram"
       >
-        <img 
-          src="/icons/instagramheader.png" 
-          alt="" 
-          className="social-icon-img" 
-        />
+       <i className="ri-instagram-line"></i>
       </a>
       <a
-        href="https://x.com"
+        href="https://www.instagram.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="social-buttonx"
-        aria-label="Twitter/X"
+        className="social-button"
+        aria-label="Instagram"
       >
-        <img 
-          src="/icons/xheader.png" 
-          alt="" 
-          className="social-icon-img" 
-        />
+       <i className="ri-twitter-x-line"></i>
       </a>
+     
     </div>
   );
 
@@ -190,14 +179,14 @@ function Header() {
           className="button-common"
           onClick={() => setIsMenuOpen(false)}
         >
-          Iniciar sesión
+          <i className="ri-user-line"></i> Iniciar sesión
         </Link>
         <Link
           to="/register"
           className="button-common"
           onClick={() => setIsMenuOpen(false)}
         >
-          Registrarse
+          <i className="ri-user-line"></i> Registrarse
         </Link>
       </>
     )
@@ -314,7 +303,6 @@ function Header() {
               </div>
             </nav>
           </div>
-
           <div className="header-actions">
             <SocialIcons />
             <div className="header-buttons">
