@@ -211,6 +211,7 @@ export const EditNewsContent = () => {
           automatic_uploads: false,
           images_upload_credentials: true,
           convert_urls: false,
+          
           block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 6=h6; Preformatted=pre',
           plugins: [
             'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'print', 'preview', 'anchor',
@@ -225,11 +226,34 @@ export const EditNewsContent = () => {
             'hr | blockquote | removeformat | help | fullscreen ',
           
           content_style: `
+            @media screen and (min-width: 769px) {
             body {
-              font-family: Arial, sans-serif;
               margin-left: 200px;
               margin-right: 200px;
+              font-family: Arial, sans-serif;
             }
+          }
+
+          @media screen and (max-width: 768px) {
+            body {
+              font-family: Arial, sans-serif;
+              max-width: 100%;
+              width: 100%;
+              word-wrap: break-word;
+              overflow-wrap: break-word;
+              writing-mode: horizontal-tb;
+              text-orientation: mixed;
+              direction: ltr;
+            }
+          }
+
+          p {
+            font-family: 'Linotype Devanagari';
+            font-size: 13pt;
+            margin: 0;
+            white-space: normal;
+            word-break: break-word;
+          }
             .news-detail-container {
               max-width: 800px;
               margin: 0 auto;
@@ -253,11 +277,6 @@ export const EditNewsContent = () => {
               background-color: #f0f0f0;
               text-indent: 0.2in;
             }
-            p {
-              font-family: 'Linotype Devanagari';
-              font-size: 13pt;
-              margin: 0;
-            }
             pre {
               font-family: 'Times New Roman';
               font-size: 9pt;
@@ -278,6 +297,7 @@ export const EditNewsContent = () => {
               margin-bottom: 0px;
               object-fit: cover;
             }
+              
           `,
           font_formats:
             "Arial=arial,helvetica,sans-serif;" +
@@ -312,6 +332,7 @@ export const EditNewsContent = () => {
             }
           ],
           setup: function (editor) {
+            
             editor.on('keydown', function (e) {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -419,6 +440,7 @@ export const EditNewsContent = () => {
       pre: { block: 'pre' }
     }
   }}
+  
   onEditorChange={(newContent) => {
     setContent(newContent);
     const newImages = extractImagesFromContent(newContent);

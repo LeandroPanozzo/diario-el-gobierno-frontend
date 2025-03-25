@@ -1,70 +1,11 @@
-/* EditNewsContent.css */
-.edit-news-content-container {
-  max-width: 1200px;
-  margin: 120px auto 0; /* Agregamos 120px de margen superior */
-  padding: 20px;
-  background-color: #f4f4f4;
+body {
+  margin-left: 200px;
+  margin-right: 200px;
 }
-  
-  .header-image-preview {
-    max-width: 200px;
-    height: auto;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+@media screen and (max-width: 768px) {
+  body {
+    margin-left: 20px;
+    margin-right: 20px;
   }
-  
-  .image-select-container {
-    margin-bottom: 20px;
-  }
-  
-  .editor-container {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    padding: 15px;
-  }
-  
-  .save-button {
-    margin-top: 20px;
-    width: 100%;
-  }
-  
-  /* Responsive Breakpoints */
-  @media screen and (max-width: 1024px) {
-    .edit-news-content-container {
-      padding: 10px;
-    }
-  
-    .header-image-preview {
-      max-width: 150px;
-    }
-  }
-  
-  @media screen and (max-width: 768px) {
-    .edit-news-content-container {
-      padding: 5px;
-    }
-  
-    .header-image-preview {
-      max-width: 100px;
-    }
-  
-    .save-button {
-      font-size: 0.9rem;
-    }
-  }
-  
-  @media screen and (max-width: 480px) {
-    .edit-news-content-container {
-      padding: 3px;
-    }
-  
-    .header-image-preview {
-      max-width: 80px;
-    }
-  
-    .save-button {
-      font-size: 0.8rem;
-    }
-  }
+}
