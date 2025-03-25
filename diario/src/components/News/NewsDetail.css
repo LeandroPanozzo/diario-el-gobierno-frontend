@@ -234,6 +234,10 @@ pre {
   text-decoration: underline;
 }
 
+.categories-container{
+  padding-top: 1rem;
+}
+
 .comments-title {
   margin-top: 40px;
   font-size: 24px;

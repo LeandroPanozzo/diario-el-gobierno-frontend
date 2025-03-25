@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -126,7 +126,7 @@ const handleMisNoticias = () => {
 };
 
   return (
-    <div>
+    <section className='section-trabajador'>
       <h1>Perfil del Trabajador</h1>
       {trabajador ? (
         <Form form={form} onFinish={handleUpdateProfile} encType="multipart/form-data">
@@ -191,7 +191,7 @@ const handleMisNoticias = () => {
       ) : (
         <p>Cargando perfil...</p>
       )}
-    </div>
+    </section>
   );
 };
 

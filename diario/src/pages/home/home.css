@@ -548,14 +548,7 @@ transform: scale(1.1);
     padding: 15px;
   }
 
-  /* Animaciones unificadas */
-  .main-article:hover,
-  .secondary-article:hover,
-  .featured-right .carousel-item:hover,
-  .featured-left:hover,
-  .recent-news-item:hover {
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-  }
+
 
   /* Ajustes para los títulos de sección */
   .section-title {
