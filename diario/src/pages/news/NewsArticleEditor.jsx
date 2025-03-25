@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Form, Button, Modal, Select, Checkbox, Input, DatePicker, Popconfirm } from 'antd';
+import { 
+  Table, 
+  Form, 
+  Button, 
+  Modal, 
+  Select, 
+  Checkbox, 
+  Input, 
+  DatePicker, 
+  Popconfirm, 
+  Layout,
+  Grid
+} from 'antd';
 import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import './NewsManagement.css';
+
 const { Option } = Select;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
 
 const NewsManagement = () => {
   const [news, setNews] = useState([]);
@@ -19,6 +33,13 @@ const NewsManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [trabajadorId, setTrabajadorId] = useState(null);
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen
+  useEffect(() => {
+    setIsMobile(screens.xs && !screens.sm);
+  }, [screens]);
   
   const CATEGORIAS = [
     ['Portada', 'portada'],
@@ -51,13 +72,13 @@ const NewsManagement = () => {
       ['internacional', 'Internacional']
     ]]
   ];
-
+  
   useEffect(() => {
     fetchNews();
     fetchEditors();
     fetchPublicationStates();
     verifyTrabajador();
-
+    
     const handleKeyDown = (event) => {
       if (event.key === 'F12') {
         console.log('ID del trabajador:', trabajadorId);
@@ -211,62 +232,151 @@ const NewsManagement = () => {
   console.log('Filtered News:', filteredNews);
 
   const columns = [
-    { title: 'Titulo', dataIndex: 'nombre_noticia', key: 'nombre_noticia' },
     { 
-      title: 'Autor', 
-      key: 'autor',
+      title: 'Detalles de la Noticia', 
+      dataIndex: 'nombre_noticia', 
+      key: 'nombre_noticia',
       render: (text, record) => {
-        const author = editors.find(editor => editor.id === record.autor);
-        return author ? `${author.nombre} ${author.apellido}` : 'Unknown';
+        return (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Título:</strong>
+              <span>{text}</span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Autor:</strong>
+              <span>
+                {editors.find(editor => editor.id === record.autor)
+                  ? `${editors.find(editor => editor.id === record.autor).nombre} ${editors.find(editor => editor.id === record.autor).apellido}`
+                  : 'Unknown'}
+              </span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Editor:</strong>
+              <span>
+                {editors.find(editor => editor.id === record.editor_en_jefe)
+                  ? `${editors.find(editor => editor.id === record.editor_en_jefe).nombre} ${editors.find(editor => editor.id === record.editor_en_jefe).apellido}`
+                  : 'Unknown'}
+              </span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Fecha:</strong>
+              <span>{record.fecha_publicacion}</span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Categorías:</strong>
+              <span>{record.categorias ? record.categorias.join(', ') : ''}</span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Palabras Clave:</strong>
+              <span>{record.Palabras_clave || 'N/A'}</span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Suscriptores:</strong>
+              <span>{record.solo_para_subscriptores ? 'Sí' : 'No'}</span>
+            </div>
+  
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <strong>Estado:</strong>
+              <span>
+                {publicationStates.find(state => state.id === record.estado)
+                  ? publicationStates.find(state => state.id === record.estado).nombre_estado
+                  : 'Unknown'}
+              </span>
+            </div>
+  
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap',
+              gap: '8px', 
+              width: '100%', 
+              marginTop: '12px' 
+            }}>
+              <Button 
+                icon={<EditOutlined />} 
+                onClick={() => showModal(record)} 
+                size="small"
+              >
+                Editar
+              </Button>
+              <Button 
+                icon={<EditOutlined />} 
+                onClick={() => handleEditContent(record.id)} 
+                size="small"
+              >
+                Contenido
+              </Button>
+              <Popconfirm
+                title="¿Eliminar esta noticia?"
+                onConfirm={() => handleDelete(record.id)}
+                okText="Sí"
+                cancelText="No"
+              >
+                <Button 
+                  icon={<DeleteOutlined />} 
+                  danger 
+                  size="small"
+                >
+                  Eliminar
+                </Button>
+              </Popconfirm>
+              <Button 
+                icon={<CommentOutlined />} 
+                onClick={() => handleComment(record.id)}
+                size="small"
+              >
+                Comentar
+              </Button>
+            </div>
+          </div>
+        );
       }
     },
-    { 
-      title: 'Editor', 
-      key: 'editor_en_jefe',
-      render: (text, record) => {
-        const editor = editors.find(editor => editor.id === record.editor_en_jefe);
-        return editor ? `${editor.nombre} ${editor.apellido}` : 'Unknown';
-      }
-    },
-    
-    { title: 'Fecha de publicacion', dataIndex: 'fecha_publicacion', key: 'fecha_publicacion' },
-    { 
-      title: 'Categories', 
-      key: 'categorias',
-      render: (text, record) => {
-        return record.categorias ? record.categorias.join(', ') : '';
-      }
-    },
-    { title: 'Subscribers Only', dataIndex: 'solo_para_subscriptores', key: 'solo_para_subscriptores', render: (text) => text ? 'Yes' : 'No' },
-    { 
-      title: 'Status', 
-      key: 'estado',
-      render: (text, record) => {
-        const status = publicationStates.find(state => state.id === record.estado);
-        return status ? status.nombre_estado : 'Unknown';
-      }
-    },
-    { title: 'Palabras_clave', dataIndex: 'Palabras_clave', key: 'Palabras_clave' },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (text, record) => (
-        <span>
-          <Button icon={<EditOutlined />} onClick={() => showModal(record)} style={{ marginRight: 8 }} />
-          <Popconfirm
-            title="Are you sure to delete this news?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button icon={<DeleteOutlined />} danger style={{ marginRight: 8 }} />
-          </Popconfirm>
-          <Button onClick={() => handleEditContent(record.id)} style={{ marginRight: 8 }}>Edit Content</Button>
-          <Button icon={<CommentOutlined />} onClick={() => handleComment(record.id)}>Comment</Button>
-        </span>
-      ),
-    },
+    // Remove other columns as this will be the single column for mobile view
   ];
+
 
   const renderCategoryOptions = () => {
     return CATEGORIAS.map(([value, labelOrSubcats]) => {
@@ -288,41 +398,77 @@ const NewsManagement = () => {
   };
 
   return (
-    <div>
-      {/* Barra de búsqueda */}
-      <div className="search-bar">
-        <Input 
-          placeholder="Buscar por nombre de noticia..." 
-          value={searchTerm} 
-          onChange={handleSearch} 
-          style={{ marginBottom: 16, width: '300px' }} 
-        />
-      </div>
+    <div className="news-management-container">
+      <Layout>
+        <Layout.Header style={{ 
+          padding: '0 20px', 
+          background: '#fff', 
+          display: 'flex', 
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div className="header-section" style={{ 
+            width: '100%', 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: '16px'
+          }}>
+            <Input 
+              placeholder="Buscar por nombre de noticia..." 
+              value={searchTerm} 
+              onChange={handleSearch} 
+              style={{ 
+                width: isMobile ? '100%' : '300px', 
+                marginBottom: isMobile ? '16px' : 0 
+              }} 
+            />
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => showModal()} 
+              block={isMobile}
+              style={{ 
+                width: isMobile ? '100%' : 'auto',
+                marginBottom: isMobile ? '16px' : 0
+              }}
+            >
+              Add News
+            </Button>
+          </div>
+        </Layout.Header>
+        
+        <Layout.Content style={{ padding: '20px' }}>
+          <Table 
+            columns={columns} 
+            dataSource={filteredNews} 
+            rowKey="id" 
+            scroll={{ x: true }} 
+            pagination={{
+              responsive: true,
+              showSizeChanger: !isMobile,
+            }}
+          />
+        </Layout.Content>
+      </Layout>
 
-      {/* Botón para crear una nueva noticia */}
-      <div className="add-news-button">
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={() => showModal()} 
-          style={{ marginBottom: 16 }}
-        >
-          Add News
-        </Button>
-      </div>
-
-      {/* Tabla de noticias */}
-      <Table columns={columns} dataSource={filteredNews} rowKey="id" />
-
-      {/* Modal para crear/editar noticias */}
       <Modal
         title={editingId ? "Edit News" : "Add News"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={() => setIsModalVisible(false)}
+        width={isMobile ? '95%' : 800}
+        bodyStyle={{ 
+          maxHeight: isMobile ? '80vh' : 'none',
+          overflowY: 'auto'
+        }}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="nombre_noticia" label="Title" rules={[{ required: true, message: 'Please input the title!' }]}>
+          <Form.Item 
+            name="nombre_noticia" 
+            label="Title" 
+            rules={[{ required: true, message: 'Please input the title!' }]}
+          >
             <Input />
           </Form.Item>
 

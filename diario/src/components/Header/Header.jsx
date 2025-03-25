@@ -3,10 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
 import './Header.css';
 import logo from '../../assets/images/EG 1.jpg';
-import axios from 'axios'; // Import your axios instance
 
 function Header() {
-  const { user, setUser, logout } = useUser(); // Use the logout function from context
+  const { user, setUser, logout } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
@@ -72,7 +71,15 @@ function Header() {
 
   useEffect(() => {
     const accessToken = localStorage.getItem('access');
+    const storedUserData = localStorage.getItem('user');
+    
     if (accessToken) {
+      if (storedUserData) {
+        // Parse and set user data from local storage
+        const parsedUserData = JSON.parse(storedUserData);
+        setUser(parsedUserData);
+      }
+      
       fetchUserProfile(accessToken);
     }
   }, []);
@@ -96,19 +103,24 @@ function Header() {
       if (!response.ok) throw new Error('Error fetching user profile');
   
       const data = await response.json();
-      // Update user context with profile data
-      // Asegúrate de que 'trabajador' se incluya en el objeto user
-      setUser(prevUser => ({ 
-        ...prevUser, 
+      // preservamos el status trabajador del local storage si existe
+      const storedUserData = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Update user context con profile data 
+      const updatedUserData = { 
         ...data,
-        trabajador: data.trabajador || false // Asegurarse que exista la propiedad
-      }));
+        trabajador: storedUserData.trabajador ?? data.trabajador ?? false 
+      };
+      
+      // guardamos en local storage para perisistir el status
+      localStorage.setItem('user', JSON.stringify(updatedUserData));
+      
+      setUser(updatedUserData);
     } catch (error) {
       console.error(error);
       handleLogout();
     }
   };
-
   const handleLogout = () => {
     // Clear all auth data
     localStorage.removeItem('access');
@@ -118,7 +130,7 @@ function Header() {
     navigate('/login');
   };
   
-  // Componente de iconos sociales con imágenes en botones redondeados
+  // Componente de iconos sociales con imagenes en botones redondeados
    const SocialIcons = () => (
     <div className="social-icons-container">
       <a
