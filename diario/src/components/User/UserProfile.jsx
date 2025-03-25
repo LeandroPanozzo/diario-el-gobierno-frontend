@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
+import './UserProfile.css'
 const UserProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -115,7 +115,7 @@ const UserProfile = () => {
   };
 
   return (
-    <div>
+    <section className='section-perfil'>
       <h1>Perfil de Usuario</h1>
       {usuario ? (
         <Form form={form} onFinish={handleUpdateProfile} encType="multipart/form-data">
@@ -176,7 +176,7 @@ const UserProfile = () => {
       ) : (
         <p>Cargando perfil...</p>
       )}
-    </div>
+    </section>
   );
 };
 
