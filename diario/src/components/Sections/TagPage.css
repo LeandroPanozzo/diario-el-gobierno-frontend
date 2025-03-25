@@ -2,8 +2,8 @@
 
 .tag-page {
   padding: 20px; /* Espacio interno alrededor del contenedor */
-  max-width: 1000px; /* Ancho máximo para el contenedor */
-  /* margin: 0 auto;  Centra el contenedor en la página lo comentamos para que quede el margen a la derecha*/
+  max-width: 1200px; /* Ancho máximo para el contenedor */
+  margin: 0 auto; 
 }
 
 .news-grid {
@@ -16,13 +16,9 @@
   border-bottom: 1px solid #eaeaea; /* Línea inferior sutil */
   padding-bottom: 12px;
   text-align: left; /* Alineación del contenido a la izquierda */
-  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Transición suave */
+ 
 }
 
-.news-item:hover {
-
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada al hacer hover */
-}
 
 .news-img-container {
   width: 100%;
