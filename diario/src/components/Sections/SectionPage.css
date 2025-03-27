@@ -19,6 +19,9 @@
  
 }
 
+.news-item .news-author{
+  color: #555;
+}
 
 .news-img-container {
   width: 100%;

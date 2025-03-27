@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import './home.css';
+import { text } from '@fortawesome/fontawesome-svg-core';
 
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -158,6 +159,7 @@ const HomePage = () => {
 
   const renderNewsSection = (newsArray, sectionTitle) => (
     <div className="news-section" key={sectionTitle}>
+      
       <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
       <div className="news-grid">
         {newsArray.length > 0 && (
@@ -168,13 +170,16 @@ const HomePage = () => {
               </div>
             <div className="main-article-content">
               <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
+              <div>
+              
               {newsArray[0].autorData && (
                 <p className="author">
                   por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
                 </p>
               )}
               <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
-              <p className="article-preview" style={{color: '#555'}}>
+              </div>
+              <p className="article-preview">
                 {getFirstParagraphContent(newsArray[0].contenido)}
               </p>
             </div>
