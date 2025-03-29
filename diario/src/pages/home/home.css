@@ -51,24 +51,23 @@ img{
 }
 
 .section-title {
-  
   font-weight: 600;
   font-size: 11px;
-  color: black;
-  margin-bottom: 20px;
+  color: white;
   padding: 5px 15px;
-  background-color: #fff;
+  background-color: #156AA2; /* Solid blue background instead of white */
   border-left: 5px solid #156AA2;
   border-bottom: 1px solid #ddd;
   cursor: pointer;
-  
+  display: inline-block; /* Ensures background only covers the text */
 }
+
 
 .news-grid {
   display: grid;
   gap: 20px;
   grid-template-columns: 300px 1fr; /* Ancho fijo para artículo principal, resto para secundarios */
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #156AA2;
   padding-top: 20px;
 }
 

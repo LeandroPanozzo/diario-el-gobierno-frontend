@@ -2,7 +2,7 @@ import  { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, Link } from 'react-router-dom';
 import './TagPage.css';
-
+import api from '../../pages/context/axiosConfig';
 const TagPage = () => {
   const { tagName } = useParams();
   const [news, setNews] = useState([]);
@@ -14,7 +14,7 @@ const TagPage = () => {
   useEffect(() => {
     const fetchTagNews = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/diarioback/noticias/`);
+        const response = await api.get(`noticias/`);
 
         // Filter news by tag and status, and sort by publication date
         const filteredNews = response.data
@@ -41,7 +41,7 @@ const TagPage = () => {
       for (const newsItem of newsList) {
         if (newsItem.autor) {
           try {
-            const authorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${newsItem.autor}/`);
+            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
             newsItem.autorData = authorResponse.data;
           } catch (error) {
             console.error('Error fetching author data:', error);

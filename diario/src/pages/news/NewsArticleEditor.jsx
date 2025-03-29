@@ -10,13 +10,16 @@ import {
   DatePicker, 
   Popconfirm, 
   Layout,
-  Grid
+  Grid,
+  message
 } from 'antd';
 import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import './NewsManagement.css';
+import api from '../context/axiosConfig';
+
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -74,7 +77,6 @@ const NewsManagement = () => {
   ];
   
   useEffect(() => {
-    fetchNews();
     fetchEditors();
     fetchPublicationStates();
     verifyTrabajador();
@@ -87,28 +89,74 @@ const NewsManagement = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  
+  // Efecto adicional para cargar noticias cuando tengamos el ID del trabajador
+  useEffect(() => {
+    if (trabajadorId) {
+      fetchNews();
+    }
   }, [trabajadorId]);
 
+  const sortNewsByDate = (newsArray) => {
+    // Asegurarse de que estamos trabajando con una copia del array para no mutar el original
+    return [...newsArray].sort((a, b) => {
+      // Usar moment para parsear las fechas y compararlas
+      const dateA = moment(a.fecha_publicacion);
+      const dateB = moment(b.fecha_publicacion);
+      
+      // Ordenar descendente (más reciente primero)
+      return dateB.valueOf() - dateA.valueOf();
+    });
+  };
+
   const fetchNews = () => {
-    axios.get('http://127.0.0.1:8000/diarioback/noticias/')
+    api.get('noticias/')
       .then(response => {
+        // Asegurarse de que estamos usando el trabajadorId (no el UserProfile ID)
         const filteredNews = response.data
           .filter(noticia => 
             noticia.autor === trabajadorId || noticia.editor_en_jefe === trabajadorId
-          )
-          .sort((a, b) => moment(b.fecha_publicacion).diff(moment(a.fecha_publicacion)));
-        setNews(filteredNews);
+          );
+        
+        console.log(`Filtrando noticias para trabajador ID: ${trabajadorId}`);
+        filteredNews.forEach(noticia => {
+          console.log(`Noticia: ${noticia.nombre_noticia} - ID Autor: ${noticia.autor}, ID Editor: ${noticia.editor_en_jefe}, Fecha: ${noticia.fecha_publicacion}`);
+        });
+        
+        // Ordenar las noticias por fecha (más reciente primero)
+        const sortedNews = sortNewsByDate(filteredNews);
+        console.log('Noticias ordenadas:', sortedNews.map(n => ({ 
+          titulo: n.nombre_noticia, 
+          fecha: n.fecha_publicacion 
+        })));
+        
+        setNews(sortedNews);
+      })
+      .catch(error => {
+        console.error("Error al obtener noticias:", error);
+        message.error("No se pudieron cargar las noticias");
       });
   };
 
   const fetchEditors = () => {
-    axios.get('http://127.0.0.1:8000/diarioback/trabajadores/')
-      .then(response => setEditors(response.data));
+    api.get('trabajadores/')
+      .then(response => {
+        console.log("Todos los editores con IDs:", response.data);
+        setEditors(response.data);
+      })
+      .catch(error => {
+        console.error("Error al obtener editores:", error);
+        message.error("No se pudieron cargar los editores");
+      });
   };
 
   const fetchPublicationStates = () => {
-    axios.get('http://127.0.0.1:8000/diarioback/estados-publicacion/')
-      .then(response => setPublicationStates(response.data));
+    api.get('estados-publicacion/')
+      .then(response => setPublicationStates(response.data))
+      .catch(error => {
+        console.error("Error al obtener estados de publicación:", error);
+      });
   };
 
   const verifyTrabajador = () => {
@@ -118,14 +166,37 @@ const NewsManagement = () => {
       return;
     }
   
-    axios.get('http://127.0.0.1:8000/diarioback/user-profile/', {
+    // Primero obtener el perfil de usuario
+    api.get('user-profile/', {
       headers: { 'Authorization': `Bearer ${accessToken}` },
     }).then(response => {
-      console.log("Perfil recibido:", response.data); // Para depurar
-      // Verifica si el usuario es un trabajador (ajusta esta condición según tu API)
-      if (response.data.id) {
-        setTrabajadorId(response.data.id);
+      console.log("Perfil recibido:", response.data);
+      
+      // Si el perfil indica que es un trabajador, buscar el ID del trabajador correspondiente
+      if (response.data.es_trabajador) {
+        // Obtener la lista de trabajadores para encontrar el que corresponde al usuario actual
+        api.get('trabajadores/')
+          .then(trabajadoresResponse => {
+            // Buscar el trabajador que tiene el mismo usuario
+            const trabajador = trabajadoresResponse.data.find(
+              t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
+            );
+            
+            if (trabajador) {
+              console.log("Trabajador encontrado:", trabajador);
+              setTrabajadorId(trabajador.id); // ¡Usar el ID del trabajador, no el del UserProfile!
+            } else {
+              console.error("No se encontró un trabajador asociado a este perfil");
+              message.error("No se encontró un trabajador asociado a este perfil");
+              navigate('/home');
+            }
+          })
+          .catch(error => {
+            console.error("Error al obtener trabajadores:", error);
+            navigate('/home');
+          });
       } else {
+        message.warning("Este usuario no está registrado como trabajador");
         navigate('/home');
       }
     }).catch(error => {
@@ -155,6 +226,10 @@ const NewsManagement = () => {
       }
     } else {
       form.resetFields();
+      // Si es una nueva noticia, establecer el autor como el trabajador actual
+      form.setFieldsValue({
+        autor: trabajadorId
+      });
       setEditingId(null);
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
     }
@@ -172,8 +247,8 @@ const NewsManagement = () => {
         fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
         Palabras_clave: values.Palabras_clave || '',
-        autor: parseInt(values.autor, 10),
-        editor_en_jefe: parseInt(values.editor_en_jefe, 10),
+        autor: parseInt(values.autor, 10), // Aseguramos que sea número
+        editor_en_jefe: parseInt(values.editor_en_jefe, 10), // Aseguramos que sea número
         estado: parseInt(values.estado, 10),
         solo_para_subscriptores: values.solo_para_subscriptores || false,
         subtitulo: values.subtitulo || 'default content',
@@ -187,13 +262,13 @@ const NewsManagement = () => {
       };
   
       const submitData = () => {
-        const url = editingId 
-          ? `http://127.0.0.1:8000/diarioback/noticias/${editingId}/`
-          : 'http://127.0.0.1:8000/diarioback/noticias/';
+        const endpoint = editingId 
+          ? `noticias/${editingId}/`
+          : 'noticias/';
         
         const method = editingId ? 'put' : 'post';
-  
-        axios[method](url, noticiaEditada)
+      
+        api[method](endpoint, noticiaEditada)
           .finally(() => {
             setIsModalVisible(false);
             setTimeout(() => {
@@ -201,13 +276,20 @@ const NewsManagement = () => {
             }, 100);
           });
       };
-  
       submitData();
     });
   };
+
   const handleDelete = (id) => {
-    axios.delete(`http://127.0.0.1:8000/diarioback/noticias/${id}/`)
-      .then(() => window.location.reload());
+    api.delete(`noticias/${id}/`)
+      .then(() => {
+        message.success("Noticia eliminada con éxito");
+        fetchNews(); // Recargar las noticias en lugar de recargar la página
+      })
+      .catch(error => {
+        console.error("Error al eliminar la noticia:", error);
+        message.error("Error al eliminar la noticia");
+      });
   };
 
   const handleSearch = (e) => {
@@ -237,6 +319,13 @@ const NewsManagement = () => {
       dataIndex: 'nombre_noticia', 
       key: 'nombre_noticia',
       render: (text, record) => {
+        const authorObj = editors.find(editor => editor.id === record.autor);
+        const editorObj = editors.find(editor => editor.id === record.editor_en_jefe);
+        
+        console.log("News record:", record);
+        console.log("Author ID:", record.autor, "Author object:", authorObj);
+        console.log("Editor ID:", record.editor_en_jefe, "Editor object:", editorObj);
+        
         return (
           <div style={{ 
             display: 'flex', 
@@ -259,9 +348,9 @@ const NewsManagement = () => {
             }}>
               <strong>Autor:</strong>
               <span>
-                {editors.find(editor => editor.id === record.autor)
-                  ? `${editors.find(editor => editor.id === record.autor).nombre} ${editors.find(editor => editor.id === record.autor).apellido}`
-                  : 'Unknown'}
+                {authorObj
+                  ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
+                  : `Unknown (ID: ${record.autor})`}
               </span>
             </div>
   
@@ -272,9 +361,9 @@ const NewsManagement = () => {
             }}>
               <strong>Editor:</strong>
               <span>
-                {editors.find(editor => editor.id === record.editor_en_jefe)
-                  ? `${editors.find(editor => editor.id === record.editor_en_jefe).nombre} ${editors.find(editor => editor.id === record.editor_en_jefe).apellido}`
-                  : 'Unknown'}
+                {editorObj
+                  ? `${editorObj.nombre} ${editorObj.apellido} (ID: ${editorObj.id})`
+                  : `Unknown (ID: ${record.editor_en_jefe})`}
               </span>
             </div>
   
@@ -377,7 +466,6 @@ const NewsManagement = () => {
     // Remove other columns as this will be the single column for mobile view
   ];
 
-
   const renderCategoryOptions = () => {
     return CATEGORIAS.map(([value, labelOrSubcats]) => {
       if (Array.isArray(labelOrSubcats)) {
@@ -433,7 +521,7 @@ const NewsManagement = () => {
                 marginBottom: isMobile ? '16px' : 0
               }}
             >
-              Add News
+              Añadir Noticia
             </Button>
           </div>
         </Layout.Header>
@@ -453,7 +541,7 @@ const NewsManagement = () => {
       </Layout>
 
       <Modal
-        title={editingId ? "Edit News" : "Add News"}
+        title={editingId ? "Editar Noticia" : "Añadir Noticia"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={() => setIsModalVisible(false)}
@@ -466,52 +554,52 @@ const NewsManagement = () => {
         <Form form={form} layout="vertical">
           <Form.Item 
             name="nombre_noticia" 
-            label="Title" 
-            rules={[{ required: true, message: 'Please input the title!' }]}
+            label="Título" 
+            rules={[{ required: true, message: '¡Por favor ingrese el título!' }]}
           >
             <Input />
           </Form.Item>
 
-          <Form.Item name="autor" label="Author" rules={[{ required: true, message: 'Please select an author!' }]}>
+          <Form.Item name="autor" label="Autor" rules={[{ required: true, message: '¡Por favor seleccione un autor!' }]}>
             <Select
               showSearch
-              placeholder="Select an author"
+              placeholder="Seleccione un autor"
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
               {editors.map(editor => (
-                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido}`}</Option>
+                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
           </Form.Item>
 
-          <Form.Item name="editor_en_jefe" label="Editor-in-Chief">
+          <Form.Item name="editor_en_jefe" label="Editor en Jefe">
             <Select
               showSearch
-              placeholder="Select an editor-in-chief"
+              placeholder="Seleccione un editor en jefe"
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
               {editors.map(editor => (
-                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido}`}</Option>
+                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
           </Form.Item>
 
-          <Form.Item name="fecha_publicacion" label="Publication Date" rules={[{ required: true, message: 'Please select the publication date!' }]}>
+          <Form.Item name="fecha_publicacion" label="Fecha de Publicación" rules={[{ required: true, message: '¡Por favor seleccione la fecha de publicación!' }]}>
             <DatePicker />
           </Form.Item>
 
           <Form.Item 
             name="categorias" 
-            label="Categories"
-            rules={[{ required: true, message: 'Please select at least one category!' }]}
+            label="Categorías"
+            rules={[{ required: true, message: '¡Por favor seleccione al menos una categoría!' }]}
           >
             <Select
               mode="multiple"
-              placeholder="Select categories"
+              placeholder="Seleccione categorías"
               style={{ width: '100%' }}
             >
               {renderCategoryOptions()}
@@ -519,10 +607,10 @@ const NewsManagement = () => {
           </Form.Item>
 
           <Form.Item name="solo_para_subscriptores" valuePropName="checked">
-            <Checkbox>Subscribers Only</Checkbox>
+            <Checkbox>Solo para Suscriptores</Checkbox>
           </Form.Item>
 
-          <Form.Item name="estado" label="Status">
+          <Form.Item name="estado" label="Estado">
             <Select>
               {filteredPublicationStates.map(state => (
                 <Option key={state.id} value={state.id}>{state.nombre_estado}</Option>

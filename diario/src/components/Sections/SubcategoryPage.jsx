@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './SubcategoryPage.css';
-
+import api from '../../pages/context/axiosConfig';
 const SubcategoryPage = () => {
   const { subcategory } = useParams();
   const [news, setNews] = useState([]);
@@ -49,7 +49,7 @@ const SubcategoryPage = () => {
           throw new Error('Subcategoría no válida');
         }
 
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias/');
+        const response = await api.get('noticias/');
         const normalizedSubcategory = subcategory.toLowerCase().trim();
         
         const filteredNews = response.data
@@ -74,7 +74,7 @@ const SubcategoryPage = () => {
       for (const newsItem of newsList) {
         if (newsItem.autor) {
           try {
-            const authorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${newsItem.autor}/`);
+            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
             newsItem.autorData = authorResponse.data;
           } catch (error) {
             console.error('Error fetching author data:', error);

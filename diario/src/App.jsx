@@ -5,6 +5,9 @@ import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
 import DiarioHome from './pages/home/home';
 import Login from './pages/auth/login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import VerifyToken from './pages/auth/VerifyToken';
+import ResetPassword from './pages/auth/ResetPassword';
 import {Register } from './pages/auth/register';
 import Rol from './pages/workers/rol';
 import Trabajadores from './pages/workers/Trabajadores'
@@ -31,10 +34,12 @@ function App() {
           <Route path="/" element={<Navigate to="/home" />} />
           <Route path="/home" element={<DiarioHome />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-token" element={<VerifyToken />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/rol" element={<Rol />} />
           <Route path="/ed" element={<NewsArticleEditor />} />
-          <Route path="/trabajadores" element={<Trabajadores />} />
           <Route path="/edit-content/:id" element={<EditNewsContent />} />
           <Route path="/noticia/:id" element={<NewsDetailPage />} />
           <Route path="/seccion/:sectionName" element={<SectionPage />} />

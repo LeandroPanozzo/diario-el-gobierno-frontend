@@ -2,7 +2,7 @@ import  { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, Link } from 'react-router-dom';
 import './SectionPage.css';
-
+import api from '../../pages/context/axiosConfig';
 const SectionPage = () => {
   const { sectionName } = useParams();
   const [news, setNews] = useState([]);
@@ -35,7 +35,7 @@ const SectionPage = () => {
           throw new Error('Sección no válida');
         }
 
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias/');
+        const response = await api.get('noticias/');
         const normalizedSectionName = sectionName.toLowerCase().trim();
         
         // Obtener las subcategorías correspondientes a la sección principal
@@ -68,7 +68,7 @@ const SectionPage = () => {
       for (const newsItem of newsList) {
         if (newsItem.autor) {
           try {
-            const authorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${newsItem.autor}/`);
+            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
             newsItem.autorData = authorResponse.data;
           } catch (error) {
             console.error('Error fetching author data:', error);

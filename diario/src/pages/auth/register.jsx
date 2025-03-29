@@ -1,7 +1,7 @@
-import  { useState } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom'; // Importar Link para la navegación
-import './register.css'; // Importa el archivo CSS
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import './register.css';
+import  api from '../context/axiosConfig';
 
 export const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +24,9 @@ export const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Limpiar errores previos
+    setError(null);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -31,7 +34,7 @@ export const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/diarioback/register/', {
+      const response = await api.post('register/', {
         username: formData.username,
         email: formData.email,
         password: formData.password
@@ -44,14 +47,35 @@ export const Register = () => {
 
         setSuccess(true);
         setTimeout(() => {
-          navigate('/login'); // Redirige al inicio de sesión después del registro
-        }, 2000); // Espera 2 segundos antes de redirigir
+          navigate('/login');
+        }, 2000);
       }
     } catch (err) {
+      console.error('Error de registro:', err.response);
+      
+      // Verificar si hay un error específico sobre el correo electrónico
       if (err.response && err.response.data) {
-        setError(err.response.data.message || 'Error en el registro');
+        if (err.response.data.email) {
+          // Si el error es específicamente sobre el email
+          setError(`Ya existe una cuenta con este correo electrónico: ${formData.email}`);
+        } else if (err.response.data.username) {
+          // Si el error es sobre el nombre de usuario
+          setError(`El nombre de usuario ${formData.username} ya está en uso`);
+        } else if (err.response.data.message) {
+          // Mensaje general
+          setError(err.response.data.message);
+        } else if (err.response.data.error) {
+          // Otro formato de error
+          setError(err.response.data.error);
+        } else if (typeof err.response.data === 'string') {
+          // Si el backend devuelve directamente un string
+          setError(err.response.data);
+        } else {
+          // Fallback para otros errores
+          setError('Ha ocurrido un error durante el registro. Por favor, inténtalo de nuevo.');
+        }
       } else {
-        setError('Error en el servidor');
+        setError('Error en el servidor. Por favor, inténtalo más tarde.');
       }
     }
   };
@@ -111,7 +135,6 @@ export const Register = () => {
           <button type="submit" style={{marginTop: '10px'}}>Registrar</button>
         </form>
 
-        {/* Aquí agregamos el enlace para iniciar sesión */}
         <p className="login-link">
           ¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link>
         </p>
@@ -119,4 +142,3 @@ export const Register = () => {
     </div>
   );
 };
-

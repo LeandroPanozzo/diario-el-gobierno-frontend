@@ -4,6 +4,7 @@ import { Button, message, Form, Input, Checkbox, Select } from 'antd';
 import { Editor } from '@tinymce/tinymce-react';
 import axios from 'axios';
 import './EditNewsContent.css';
+import api from '../../pages/context/axiosConfig';
 
 export const EditNewsContent = () => {
   const { id } = useParams();
@@ -36,7 +37,7 @@ export const EditNewsContent = () => {
     
       try {
         // Use the same endpoint as in UserContext
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/current-user/', {
+        const response = await api.get('current-user/', {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
@@ -57,7 +58,7 @@ export const EditNewsContent = () => {
 
     const fetchContent = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/diarioback/noticias/${id}/`);
+        const response = await api.get(`noticias/${id}/`);
         const { contenido, imagen_cabecera, subtitulo, ...rest } = response.data;
 
         setContent(contenido);
@@ -81,7 +82,7 @@ export const EditNewsContent = () => {
     const formData = new FormData();
     formData.append('image', blobInfo.blob(), blobInfo.filename());
 
-    axios.post('http://127.0.0.1:8000/diarioback/upload_image/', formData, {
+    api.post('upload_image/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -152,7 +153,7 @@ export const EditNewsContent = () => {
       const updatedContent = removeImageFromContent(content, headerImage);
       formData.append('contenido', updatedContent);
 
-      const response = await axios.put(`http://127.0.0.1:8000/diarioback/noticias/${id}/`, formData, {
+      const response = await api.put(`noticias/${id}/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

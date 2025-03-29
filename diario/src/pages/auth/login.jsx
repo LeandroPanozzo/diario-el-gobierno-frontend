@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from '../context/axiosConfig' //cuidado con esto
+import axios from '../context/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext'; 
 import './login.css';
@@ -111,6 +111,9 @@ const Login = () => {
                         {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                     </button>
                 </form>
+                <div className="forgot-password">
+                        <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+                </div>
                 <p className="signup-text">
                     ¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link>
                 </p>

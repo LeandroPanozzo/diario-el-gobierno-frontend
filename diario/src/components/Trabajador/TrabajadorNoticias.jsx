@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './TrabajadorNoticias.css'; // Asegúrate de tener estilos aquí
-
+import api from '../../pages/context/axiosConfig';
 const TrabajadorNoticias = () => {
   const { trabajadorId } = useParams();
   const [noticias, setNoticias] = useState([]);
@@ -13,7 +13,7 @@ const TrabajadorNoticias = () => {
   useEffect(() => {
     const fetchTrabajador = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${trabajadorId}/`);
+        const response = await api.get(`trabajadores/${trabajadorId}/`);
         setTrabajador(response.data);
       } catch (error) {
         console.error('Error fetching worker details:', error);
@@ -22,7 +22,7 @@ const TrabajadorNoticias = () => {
 
     const fetchNoticias = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/diarioback/noticias/?autor=${trabajadorId}`);
+        const response = await api.get(`noticias/?autor=${trabajadorId}`);
         setNoticias(response.data);
       } catch (error) {
         setError('Error al cargar las noticias.');

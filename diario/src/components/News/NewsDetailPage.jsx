@@ -5,6 +5,7 @@ import { useUser } from '../../pages/context/UserContext';
 import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
+import api from '../../pages/context/axiosConfig';
 
 const NewsDetail = () => {
   const { id } = useParams();
@@ -189,7 +190,7 @@ const processContent = (htmlContent) => {
   useEffect(() => {
     const fetchNewsData = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/diarioback/noticias/${id}/`);
+        const response = await api.get(`noticias/${id}/`);
         const news = response.data;
         setNewsData(news);
 
@@ -198,12 +199,12 @@ const processContent = (htmlContent) => {
         }
 
         if (news.autor) {
-          const authorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${news.autor}/`);
+          const authorResponse = await api.get(`trabajadores/${news.autor}/`);
           setAuthorData(authorResponse.data);
         }
         
         if (news.editor_en_jefe) {
-          const editorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${news.editor_en_jefe}/`);
+          const editorResponse = await api.get(`trabajadores/${news.editor_en_jefe}/`);
           setEditorData(editorResponse.data);
         }
       } catch (error) {
@@ -214,7 +215,7 @@ const processContent = (htmlContent) => {
     const fetchTopNews = async () => {
       try {
         // Esta URL debe apuntar a tu endpoint que devuelve las noticias más leídas
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias/mas_vistas/');
+        const response = await api.get('noticias/mas_vistas/');
         // Filtramos para no mostrar la noticia actual entre las más leídas
         const filteredNews = response.data.filter(news => news.id.toString() !== id);
         // Tomamos solo las primeras 3
@@ -235,7 +236,7 @@ const processContent = (htmlContent) => {
 
   const handleDeleteComment = async (commentId) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/diarioback/comments/${commentId}/`, {
+      await api.delete(`comments/${commentId}/`, {
         headers: {
           'Authorization': `Bearer ${user.access}`
         }
@@ -469,13 +470,13 @@ const processContent = (htmlContent) => {
   </div>
 </div>
 
-      <h3 className="comments-title">Comentarios</h3>
-      <FacebookComments 
-        url={`http://127.0.0.1:8000/diarioback/noticias/${id}/`} 
-        numPosts={5}
-        canDeleteComments={user && user.es_trabajador}
-        onDeleteComment={handleDeleteComment}
-      />
+<h3 className="comments-title">Comentarios</h3>
+<FacebookComments 
+  url={`${api.defaults.baseURL}noticias/${id}/`} 
+  numPosts={5}
+  canDeleteComments={user && user.es_trabajador}
+  onDeleteComment={handleDeleteComment}
+/>
 
       {/* Sección de noticias más leídas */}
       <div className="most-read-section" style={{ 
@@ -487,7 +488,6 @@ const processContent = (htmlContent) => {
         margin: '40px auto'
       }}>
         <h3 className="most-read-title" style={{
-          fontFamily: "'Adelle Semibold Cnd'",
           fontSize: '24px',
           fontWeight: 'bold',
           color: '#0066b2',

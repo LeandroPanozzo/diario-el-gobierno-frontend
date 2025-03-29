@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useUser } from '../../pages/context/UserContext';
-
+import api from '../../pages/context/axiosConfig';
 const NewsReactions = ({ noticiaId }) => {
   const { user } = useUser();
   const [reacciones, setReacciones] = useState({
@@ -26,11 +26,11 @@ const NewsReactions = ({ noticiaId }) => {
 
   const fetchReactions = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/diarioback/noticias/${noticiaId}/reacciones/`);
+      const response = await api.get(`noticias/${noticiaId}/reacciones/`);
       setReacciones(response.data);
       if (user) {
-        const userResponse = await axios.get(
-          `http://127.0.0.1:8000/diarioback/noticias/${noticiaId}/mi-reaccion/`,
+        const userResponse = await api.get(
+          `noticias/${noticiaId}/mi-reaccion/`,
           { headers: { Authorization: `Bearer ${user.access}` } }
         );
         setUserReaction(userResponse.data.tipo_reaccion);
@@ -48,12 +48,12 @@ const NewsReactions = ({ noticiaId }) => {
 
     try {
       if (userReaction === tipo) {
-        await axios.delete(`http://127.0.0.1:8000/diarioback/noticias/${noticiaId}/reacciones/`, {
+        await api.delete(`noticias/${noticiaId}/reacciones/`, {
           headers: { Authorization: `Bearer ${user.access}` }
         });
         setUserReaction(null);
       } else {
-        await axios.post(`http://127.0.0.1:8000/diarioback/noticias/${noticiaId}/reacciones/`, 
+        await api.post(`noticias/${noticiaId}/reacciones/`, 
           { tipo_reaccion: tipo }, 
           { headers: { Authorization: `Bearer ${user.access}` } }
         );

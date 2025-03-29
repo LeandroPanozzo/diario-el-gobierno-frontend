@@ -5,6 +5,7 @@ import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import './home.css';
 import { text } from '@fortawesome/fontawesome-svg-core';
+import  api from '../context/axiosConfig';
 
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -56,7 +57,7 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFeaturedNews = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias');
+        const response = await api.get('noticias');
         const filteredNews = response.data.filter(
           newsItem => newsItem.estado === 3 && newsItem.categorias.includes('Portada')
         );
@@ -79,7 +80,7 @@ const HomePage = () => {
       };
 
       try {
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias');
+        const response = await api.get('noticias');
         const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
         await fetchAuthorsAndEditors(filteredNews);
 
@@ -104,7 +105,7 @@ const HomePage = () => {
 
     const fetchRecentNews = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias');
+        const response = await api.get('noticias');
         const sortedNews = response.data
           .filter(newsItem => newsItem.estado === 3)
           .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
@@ -117,7 +118,7 @@ const HomePage = () => {
     };
     const fetchMostViewedNews = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/diarioback/noticias/mas_vistas/');
+        const response = await api.get('noticias/mas_vistas/');
         const filteredNews = response.data
           .filter(newsItem => newsItem.estado === 3)
           .sort((a, b) => b.contador_visitas - a.contador_visitas)
@@ -134,7 +135,7 @@ const HomePage = () => {
       for (const newsItem of newsList) {
         if (newsItem.autor) {
           try {
-            const authorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${newsItem.autor}/`);
+            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
             newsItem.autorData = authorResponse.data;
           } catch (error) {
             console.error('Error fetching author data:', error);
@@ -142,7 +143,7 @@ const HomePage = () => {
         }
         if (newsItem.editor_en_jefe) {
           try {
-            const editorResponse = await axios.get(`http://127.0.0.1:8000/diarioback/trabajadores/${newsItem.editor_en_jefe}/`);
+            const editorResponse = await api.get(`trabajadores/${newsItem.editor_en_jefe}/`);
             newsItem.editorData = editorResponse.data;
           } catch (error) {
             console.error('Error fetching editor data:', error);

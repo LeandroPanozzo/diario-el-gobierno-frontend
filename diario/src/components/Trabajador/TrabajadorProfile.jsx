@@ -3,7 +3,7 @@ import { Form, Input, Button, message, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
+import api from '../../pages/context/axiosConfig';
 const TrabajadorProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ const TrabajadorProfile = () => {
     if (!accessToken) return;
   
     try {
-      const response = await axios.get('http://127.0.0.1:8000/diarioback/user-profile/', {
+      const response = await api.get('user-profile/', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
         },
@@ -78,7 +78,7 @@ const TrabajadorProfile = () => {
     
     try {
       setLoading(true);
-      await axios.put('http://127.0.0.1:8000/diarioback/user-profile/', formData, {
+      await api.put('user-profile/', formData, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'multipart/form-data',

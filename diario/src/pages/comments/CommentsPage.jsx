@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Input, Button, List, message, Popconfirm } from 'antd';
 import axios from 'axios';
 import { useUser } from '../context/UserContext'; // Adjust the path as needed
-
+import  api from '../context/axiosConfig';
 const { TextArea } = Input;
 
 const CommentsPage = () => {
@@ -29,16 +29,9 @@ const CommentsPage = () => {
   const fetchComments = async () => {
     try {
       console.log(`Fetching comments for ID: ${id}`);
-      const url = `http://127.0.0.1:8000/diarioback/noticias/${id}/comentarios/`;
-      console.log(`Request URL: ${url}`);
       
-      // Use the authenticated axios instance or add the token
-      const accessToken = localStorage.getItem('access');
-      const response = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
+      // Usar api en lugar de axios y la URL completa
+      const response = await api.get(`noticias/${id}/comentarios/`);
       
       setComments(response.data);
     } catch (error) {
@@ -61,8 +54,8 @@ const CommentsPage = () => {
 
     try {
       const accessToken = localStorage.getItem('access');
-      await axios.post(
-        `http://127.0.0.1:8000/diarioback/noticias/${id}/comentarios/`, 
+      await api.post(
+        `noticias/${id}/comentarios/`, 
         {
           noticia: id,
           contenido: values.comment,
@@ -92,8 +85,8 @@ const CommentsPage = () => {
   const handleDelete = async (commentId) => {
     try {
       const accessToken = localStorage.getItem('access');
-      await axios.delete(
-        `http://127.0.0.1:8000/diarioback/noticias/${id}/comentarios/${commentId}/`,
+      await api.delete(
+        `noticias/${id}/comentarios/${commentId}/`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`
