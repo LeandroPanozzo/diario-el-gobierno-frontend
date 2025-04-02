@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from '../context/axiosConfig';
-import './login.css';
+import './Login.css';
 
 const VerifyToken = () => {
     const location = useLocation();
