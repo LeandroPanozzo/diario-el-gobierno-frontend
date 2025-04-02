@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'https://diario-el-gobierno-backend.onrender.com/', // Mantener tu configuración de URL
+    baseURL: 'https://diario-el-gobierno-backend.onrender.com/diarioback/', // Mantener tu configuración de URL
     headers: {
         'Content-Type': 'application/json',
     },
@@ -37,7 +37,7 @@ instance.interceptors.response.use(
                 if (refreshToken) {
                     console.log("Intentando refrescar el token...");
                     const response = await axios.post(
-                        'https://diario-el-gobierno-backend.onrender.com/token/refresh/', 
+                        'https://diario-el-gobierno-backend.onrender.com/diarioback/token/refresh/', 
                         { refresh: refreshToken }
                     );
                     const newAccessToken = response.data.access;
