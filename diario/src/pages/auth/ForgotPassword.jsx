@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from '../context/axiosConfig';
-import './login.css'; // Reutilizamos los estilos de login
+import './Login.css'; // Reutilizamos los estilos de login
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
