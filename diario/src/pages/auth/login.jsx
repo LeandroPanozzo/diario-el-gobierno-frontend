@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from '../context/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext'; 
-import './login.css';
+import './Login.css';
 
 const Login = () => {
     const { setUser } = useUser();
