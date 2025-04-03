@@ -172,33 +172,27 @@ const NewsManagement = () => {
     }).then(response => {
       console.log("Perfil recibido:", response.data);
       
-      // Si el perfil indica que es un trabajador, buscar el ID del trabajador correspondiente
-      if (response.data.es_trabajador) {
-        // Obtener la lista de trabajadores para encontrar el que corresponde al usuario actual
-        api.get('trabajadores/')
-          .then(trabajadoresResponse => {
-            // Buscar el trabajador que tiene el mismo usuario
-            const trabajador = trabajadoresResponse.data.find(
-              t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
-            );
-            
-            if (trabajador) {
-              console.log("Trabajador encontrado:", trabajador);
-              setTrabajadorId(trabajador.id); // ¡Usar el ID del trabajador, no el del UserProfile!
-            } else {
-              console.error("No se encontró un trabajador asociado a este perfil");
-              message.error("No se encontró un trabajador asociado a este perfil");
-              navigate('/home');
-            }
-          })
-          .catch(error => {
-            console.error("Error al obtener trabajadores:", error);
+      // Obtener la lista de trabajadores para encontrar el que corresponde al usuario actual
+      api.get('trabajadores/')
+        .then(trabajadoresResponse => {
+          // Buscar el trabajador que tiene el mismo usuario
+          const trabajador = trabajadoresResponse.data.find(
+            t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
+          );
+          
+          if (trabajador) {
+            console.log("Trabajador encontrado:", trabajador);
+            setTrabajadorId(trabajador.id); // Usar el ID del trabajador
+          } else {
+            console.error("No se encontró un trabajador asociado a este perfil");
+            message.error("No se encontró un trabajador asociado a este perfil");
             navigate('/home');
-          });
-      } else {
-        message.warning("Este usuario no está registrado como trabajador");
-        navigate('/home');
-      }
+          }
+        })
+        .catch(error => {
+          console.error("Error al obtener trabajadores:", error);
+          navigate('/home');
+        });
     }).catch(error => {
       console.error("Error al verificar el perfil:", error);
       navigate('/home');
