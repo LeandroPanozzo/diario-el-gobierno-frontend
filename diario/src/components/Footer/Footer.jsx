@@ -21,7 +21,8 @@ function Footer() {
             <h3>Equipo Editorial</h3>
             <ul>
               <li>Director periodístico: Francisco Sanz Specogna</li>
-              <li>Coordinador de edición: Santiago Raga</li>
+              <li>Coordinador de edición: Santiago Ragaglia</li>
+              <li>Coordinadores de redacción: Pablo Fiotto Berardi e Ivan Nelegatti</li>
               <li>Editor de la revista “Sociedad”: Gabriel Bernal Gallegos</li>
               <li>Subeditor de la revista “Sociedad”: Juan Cárdenas</li>
             </ul>
@@ -32,7 +33,7 @@ function Footer() {
             <h3>Redes Sociales</h3>
             <div className="social-icons">
             <a
-        href="https://www.linkedin.com"
+        href="https://www.linkedin.com/company/diario-el-gobierno-ar/posts/?feedView=all"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
@@ -41,7 +42,7 @@ function Footer() {
         <i className="ri-linkedin-fill"></i>
       </a>
       <a
-        href="https://www.instagram.com"
+        href="https://www.instagram.com/diarioelgobierno.ar/"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
@@ -50,7 +51,7 @@ function Footer() {
        <i className="ri-instagram-line"></i>
       </a>
       <a
-        href="https://www.instagram.com"
+        href="https://x.com/elgobierno_ar?t=_1gDxj8kEbKcuTXMOarWgA&s=08"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
@@ -59,6 +60,23 @@ function Footer() {
        <i className="ri-twitter-x-line"></i>
       </a>
             </div>
+          </div>
+        
+          {/* Contacto - Nueva sección */}
+          <div className="footer-section">
+            <h3>Contacto</h3>
+            <ul>
+              <li>
+                <a href="mailto:diarioelgobiernoargentina@gmail.com" style={{color: '#333'}}>
+                  diarioelgobiernoargentina@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="mailto:redaccion@diarioelgobierno.pe" style={{color: '#333'}}>
+                  redaccion@diarioelgobierno.pe
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
