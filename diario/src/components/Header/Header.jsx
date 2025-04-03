@@ -134,7 +134,7 @@ function Header() {
    const SocialIcons = () => (
     <div className="social-icons-container">
       <a
-        href="https://www.linkedin.com"
+        href="https://www.linkedin.com/company/diario-el-gobierno-ar/posts/?feedView=all"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
@@ -143,7 +143,7 @@ function Header() {
         <i className="ri-linkedin-fill"></i>
       </a>
       <a
-        href="https://www.instagram.com"
+        href="https://www.instagram.com/diarioelgobierno.ar/"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
@@ -152,7 +152,7 @@ function Header() {
        <i className="ri-instagram-line"></i>
       </a>
       <a
-        href="https://www.instagram.com"
+        href="https://x.com/elgobierno_ar?t=_1gDxj8kEbKcuTXMOarWgA&s=08"
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
