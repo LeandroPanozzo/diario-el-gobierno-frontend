@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
 import './Header.css';
 import logo from '../../assets/images/EG 1.jpg';
+import api from '../../pages/context/axiosConfig';
 
 function Header() {
   const { user, setUser, logout } = useUser();
@@ -67,6 +68,12 @@ function Header() {
       external: true,
       subcategorias: [],
     },
+    {
+      nombre: 'Noticias Pasadas',
+      path: 'https://iky.b07.myftpupload.com/',
+      external: true,
+      subcategorias: [],
+    },
   ];
 
   useEffect(() => {
@@ -80,7 +87,7 @@ function Header() {
         setUser(parsedUserData);
       }
       
-      fetchUserProfile(accessToken);
+      fetchUserProfile();  // Sin pasar el accessToken como parámetro
     }
   }, []);
 
@@ -94,22 +101,17 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const fetchUserProfile = async (accessToken) => {
+  const fetchUserProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8000/diarioback/user-profile/', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-  
-      if (!response.ok) throw new Error('Error fetching user profile');
-  
-      const data = await response.json();
+      const response = await api.get('user-profile/');
+      
       // preservamos el status trabajador del local storage si existe
       const storedUserData = JSON.parse(localStorage.getItem('user') || '{}');
       
       // Update user context con profile data 
       const updatedUserData = { 
-        ...data,
-        trabajador: storedUserData.trabajador ?? data.trabajador ?? false 
+        ...response.data,
+        trabajador: storedUserData.trabajador ?? response.data.trabajador ?? false 
       };
       
       // guardamos en local storage para perisistir el status
