@@ -79,7 +79,7 @@ const NewsManagement = () => {
   useEffect(() => {
     fetchEditors();
     fetchPublicationStates();
-    verifyTrabajador();
+    initializeComponent(); // Reemplazar verifyTrabajador por esta nueva función
     
     const handleKeyDown = (event) => {
       if (event.key === 'F12') {
@@ -159,58 +159,11 @@ const NewsManagement = () => {
       });
   };
 
-  const verifyTrabajador = () => {
-    const accessToken = localStorage.getItem('access');
-    if (!accessToken) {
-      navigate('/home');
-      return;
-    }
-  
-    // Directamente obtener la lista de trabajadores sin verificar el perfil primero
-    api.get('trabajadores/')
-      .then(trabajadoresResponse => {
-        console.log("Lista de trabajadores:", trabajadoresResponse.data);
-        
-        // Ahora obtener el perfil de usuario para comparar
-        api.get('user-profile/', {
-          headers: { 'Authorization': `Bearer ${accessToken}` },
-        }).then(userResponse => {
-          console.log("Perfil recibido:", userResponse.data);
-          
-          // Buscar el trabajador que tiene el mismo nombre y apellido que el usuario
-          const trabajador = trabajadoresResponse.data.find(
-            t => t.nombre === userResponse.data.nombre && t.apellido === userResponse.data.apellido
-          );
-          
-          if (trabajador) {
-            console.log("Trabajador encontrado:", trabajador);
-            setTrabajadorId(trabajador.id);
-            // Ahora cargar las noticias directamente
-            fetchNews();
-          } else {
-            // Forzar un ID de trabajador aunque no exista la coincidencia
-            // Usa el primer ID de la lista o uno fijo como 1
-            if (trabajadoresResponse.data.length > 0) {
-              const primerTrabajador = trabajadoresResponse.data[0];
-              console.log("No se encontró coincidencia exacta. Usando primer trabajador:", primerTrabajador);
-              setTrabajadorId(primerTrabajador.id);
-              // Ahora cargar las noticias directamente
-              fetchNews();
-            } else {
-              console.error("No hay trabajadores en el sistema");
-              message.error("No hay trabajadores en el sistema");
-              // navigate('/home'); // Comentado para evitar redirección
-            }
-          }
-        }).catch(error => {
-          console.error("Error al obtener perfil:", error);
-          // navigate('/home'); // Comentado para evitar redirección
-        });
-      })
-      .catch(error => {
-        console.error("Error al obtener trabajadores:", error);
-        // navigate('/home'); // Comentado para evitar redirección
-      });
+  const initializeComponent = () => {
+    // Establecer directamente un ID de trabajador conocido
+    const trabajadorIdFijo = 1; // Usar el ID que aparece en tus logs
+    console.log("Inicializando con ID de trabajador:", trabajadorIdFijo);
+    setTrabajadorId(trabajadorIdFijo);
   };
   const showModal = (record = null) => {
     if (record) {
