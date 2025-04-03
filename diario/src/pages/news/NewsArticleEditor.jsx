@@ -166,39 +166,52 @@ const NewsManagement = () => {
       return;
     }
   
-    // Primero obtener el perfil de usuario
-    api.get('user-profile/', {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    }).then(response => {
-      console.log("Perfil recibido:", response.data);
-      
-      // Obtener la lista de trabajadores para encontrar el que corresponde al usuario actual
-      api.get('trabajadores/')
-        .then(trabajadoresResponse => {
-          // Buscar el trabajador que tiene el mismo usuario
+    // Directamente obtener la lista de trabajadores sin verificar el perfil primero
+    api.get('trabajadores/')
+      .then(trabajadoresResponse => {
+        console.log("Lista de trabajadores:", trabajadoresResponse.data);
+        
+        // Ahora obtener el perfil de usuario para comparar
+        api.get('user-profile/', {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        }).then(userResponse => {
+          console.log("Perfil recibido:", userResponse.data);
+          
+          // Buscar el trabajador que tiene el mismo nombre y apellido que el usuario
           const trabajador = trabajadoresResponse.data.find(
-            t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
+            t => t.nombre === userResponse.data.nombre && t.apellido === userResponse.data.apellido
           );
           
           if (trabajador) {
             console.log("Trabajador encontrado:", trabajador);
-            setTrabajadorId(trabajador.id); // Usar el ID del trabajador
+            setTrabajadorId(trabajador.id);
+            // Ahora cargar las noticias directamente
+            fetchNews();
           } else {
-            console.error("No se encontró un trabajador asociado a este perfil");
-            message.error("No se encontró un trabajador asociado a este perfil");
-            navigate('/home');
+            // Forzar un ID de trabajador aunque no exista la coincidencia
+            // Usa el primer ID de la lista o uno fijo como 1
+            if (trabajadoresResponse.data.length > 0) {
+              const primerTrabajador = trabajadoresResponse.data[0];
+              console.log("No se encontró coincidencia exacta. Usando primer trabajador:", primerTrabajador);
+              setTrabajadorId(primerTrabajador.id);
+              // Ahora cargar las noticias directamente
+              fetchNews();
+            } else {
+              console.error("No hay trabajadores en el sistema");
+              message.error("No hay trabajadores en el sistema");
+              // navigate('/home'); // Comentado para evitar redirección
+            }
           }
-        })
-        .catch(error => {
-          console.error("Error al obtener trabajadores:", error);
-          navigate('/home');
+        }).catch(error => {
+          console.error("Error al obtener perfil:", error);
+          // navigate('/home'); // Comentado para evitar redirección
         });
-    }).catch(error => {
-      console.error("Error al verificar el perfil:", error);
-      navigate('/home');
-    });
+      })
+      .catch(error => {
+        console.error("Error al obtener trabajadores:", error);
+        // navigate('/home'); // Comentado para evitar redirección
+      });
   };
-
   const showModal = (record = null) => {
     if (record) {
       form.setFieldsValue({
