@@ -203,7 +203,7 @@ export const EditNewsContent = () => {
         </Select>
       </Form.Item>
       <Editor
-        apiKey="n4p00cmzpfhi984ei5sgacg93brnu89dco7io30mvon29srl"
+        apiKey="wfuakisi2erm0enlsf95479tf67vs96bfgb25e5ny5k77qit"
         value={content}
         init={{
           height: 500,

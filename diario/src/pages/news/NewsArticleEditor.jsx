@@ -390,7 +390,7 @@ const NewsManagement = () => {
               alignItems: 'center',
               gap: '10px'
             }}>
-              <strong>Palabras Clave (separe cada palabra clave por una coma "," ej: Argentina,Ultima hora):</strong>
+              <strong>Palabras Clave:</strong>
               <span>{record.Palabras_clave || 'N/A'}</span>
             </div>
   
@@ -618,7 +618,7 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="Palabras_clave" label="Palabras clave">
+          <Form.Item name="Palabras_clave" label="Palabras clave (separe cada palabra clave por una coma ',' ej: Argentina,Ultima hora)">
             <TextArea rows={4} />
           </Form.Item>
         </Form>
