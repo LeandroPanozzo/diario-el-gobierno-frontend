@@ -159,31 +159,32 @@ const NewsManagement = () => {
       });
   };
 
-  verifyTrabajador = () => {
+  const verifyTrabajador = () => {
     const accessToken = localStorage.getItem('access');
     if (!accessToken) {
       navigate('/home');
       return;
     }
-    
-    // Temporarily bypass the worker check for testing
+  
+    // Primero obtener el perfil de usuario
     api.get('user-profile/', {
       headers: { 'Authorization': `Bearer ${accessToken}` },
     }).then(response => {
       console.log("Perfil recibido:", response.data);
       
-      // Comment out the check temporarily
-      // if (response.data.es_trabajador) {
-        // Always get trabajador ID regardless of es_trabajador status
+      // Si el perfil indica que es un trabajador, buscar el ID del trabajador correspondiente
+      if (response.data.es_trabajador) {
+        // Obtener la lista de trabajadores para encontrar el que corresponde al usuario actual
         api.get('trabajadores/')
           .then(trabajadoresResponse => {
+            // Buscar el trabajador que tiene el mismo usuario
             const trabajador = trabajadoresResponse.data.find(
               t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
             );
             
             if (trabajador) {
               console.log("Trabajador encontrado:", trabajador);
-              setTrabajadorId(trabajador.id);
+              setTrabajadorId(trabajador.id); // ¡Usar el ID del trabajador, no el del UserProfile!
             } else {
               console.error("No se encontró un trabajador asociado a este perfil");
               message.error("No se encontró un trabajador asociado a este perfil");
@@ -194,10 +195,10 @@ const NewsManagement = () => {
             console.error("Error al obtener trabajadores:", error);
             navigate('/home');
           });
-      // } else {
-      //   message.warning("Este usuario no está registrado como trabajador");
-      //   navigate('/home');
-      // }
+      } else {
+        message.warning("Este usuario no está registrado como trabajador");
+        navigate('/home');
+      }
     }).catch(error => {
       console.error("Error al verificar el perfil:", error);
       navigate('/home');
