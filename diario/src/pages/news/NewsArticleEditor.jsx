@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import './NewsManagement.css';
 import api from '../context/axiosConfig';
 
+
 const { Option } = Select;
 const { TextArea } = Input;
 const { useBreakpoint } = Grid;
@@ -34,7 +35,6 @@ const NewsManagement = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [trabajadorId, setTrabajadorId] = useState(null);
-  const [isEditorEnJefe, setIsEditorEnJefe] = useState(false); // Nuevo estado para rastrear si es editor en jefe
   const navigate = useNavigate();
   const screens = useBreakpoint();
   const [isMobile, setIsMobile] = useState(false);
@@ -84,7 +84,6 @@ const NewsManagement = () => {
     const handleKeyDown = (event) => {
       if (event.key === 'F12') {
         console.log('ID del trabajador:', trabajadorId);
-        console.log('¿Es editor en jefe?:', isEditorEnJefe);
       }
     };
 
@@ -114,7 +113,7 @@ const NewsManagement = () => {
   const fetchNews = () => {
     api.get('noticias/')
       .then(response => {
-        // Asegurarse de que estamos usando el trabajadorId
+        // Asegurarse de que estamos usando el trabajadorId (no el UserProfile ID)
         const filteredNews = response.data
           .filter(noticia => 
             noticia.autor === trabajadorId || noticia.editor_en_jefe === trabajadorId
@@ -160,21 +159,6 @@ const NewsManagement = () => {
       });
   };
 
-  // Función para determinar si un trabajador es editor en jefe
-  const checkIfEditorEnJefe = (trabajadorId, trabajadores) => {
-    // Aquí deberías implementar la lógica para determinar si el trabajador es editor en jefe
-    // Esto podría depender de un campo en el objeto trabajador o de otra información
-    // Por simplicidad, asumimos que hay un campo 'cargo' que indica si es editor en jefe
-    const trabajador = trabajadores.find(t => t.id === trabajadorId);
-    
-    // Si el trabajador existe y tiene un campo que indica que es editor en jefe
-    // (asumiendo que hay un campo 'cargo' o similar que indica si es editor en jefe)
-    return trabajador && (trabajador.cargo === 'Editor en Jefe' || trabajador.es_editor_en_jefe === true);
-    
-    // Si no puedes determinar esto basándote en los datos actuales,
-    // deberías modificar el backend para incluir esta información
-  };
-
   const verifyTrabajador = () => {
     const accessToken = localStorage.getItem('access');
     if (!accessToken) {
@@ -186,18 +170,6 @@ const NewsManagement = () => {
     const storedTrabajadorId = localStorage.getItem('trabajadorId');
     if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
       setTrabajadorId(parseInt(storedTrabajadorId));
-      
-      // Verificar si el trabajador es editor en jefe
-      api.get('trabajadores/')
-        .then(response => {
-          const isEJ = checkIfEditorEnJefe(parseInt(storedTrabajadorId), response.data);
-          setIsEditorEnJefe(isEJ);
-          console.log(`El trabajador ${storedTrabajadorId} ${isEJ ? 'es' : 'no es'} editor en jefe`);
-        })
-        .catch(error => {
-          console.error("Error al verificar si es editor en jefe:", error);
-        });
-      
       return; // Already verified, no need to continue
     }
   
@@ -219,11 +191,6 @@ const NewsManagement = () => {
             console.log("Trabajador encontrado:", trabajador);
             setTrabajadorId(trabajador.id); // Usar el ID del trabajador
             localStorage.setItem('trabajadorId', trabajador.id); // Store for future use
-            
-            // Verificar si el trabajador es editor en jefe
-            const isEJ = checkIfEditorEnJefe(trabajador.id, trabajadoresResponse.data);
-            setIsEditorEnJefe(isEJ);
-            console.log(`El trabajador ${trabajador.id} ${isEJ ? 'es' : 'no es'} editor en jefe`);
           } else {
             console.error("No se encontró un trabajador válido asociado a este perfil");
             message.error("No tiene permisos para acceder a esta página");
@@ -242,7 +209,6 @@ const NewsManagement = () => {
 
   const showModal = (record = null) => {
     if (record) {
-      // Editar noticia existente
       form.setFieldsValue({
         ...record,
         fecha_publicacion: moment(record.fecha_publicacion),
@@ -253,38 +219,19 @@ const NewsManagement = () => {
       });
       setEditingId(record.id);
 
-      // Determinar qué estados de publicación mostrar basado en el rol
-      if (trabajadorId === record.autor && !isEditorEnJefe) {
-        // Si es autor pero no editor en jefe, no puede publicar
-        setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
-      } else if (trabajadorId === record.editor_en_jefe || isEditorEnJefe) {
-        // Si es editor en jefe, puede ver todos los estados
+     if (trabajadorId === record.editor_en_jefe || trabajadorId === record.autor) {
         setFilteredPublicationStates(publicationStates);
       } else {
-        // En otros casos, limitar según el rol (podría ser más específico)
         setFilteredPublicationStates([]);
       }
     } else {
-      // Nueva noticia
       form.resetFields();
-      
-      // Establecer el autor como el trabajador actual
+      // Si es una nueva noticia, establecer el autor como el trabajador actual
       form.setFieldsValue({
-        autor: trabajadorId,
-        // Si es editor en jefe, también establecerlo como editor en jefe de la noticia
-        editor_en_jefe: isEditorEnJefe ? trabajadorId : undefined
+        autor: trabajadorId
       });
-      
       setEditingId(null);
-      
-      // Determinar qué estados de publicación mostrar para nueva noticia
-      if (isEditorEnJefe) {
-        // Si es editor en jefe, puede ver todos los estados
-        setFilteredPublicationStates(publicationStates);
-      } else {
-        // Si no es editor en jefe, no puede publicar
-        setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
-      }
+      setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
     }
     setIsModalVisible(true);
   };
@@ -295,13 +242,12 @@ const NewsManagement = () => {
         values.categorias = values.categorias ? [values.categorias] : [];
       }
       
-      // Asegurarse de que el autor sea el trabajadorId correcto
       const noticiaEditada = {
         nombre_noticia: values.nombre_noticia,
         fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
         Palabras_clave: values.Palabras_clave || '',
-        autor: parseInt(values.autor, 10), // Aseguramos que sea número y que sea el trabajadorId
+        autor: parseInt(values.autor, 10), // Aseguramos que sea número
         editor_en_jefe: parseInt(values.editor_en_jefe, 10), // Aseguramos que sea número
         estado: parseInt(values.estado, 10),
         solo_para_subscriptores: values.solo_para_subscriptores || false,
@@ -323,14 +269,11 @@ const NewsManagement = () => {
         const method = editingId ? 'put' : 'post';
       
         api[method](endpoint, noticiaEditada)
-          .then(() => {
-            message.success(`Noticia ${editingId ? 'actualizada' : 'creada'} con éxito`);
+          .finally(() => {
             setIsModalVisible(false);
-            fetchNews(); // Mejor que recargar la página
-          })
-          .catch(error => {
-            console.error(`Error al ${editingId ? 'actualizar' : 'crear'} la noticia:`, error);
-            message.error(`Error al ${editingId ? 'actualizar' : 'crear'} la noticia`);
+            setTimeout(() => {
+              window.location = window.location;
+            }, 100);
           });
       };
       submitData();
@@ -447,7 +390,7 @@ const NewsManagement = () => {
               alignItems: 'center',
               gap: '10px'
             }}>
-              <strong>Palabras Clave:</strong>
+              <strong>Palabras Clave (separe cada palabra clave por una coma "," ej: Argentina,Ultima hora):</strong>
               <span>{record.Palabras_clave || 'N/A'}</span>
             </div>
   
@@ -675,7 +618,7 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="Palabras_clave" label="Palabras clave (separe cada palabra clave por una coma ',' ej: Argentina,Ultima hora)">
+          <Form.Item name="Palabras_clave" label="Palabras clave">
             <TextArea rows={4} />
           </Form.Item>
         </Form>
