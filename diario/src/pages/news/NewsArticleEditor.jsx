@@ -166,6 +166,13 @@ const NewsManagement = () => {
       return;
     }
   
+    // Check if we already have a trabajadorId in state or localStorage
+    const storedTrabajadorId = localStorage.getItem('trabajadorId');
+    if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
+      setTrabajadorId(parseInt(storedTrabajadorId));
+      return; // Already verified, no need to continue
+    }
+  
     // Primero obtener el perfil de usuario
     api.get('user-profile/', {
       headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -180,12 +187,13 @@ const NewsManagement = () => {
             t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
           );
           
-          if (trabajador) {
+          if (trabajador && trabajador.id > 0) {
             console.log("Trabajador encontrado:", trabajador);
             setTrabajadorId(trabajador.id); // Usar el ID del trabajador
+            localStorage.setItem('trabajadorId', trabajador.id); // Store for future use
           } else {
-            console.error("No se encontró un trabajador asociado a este perfil");
-            message.error("No se encontró un trabajador asociado a este perfil");
+            console.error("No se encontró un trabajador válido asociado a este perfil");
+            message.error("No tiene permisos para acceder a esta página");
             navigate('/home');
           }
         })
