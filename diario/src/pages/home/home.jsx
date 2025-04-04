@@ -166,7 +166,7 @@ const HomePage = () => {
         {newsArray.length > 0 && (
           <div className="main-article " onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
               <div className='recent-new'>
-            <img src={newsArray[0].imagen_cabecera}  alt={newsArray[0].nombre_noticia} />
+            <img src={newsArray[0].imagen_1}  alt={newsArray[0].nombre_noticia} />
 
               </div>
             <div className="main-article-content">
@@ -194,7 +194,7 @@ const HomePage = () => {
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
               <div className='secondary-article-img '>
-              <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} />
+              <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} />
               </div>
               <div className="secondary-article-content">
                 <h4>{newsItem.nombre_noticia}</h4>
@@ -223,7 +223,7 @@ const HomePage = () => {
             onClick={() => navigate(`/noticia/${newsItem.id}`)}
           >
             <div className='recent-new'>
-            <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} className="recent-news-image" />
+            <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} className="recent-news-image" />
             </div>
             <div className="recent-news-content">
               <h4>{newsItem.nombre_noticia}</h4>
@@ -247,7 +247,7 @@ const HomePage = () => {
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
               <div className='recent-new'>
-              <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} className="recent-news-image" />
+              <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} className="recent-news-image" />
 
               </div>
               <div className="recent-news-content">
@@ -272,7 +272,7 @@ const HomePage = () => {
           {featuredNews.length > 0 && (
             <>
               <div className="featured-left" onClick={() => navigate(`/noticia/${featuredNews[0].id}`)}>
-                <img src={featuredNews[0].imagen_cabecera} alt={featuredNews[0].nombre_noticia} />
+                <img src={featuredNews[0].imagen_1} alt={featuredNews[0].nombre_noticia} />
                 <div className="overlay">
                   <h1 style={{ color: 'white' }}>{featuredNews[0].nombre_noticia}</h1>
                   <p>{new Date(featuredNews[0].fecha_publicacion).toLocaleDateString()}</p>
@@ -291,7 +291,7 @@ const HomePage = () => {
                     className="carousel-item"
                     onClick={() => navigate(`/noticia/${newsItem.id}`)}
                   >
-                    <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} />
+                    <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} />
                     <div className="gradient-overlay"></div>
                     <div className="carousel-caption">
                       <h3 style={{ color: 'white' }}>{newsItem.nombre_noticia}</h3>
