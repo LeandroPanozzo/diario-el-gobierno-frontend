@@ -70,8 +70,10 @@ export const EditNewsContent = () => {
         const allImageUrls = [imagen_cabecera, ...extractedImages].filter(url => url);
         setAllImages(allImageUrls);
       } catch (error) {
-        console.error('Failed to fetch content:', error);
-        message.error('Error al cargar el contenido');
+        console.error('Failed to update content:', error);
+        console.error('Error details:', error.response?.data || 'No response data');
+        console.error('Status code:', error.response?.status);
+        message.error(`Error al guardar el contenido: ${error.response?.data?.detail || error.message}`);
       }
     };
 
@@ -80,24 +82,33 @@ export const EditNewsContent = () => {
 
   const handleImageUpload = (blobInfo, progress) => new Promise((resolve, reject) => {
     const formData = new FormData();
-    formData.append('image', blobInfo.blob(), blobInfo.filename());
-
+    formData.append('file', blobInfo.blob(), blobInfo.filename());
+  
     api.post('upload_image/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      onUploadProgress: (progressEvent) => {
+        progress(progressEvent.loaded / progressEvent.total * 100);
+      }
     })
       .then(response => {
-        if (response.data.success) {
+        if (response.data.success && response.data.url) {
           const imageUrl = response.data.url;
           setAllImages(prevImages => [...prevImages, imageUrl]);
-          resolve(`<img src="${imageUrl}" data-field="imagen" />`);
+          resolve(imageUrl);
+        } else if (response.data.url) {
+          // Handle legacy response format
+          const imageUrl = response.data.url;
+          setAllImages(prevImages => [...prevImages, imageUrl]);
+          resolve(imageUrl);
         } else {
-          reject('Upload failed');
+          reject('Upload failed: No valid URL in response');
         }
       })
       .catch(error => {
-        reject('HTTP Error: ' + error.message);
+        console.error('Image upload error:', error);
+        reject('HTTP Error: ' + (error.message || 'Unknown error'));
       });
   });
 
@@ -124,49 +135,59 @@ export const EditNewsContent = () => {
 
   const handleSave = async () => {
     try {
-      const formData = new FormData();
-      Object.keys(newsData).forEach(key => {
-        if (!key.startsWith('imagen_')) {
-          formData.append(key, newsData[key]);
-        }
-      });
-
-      // Añadir el subtítulo
-      formData.append('subtitulo', newsData.subtitulo || '');
-
-      // Set default images
-      Object.entries(defaultImages).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
-
-      // Set header image
-      formData.append('imagen_cabecera', headerImage);
-
-      // Set other images
-      allImages.forEach((url, index) => {
-        if (url !== headerImage) {
-          formData.append(`imagen_${index + 1}`, url);
-        }
-      });
-
-      // Remove header image from content
-      const updatedContent = removeImageFromContent(content, headerImage);
-      formData.append('contenido', updatedContent);
-
-      const response = await api.put(`noticias/${id}/`, formData, {
+      // Extract just the image path if it's a full base64 string
+      const cleanHeaderImage = headerImage.startsWith('data:image') 
+        ? '' // or extract path if possible
+        : headerImage;
+  
+      const updateData = {
+        ...newsData,
+        contenido: content || '',
+        subtitulo: newsData.subtitulo || '',
+        imagen_cabecera: cleanHeaderImage || '',
+        // Other images
+        imagen_1: '',
+        imagen_2: '',
+        imagen_3: '',
+        imagen_4: '', 
+        imagen_5: '',
+        imagen_6: '',
+      };
+  
+      console.log("Sending data:", updateData);
+  
+      const response = await api.put(`noticias/${id}/`, updateData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+          'Content-Type': 'application/json'
+        }
       });
-
+  
       message.success('Contenido actualizado exitosamente');
       navigate('/ed');
     } catch (error) {
-      console.error('Failed to update content:', error);
-      message.error('Error al guardar el contenido');
+      console.error('Full error object:', error);
+      
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Status code:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+        
+        if (error.response.data && typeof error.response.data === 'object') {
+          Object.entries(error.response.data).forEach(([key, value]) => {
+            message.error(`${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
+          });
+        } else {
+          message.error(`Server error: ${error.response.statusText || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        console.error('Request:', error.request);
+        message.error('No response received from server');
+      } else {
+        console.error('Error:', error.message);
+        message.error('Request failed to send');
+      }
     }
   };
-
   const handleHeaderImageChange = (value) => {
     const oldHeaderImage = headerImage;
     setHeaderImage(value);
@@ -215,10 +236,11 @@ export const EditNewsContent = () => {
           
           block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 6=h6; Preformatted=pre',
           plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'print', 'preview', 'anchor',
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
             'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'media', 'table', 'paste', 'code', 'help', 'wordcount',
+            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
             'image'
+            // Remove or comment out 'print' and 'paste'
           ],
           toolbar:
             'undo redo | styleselect | formatselect | bold italic underline | blocks | forecolor backcolor | ' +
