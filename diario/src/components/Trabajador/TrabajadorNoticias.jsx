@@ -1,14 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import './TrabajadorNoticias.css'; // Asegúrate de tener estilos aquí
 import api from '../../pages/context/axiosConfig';
+
 const TrabajadorNoticias = () => {
   const { trabajadorId } = useParams();
   const [noticias, setNoticias] = useState([]);
   const [trabajador, setTrabajador] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Función para extraer la primera imagen del contenido HTML
+  const extractFirstImageFromContent = (htmlContent) => {
+    if (!htmlContent) return null;
+    
+    // Crear un elemento DOM temporal para buscar imágenes
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Buscar la primera imagen en el contenido
+    const firstImage = tempDiv.querySelector('img');
+    
+    // Si encontramos una imagen, devolver su URL
+    if (firstImage && firstImage.src) {
+      return firstImage.src;
+    }
+    
+    // No se encontró ninguna imagen
+    return null;
+  };
+
+  // Procesar los datos de noticias para extraer imágenes del contenido
+  const processNewsWithImages = (newsItems) => {
+    return newsItems.map(newsItem => {
+      // Extraer la primera imagen del contenido
+      const contentImage = extractFirstImageFromContent(newsItem.contenido);
+      
+      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      
+      return {
+        ...newsItem,
+        contentImage: finalImage
+      };
+    });
+  };
 
   useEffect(() => {
     const fetchTrabajador = async () => {
@@ -23,7 +59,10 @@ const TrabajadorNoticias = () => {
     const fetchNoticias = async () => {
       try {
         const response = await api.get(`noticias/?autor=${trabajadorId}`);
-        setNoticias(response.data);
+        
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(response.data);
+        setNoticias(processedNews);
       } catch (error) {
         setError('Error al cargar las noticias.');
         console.error('Error fetching news for the worker:', error);
@@ -91,7 +130,7 @@ const TrabajadorNoticias = () => {
           noticias.map((noticia) => (
             <Link to={`/noticia/${noticia.id}`} key={noticia.id} className="news-item">
               <div className="news-img-container">
-                <img src={noticia.imagen_cabecera} alt={noticia.nombre_noticia} className="news-img" />
+                <img src={noticia.contentImage} alt={noticia.nombre_noticia} className="news-img" />
               </div>
               <div className="news-content">
                 <h3 className="news-title">{noticia.nombre_noticia}</h3>
