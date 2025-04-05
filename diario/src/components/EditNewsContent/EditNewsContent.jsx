@@ -208,21 +208,13 @@ export const EditNewsContent = () => {
     <div>
       {headerImage && (
         <div style={{ marginBottom: 10 }}>
-          <strong>Imagen de cabecera seleccionada:</strong> <br />
-          <img src={headerImage} alt="Imagen de cabecera" style={{ width: '100px', height: 'auto' }} />
+          
         </div>
       )}
 
-      <Form.Item label="Seleccionar imagen de cabecera">
-        <Select onChange={handleHeaderImageChange} value={headerImage}>
-          <Select.Option value="" disabled>Seleccionar imagen</Select.Option>
-          {allImages.map((imgUrl, index) => (
-            <Select.Option key={index} value={imgUrl}>
-              Imagen {index + 1}
-            </Select.Option>
-          ))}
-        </Select>
-      </Form.Item>
+      <div className="image-instruction-box" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: '5px' }}>
+        <p><strong>Nota:</strong> La primer imagen que agregue será la imagen de cabecera de la noticia. Podrá agregar hasta 5 imágenes adicionales.</p>
+      </div>
       <Editor
         apiKey="n4p00cmzpfhi984ei5sgacg93brnu89dco7io30mvon29srl"
         value={content}

@@ -1,8 +1,8 @@
-import  { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './TagPage.css';
 import api from '../../pages/context/axiosConfig';
+
 const TagPage = () => {
   const { tagName } = useParams();
   const [news, setNews] = useState([]);
@@ -10,6 +10,42 @@ const TagPage = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
+
+  // Función para extraer la primera imagen del contenido HTML
+  const extractFirstImageFromContent = (htmlContent) => {
+    if (!htmlContent) return null;
+    
+    // Crear un elemento DOM temporal para buscar imágenes
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Buscar la primera imagen en el contenido
+    const firstImage = tempDiv.querySelector('img');
+    
+    // Si encontramos una imagen, devolver su URL
+    if (firstImage && firstImage.src) {
+      return firstImage.src;
+    }
+    
+    // No se encontró ninguna imagen
+    return null;
+  };
+
+  // Procesar los datos de noticias para extraer imágenes del contenido
+  const processNewsWithImages = (newsItems) => {
+    return newsItems.map(newsItem => {
+      // Extraer la primera imagen del contenido
+      const contentImage = extractFirstImageFromContent(newsItem.contenido);
+      
+      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      
+      return {
+        ...newsItem,
+        contentImage: finalImage
+      };
+    });
+  };
 
   useEffect(() => {
     const fetchTagNews = async () => {
@@ -28,7 +64,9 @@ const TagPage = () => {
         // Fetch author data
         await fetchAuthors(filteredNews);
 
-        setNews(filteredNews);
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(filteredNews);
+        setNews(processedNews);
       } catch (error) {
         setError(error.message);
         console.error('Failed to fetch tag news:', error);
@@ -58,25 +96,16 @@ const TagPage = () => {
     return doc.body.textContent || '';
   };
 
-  const truncateContent = (content, type) => {
-    const plainText = stripHtml(content); // Eliminar etiquetas HTML
-    
-    switch (type) {
-      case 'default':
-        return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
-      case 'main':
-        return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
-      case 'secondary':
-        return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
-      case 'recent':
-        return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
-      default:
-        return plainText; // Sin truncado por defecto
-    }
+  const truncateContent = (content, maxLength = 150) => {
+    const plainText = stripHtml(content);
+    return plainText.length > maxLength ? 
+      plainText.slice(0, maxLength) + '...' : 
+      plainText;
   };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
+    window.scrollTo(0, 0);
   };
 
   const indexOfLastNews = currentPage * newsPerPage;
@@ -100,12 +129,12 @@ const TagPage = () => {
           currentNews.map((newsItem) => (
             <Link to={`/noticia/${newsItem.id}`} key={newsItem.id} className="news-item">
               <div className="news-img-container">
-                <img src={newsItem.imagen_cabecera} alt={newsItem.nombre_noticia} className="news-img" />
+                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="news-img" />
               </div>
               <div className="news-content">
                 <h3 className="news-title">{newsItem.nombre_noticia}</h3>
                 <p className="news-description">
-                  {truncateContent(newsItem.contenido, 'main')} {/* Usa el tipo adecuado para truncar */}
+                  {truncateContent(newsItem.contenido)}
                 </p>
                 <p className="news-date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
                 {newsItem.autorData && (
@@ -121,6 +150,15 @@ const TagPage = () => {
 
       {totalPages > 1 && (
         <div className="pagination">
+          {currentPage > 1 && (
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              className="page-button"
+            >
+              Anterior
+            </button>
+          )}
+          
           {[...Array(totalPages)].map((_, index) => (
             <button
               key={index + 1}
@@ -130,6 +168,15 @@ const TagPage = () => {
               {index + 1}
             </button>
           ))}
+          
+          {currentPage < totalPages && (
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              className="page-button"
+            >
+              Siguiente
+            </button>
+          )}
         </div>
       )}
     </div>

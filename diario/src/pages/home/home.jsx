@@ -1,11 +1,29 @@
-import  { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import './home.css';
-import { text } from '@fortawesome/fontawesome-svg-core';
-import  api from '../context/axiosConfig';
+import api from '../context/axiosConfig';
+
+// Función para extraer la primera imagen del contenido HTML
+const extractFirstImageFromContent = (htmlContent) => {
+  if (!htmlContent) return null;
+  
+  // Crear un elemento DOM temporal para buscar imágenes
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  
+  // Buscar la primera imagen en el contenido
+  const firstImage = tempDiv.querySelector('img');
+  
+  // Si encontramos una imagen, devolver su URL
+  if (firstImage && firstImage.src) {
+    return firstImage.src;
+  }
+  
+  // No se encontró ninguna imagen
+  return null;
+};
 
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -54,6 +72,22 @@ const HomePage = () => {
     return subtitle;
   };
 
+  // Procesar los datos de noticias para extraer imágenes del contenido
+  const processNewsWithImages = (newsItems) => {
+    return newsItems.map(newsItem => {
+      // Extraer la primera imagen del contenido
+      const contentImage = extractFirstImageFromContent(newsItem.contenido);
+      
+      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      
+      return {
+        ...newsItem,
+        contentImage: finalImage
+      };
+    });
+  };
+
   useEffect(() => {
     const fetchFeaturedNews = async () => {
       try {
@@ -63,12 +97,13 @@ const HomePage = () => {
         );
         const sortedNews = filteredNews.sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
         await fetchAuthorsAndEditors(sortedNews);
-        setFeaturedNews(sortedNews.slice(0, 5));
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(sortedNews);
+        setFeaturedNews(processedNews.slice(0, 5));
       } catch (error) {
         console.error('Failed to fetch featured news:', error);
       }
     };
-
 
     const fetchSectionNews = async () => {
       // Definir las secciones principales y sus subcategorías
@@ -93,8 +128,10 @@ const HomePage = () => {
               subcategories.includes(category.toLowerCase())
             );
           }).sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
-
-          newSectionNews[mainSection] = sectionNews.slice(0, 7);
+          
+          // Procesar las noticias para extraer imágenes del contenido
+          const processedNews = processNewsWithImages(sectionNews);
+          newSectionNews[mainSection] = processedNews.slice(0, 7);
         });
 
         setSectionNews(newSectionNews);
@@ -111,11 +148,14 @@ const HomePage = () => {
           .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
 
         await fetchAuthorsAndEditors(sortedNews);
-        setRecentNews(sortedNews.slice(0, 5));
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(sortedNews);
+        setRecentNews(processedNews.slice(0, 5));
       } catch (error) {
         console.error('Failed to fetch recent news:', error);
       }
     };
+    
     const fetchMostViewedNews = async () => {
       try {
         const response = await api.get('noticias/mas_vistas/');
@@ -125,7 +165,9 @@ const HomePage = () => {
           .slice(0, 5);
         
         await fetchAuthorsAndEditors(filteredNews);
-        setMostViewedNews(filteredNews);
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(filteredNews);
+        setMostViewedNews(processedNews);
       } catch (error) {
         console.error('Failed to fetch most viewed news:', error);
       }
@@ -166,8 +208,7 @@ const HomePage = () => {
         {newsArray.length > 0 && (
           <div className="main-article " onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
               <div className='recent-new'>
-            <img src={newsArray[0].imagen_1}  alt={newsArray[0].nombre_noticia} />
-
+            <img src={newsArray[0].contentImage} alt={newsArray[0].nombre_noticia} />
               </div>
             <div className="main-article-content">
               <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
@@ -194,7 +235,7 @@ const HomePage = () => {
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
               <div className='secondary-article-img '>
-              <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} />
+              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} />
               </div>
               <div className="secondary-article-content">
                 <h4>{newsItem.nombre_noticia}</h4>
@@ -223,7 +264,7 @@ const HomePage = () => {
             onClick={() => navigate(`/noticia/${newsItem.id}`)}
           >
             <div className='recent-new'>
-            <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} className="recent-news-image" />
+            <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
             </div>
             <div className="recent-news-content">
               <h4>{newsItem.nombre_noticia}</h4>
@@ -247,8 +288,7 @@ const HomePage = () => {
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
               <div className='recent-new'>
-              <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} className="recent-news-image" />
-
+              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
               </div>
               <div className="recent-news-content">
                 <h4>{newsItem.nombre_noticia}</h4>
@@ -272,7 +312,7 @@ const HomePage = () => {
           {featuredNews.length > 0 && (
             <>
               <div className="featured-left" onClick={() => navigate(`/noticia/${featuredNews[0].id}`)}>
-                <img src={featuredNews[0].imagen_1} alt={featuredNews[0].nombre_noticia} />
+                <img src={featuredNews[0].contentImage} alt={featuredNews[0].nombre_noticia} />
                 <div className="overlay">
                   <h1 style={{ color: 'white' }}>{featuredNews[0].nombre_noticia}</h1>
                   <p>{new Date(featuredNews[0].fecha_publicacion).toLocaleDateString()}</p>
@@ -291,7 +331,7 @@ const HomePage = () => {
                     className="carousel-item"
                     onClick={() => navigate(`/noticia/${newsItem.id}`)}
                   >
-                    <img src={newsItem.imagen_1} alt={newsItem.nombre_noticia} />
+                    <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} />
                     <div className="gradient-overlay"></div>
                     <div className="carousel-caption">
                       <h3 style={{ color: 'white' }}>{newsItem.nombre_noticia}</h3>
@@ -318,7 +358,7 @@ const HomePage = () => {
 
           <div className="recent-news">
             {renderRecentNews(recentNews)}
-            {renderMostViewedNews(mostViewedNews)} {/* Add this new section */}
+            {renderMostViewedNews(mostViewedNews)}
           </div>
         </div>
       </main>

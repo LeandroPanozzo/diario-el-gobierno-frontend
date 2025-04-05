@@ -7,6 +7,42 @@ import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
 
+// Función para extraer la primera imagen del contenido HTML
+const extractFirstImageFromContent = (htmlContent) => {
+  if (!htmlContent) return null;
+  
+  // Crear un elemento DOM temporal para buscar imágenes
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  
+  // Buscar la primera imagen en el contenido
+  const firstImage = tempDiv.querySelector('img');
+  
+  // Si encontramos una imagen, devolver su URL
+  if (firstImage && firstImage.src) {
+    return firstImage.src;
+  }
+  
+  // No se encontró ninguna imagen
+  return null;
+};
+
+// Procesar los datos de noticias para extraer imágenes del contenido
+const processNewsWithImages = (newsItems) => {
+  return newsItems.map(newsItem => {
+    // Extraer la primera imagen del contenido
+    const contentImage = extractFirstImageFromContent(newsItem.contenido);
+    
+    // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
+    const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+    
+    return {
+      ...newsItem,
+      contentImage: finalImage
+    };
+  });
+};
+
 const NewsDetail = () => {
   const { id } = useParams();
   const [newsData, setNewsData] = useState(null);
@@ -218,8 +254,9 @@ const processContent = (htmlContent) => {
         const response = await api.get('noticias/mas_vistas/');
         // Filtramos para no mostrar la noticia actual entre las más leídas
         const filteredNews = response.data.filter(news => news.id.toString() !== id);
-        // Tomamos solo las primeras 3
-        setTopNews(filteredNews.slice(0, 4));
+        // Tomamos solo las primeras 4 y procesamos las imágenes
+        const processedNews = processNewsWithImages(filteredNews.slice(0, 4));
+        setTopNews(processedNews);
       } catch (error) {
         console.error('Error fetching top news:', error);
       }
@@ -417,7 +454,6 @@ const processContent = (htmlContent) => {
         </div>
       </div>
 
-      <img src={imagen_cabecera} alt={nombre_noticia} className="header-image" />
       
       <div 
         className="news-content" 
@@ -478,7 +514,7 @@ const processContent = (htmlContent) => {
   onDeleteComment={handleDeleteComment}
 />
 
-      {/* Sección de noticias más leídas */}
+      {/* Sección de noticias más leídas - Actualizada para usar contentImage */}
       <div className="most-read-section" style={{ 
         marginTop: '40px',
         marginBottom: '40px',
@@ -529,7 +565,7 @@ const processContent = (htmlContent) => {
               <div className="most-read-news-image" style={{
                 width: '100%',
                 height: '150px',
-                backgroundImage: `url(${news.imagen_cabecera})`,
+                backgroundImage: `url(${news.contentImage || news.imagen_cabecera})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
               }} />

@@ -1,6 +1,6 @@
 html, body {
   max-width: 100%;
-  overflow-x: hidden;
+  
 }
 
 * {
@@ -17,10 +17,6 @@ body {
 
 h1{
   font-weight: 700;
-}
-
-img{
-  object-fit: cover;
 }
 
 
@@ -165,7 +161,7 @@ transform: scale(1.1);
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 500px;
+  width: 400px;
   padding-bottom:10px ;
 }
 
@@ -361,7 +357,7 @@ transform: scale(1.1);
   background-color: #ffffff;
   padding: 15px;
   border-radius: 20px;
-  width: 100%; /* Asegura que use todo el ancho disponible */
+  width: 200px; /* Asegura que use todo el ancho disponible */
   transition: 0.3s;
 }
 

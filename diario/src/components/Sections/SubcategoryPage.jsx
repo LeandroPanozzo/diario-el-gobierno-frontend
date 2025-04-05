@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import './SubcategoryPage.css';
 import api from '../../pages/context/axiosConfig';
+
 const SubcategoryPage = () => {
   const { subcategory } = useParams();
   const [news, setNews] = useState([]);
@@ -10,6 +10,42 @@ const SubcategoryPage = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
+
+  // Función para extraer la primera imagen del contenido HTML
+  const extractFirstImageFromContent = (htmlContent) => {
+    if (!htmlContent) return null;
+    
+    // Crear un elemento DOM temporal para buscar imágenes
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Buscar la primera imagen en el contenido
+    const firstImage = tempDiv.querySelector('img');
+    
+    // Si encontramos una imagen, devolver su URL
+    if (firstImage && firstImage.src) {
+      return firstImage.src;
+    }
+    
+    // No se encontró ninguna imagen
+    return null;
+  };
+
+  // Procesar los datos de noticias para extraer imágenes del contenido
+  const processNewsWithImages = (newsItems) => {
+    return newsItems.map(newsItem => {
+      // Extraer la primera imagen del contenido
+      const contentImage = extractFirstImageFromContent(newsItem.contenido);
+      
+      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      
+      return {
+        ...newsItem,
+        contentImage: finalImage
+      };
+    });
+  };
 
   // Map of subcategories to their parent categories for better navigation
   const categoryMapping = {
@@ -60,7 +96,10 @@ const SubcategoryPage = () => {
           .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
 
         await fetchAuthors(filteredNews);
-        setNews(filteredNews);
+        
+        // Procesar las noticias para extraer imágenes del contenido
+        const processedNews = processNewsWithImages(filteredNews);
+        setNews(processedNews);
 
       } catch (error) {
         setError(error.message);
@@ -131,7 +170,7 @@ const SubcategoryPage = () => {
               <Link to={`/noticia/${newsItem.id}`} key={newsItem.id} className="news-item">
                 <div className="news-img-container">
                   <img 
-                    src={newsItem.imagen_cabecera} 
+                    src={newsItem.contentImage} 
                     alt={newsItem.nombre_noticia}
                     className="news-img"
                   />
