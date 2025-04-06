@@ -214,6 +214,7 @@ export const EditNewsContent = () => {
 
       <div className="image-instruction-box" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: '5px' }}>
         <p><strong>Nota:</strong> La primer imagen que agregue será la imagen de cabecera de la noticia. Podrá agregar hasta 5 imágenes adicionales.</p>
+        <p><strong>Nota 2:</strong> No agregar un titulo a la noticia, el titulo ya se encuentra al crear la misma.</p>
       </div>
       <Editor
         apiKey="n4p00cmzpfhi984ei5sgacg93brnu89dco7io30mvon29srl"
@@ -226,13 +227,13 @@ export const EditNewsContent = () => {
           images_upload_credentials: true,
           convert_urls: false,
           
-          block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2; Heading 6=h6; Preformatted=pre',
+          block_formats: 'Párrafo=p; Heading 1=h1; Heading 2=h2; Citas=h6; Información Adicional=pre',
+
           plugins: [
             'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
             'searchreplace', 'visualblocks', 'code', 'fullscreen',
             'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
             'image'
-            // Remove or comment out 'print' and 'paste'
           ],
           toolbar:
             'undo redo | styleselect | formatselect | bold italic underline | blocks | forecolor backcolor | ' +
@@ -241,57 +242,55 @@ export const EditNewsContent = () => {
             'hr | blockquote | removeformat | help | fullscreen ',
           
           content_style: `
-            @media screen and (min-width: 769px) {
-            body {
-              margin-left: 200px;
-              margin-right: 200px;
-              font-family: Arial, sans-serif;
-            }
-          }
-
-          @media screen and (max-width: 768px) {
+            /* Common styles for all devices */
             body {
               font-family: Arial, sans-serif;
-              max-width: 100%;
-              width: 100%;
-              word-wrap: break-word;
-              overflow-wrap: break-word;
-              writing-mode: horizontal-tb;
-              text-orientation: mixed;
-              direction: ltr;
+              position: relative;
             }
-          }
-
-          p {
-            font-family: 'Linotype Devanagari';
-            font-size: 13pt;
-            margin: 0;
-            white-space: normal;
-            word-break: break-word;
-          }
+            
+            p {
+              font-family: 'Linotype Devanagari';
+              font-size: 13pt;
+              margin: 0;
+              white-space: normal;
+              word-break: break-word;
+              position: relative;
+              z-index: 1;
+            }
+            
             .news-detail-container {
               max-width: 800px;
               margin: 0 auto;
               padding: 20px;
             }
+            
             h1 {
               font-family: 'Pentay Bold';
               font-size: 18pt;
               font-weight: bold;
+              position: relative;
+              z-index: 1;
             }
+            
             h2 {
               font-family: 'Pentay Bold';
               font-size: 17pt;
               font-weight: bold;
               font-style: italic;
+              position: relative;
+              z-index: 1;
             }
+            
             h6 {
               font-family: 'MVB Dovetail Light Italic';
               font-size: 13.5pt;
               color: black;
               background-color: #f0f0f0;
               text-indent: 0.2in;
+              position: relative;
+              z-index: 1;
             }
+            
             pre {
               font-family: 'Times New Roman';
               font-size: 9pt;
@@ -299,20 +298,90 @@ export const EditNewsContent = () => {
               text-align: center;
               margin-top: 0px;
               margin-bottom: 20px;
+              position: relative;
+              z-index: 1;
             }
+            
             blockquote {
               font-family: 'MVB Dovetail Light Italic';
               font-size: 13.5pt;
               color: black;
               background-color: #f0f0f0;
+              position: relative;
+              z-index: 1;
             }
+            
             img {
               width: 100%;
               height: 400px;
               margin-bottom: 0px;
               object-fit: cover;
+              position: relative;
+              z-index: 1;
             }
+
+            /* Desktop-specific styles with margin lines */
+              @media screen and (min-width: 769px) {
+                body {
+                  margin-left: 240px;
+                  margin-right: 240px;
+                  background-image: 
+                    linear-gradient(to right, transparent 199px,rgb(32, 32, 32) 199px,rgb(32, 32, 32) 200px, transparent 200px),
+                    linear-gradient(to right, transparent calc(100% - 201px), rgb(32, 32, 32) calc(100% - 201px), rgb(32, 32, 32) calc(100% - 200px), transparent calc(100% - 200px));
+                  background-repeat: repeat-y;
+                  min-height: 100vh;
+                }
+                
+                /* Remove the pseudo-element approach */
+                body:before, body:after {
+                  display: none;
+                }
+              }
+                            
+                            /* Left margin vertical line */
+              body:before {
+                content: '';
+                position: fixed; // Change from absolute to fixed
+                top: 0;
+                bottom: 0;
+                left: 200px;
+                width: 1px;
+                height: 100%; // Add explicit height
+                background-color:rgb(78, 78, 78);
+                z-index: 0;
+              }
+
+              /* Right margin vertical line */
+              body:after {
+                content: '';
+                position: fixed; // Change from absolute to fixed
+                top: 0;
+                bottom: 0;
+                right: 200px;
+                width: 1px;
+                height: 100%; // Add explicit height
+                background-color: rgb(78, 78, 78);
+                z-index: 0;
+              }
+            }
+
+            /* Mobile-specific styles with no margin lines */
+            @media screen and (max-width: 768px) {
+              body {
+                max-width: 100%;
+                width: 100%;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                writing-mode: horizontal-tb;
+                text-orientation: mixed;
+                direction: ltr;
+              }
               
+              /* No margin lines for mobile */
+              body:before, body:after {
+                display: none;
+              }
+            }
           `,
           font_formats:
             "Arial=arial,helvetica,sans-serif;" +
@@ -334,65 +403,103 @@ export const EditNewsContent = () => {
               format: 'h2',
             },
             {
-              title: 'Heading 6',
+              title: 'Citas',
               format: 'h6',
             },
             {
-              title: 'Paragraph',
+              title: 'Párrafo',
               format: 'p',
             },
             {
-              title: 'Preformatted',
+              title: 'Información Adicional',
               format: 'pre',
             }
           ],
           setup: function (editor) {
+            editor.ui.registry.addButton('formatselect', {
+              text: 'Párrafo',
+              tooltip: 'Formato',
+              onAction: function () {
+                editor.execCommand('mceToggleFormat');
+              }
+            });
+            // Add a custom handler for the clear formatting command
+            editor.on('BeforeExecCommand', function(e) {
+              if (e.command === 'RemoveFormat') {
+                // Get the selected content and nodes
+                const selectedNode = editor.selection.getNode();
+                const selectedContent = editor.selection.getContent();
+                const selectedRange = editor.selection.getRng();
+                
+                // First let TinyMCE's default RemoveFormat run
+                setTimeout(function() {
+                  // Then convert the selection to a paragraph format
+                  editor.formatter.apply('p');
+                  
+                  // Apply the standard paragraph styling
+                  const paragraphNode = editor.selection.getNode();
+                  if (paragraphNode) {
+                    paragraphNode.style.fontFamily = 'Linotype Devanagari';
+                    paragraphNode.style.fontSize = '13pt';
+                    paragraphNode.style.margin = '0';
+                    paragraphNode.style.padding = '0';
+                    paragraphNode.style.fontWeight = 'normal';
+                    paragraphNode.style.fontStyle = 'normal';
+                    paragraphNode.style.textDecoration = 'none';
+                    paragraphNode.style.backgroundColor = '';
+                    paragraphNode.style.color = '';
+                  }
+                }, 0);
+              }
+            });
             
             editor.on('keydown', function (e) {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 
-                // Limpiar formato existente
-                editor.execCommand('RemoveFormat');
-                editor.execCommand('mceRemoveFormat', false, 'strong');
-                editor.execCommand('mceRemoveFormat', false, 'em');
-                editor.execCommand('mceRemoveFormat', false, 'u');
+                // Get current node and its complete styling
+                const currentNode = editor.selection.getNode();
                 
-                // Insertar el nuevo párrafo con un espacio no rompible
-                editor.insertContent('<p style="margin: 0; padding: 0;">\u200B</p>');
+                // Capture all relevant styles
+                const styles = window.getComputedStyle(currentNode);
+                const backgroundColor = styles.backgroundColor;
+                const color = styles.color;
+                const fontFamily = currentNode.style.fontFamily || styles.fontFamily || 'Linotype Devanagari';
+                
+                // Check if we're in a special format (h1, h2, etc.)
+                const nodeName = currentNode.nodeName.toLowerCase();
+                
+                // Don't preserve formatting for headings and special formats
+                if (['h1', 'h2', 'h6', 'pre', 'blockquote'].includes(nodeName)) {
+                  // For headings, just insert a standard paragraph without special formatting
+                  editor.insertContent('<p style="margin: 0; padding: 0; font-family: Linotype Devanagari; font-size: 13pt;">\u200B</p>');
+                } else {
+                  // For regular paragraphs, preserve the background color
+                  const bgColorStyle = backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent' 
+                    ? `background-color: ${backgroundColor};` 
+                    : '';
+                  
+                  const textColorStyle = color && color !== 'rgba(0, 0, 0, 0)' 
+                    ? `color: ${color};` 
+                    : '';
+                  
+                  // Insert new paragraph with preserved styles
+                  editor.insertContent(`<p style="margin: 0; padding: 0; font-family: ${fontFamily}; font-size: 13pt; ${bgColorStyle} ${textColorStyle}">\u200B</p>`);
+                }
+                
                 editor.execCommand('FormatBlock', false, 'p');
                 
-                // Obtener y configurar el nuevo nodo
+                // Set cursor position
                 const newNode = editor.selection.getNode();
                 if (newNode) {
-                  // Estilos base
-                  newNode.style.fontFamily = 'Linotype Devanagari';
-                  newNode.style.fontSize = '13pt';
-                  newNode.style.margin = '0';
-                  newNode.style.padding = '0';
-                  newNode.style.lineHeight = '1';
-                  
-                  // Limpiar estilos adicionales
-                  newNode.style.fontWeight = 'normal';
-                  newNode.style.fontStyle = 'normal';
-                  newNode.style.textDecoration = 'none';
-                  newNode.style.backgroundColor = '';
-                  newNode.style.color = '';
-                  
-                  // Asegurar que el cursor esté al inicio del nuevo párrafo
                   const rng = editor.selection.getRng();
                   rng.setStart(newNode, 0);
                   rng.setEnd(newNode, 0);
                   editor.selection.setRng(rng);
                 }
                 
-                // Mantener el foco en el editor
+                // Maintain focus
                 editor.focus();
-                
-                // Asegurar que el párrafo permanezca vacío pero visible
-                if (newNode && !newNode.innerHTML.trim()) {
-                  newNode.innerHTML = '\u200B';
-                }
               }
             });
             editor.on('BeforeSetContent', function (e) {
@@ -433,38 +540,76 @@ export const EditNewsContent = () => {
               }
             });
 
-      // Agregar un evento para eliminar negrita al cambiar a párrafo o preformateado
-      editor.on('FormatChanged', function (e) {
-        const selectedNode = editor.selection.getNode();
-        if (selectedNode) {
-          const tagName = selectedNode.nodeName;
-          if (tagName === 'P' || tagName === 'PRE') {
-            editor.execCommand('RemoveFormat');
-            editor.execCommand('mceRemoveFormat', false, 'strong');
-            editor.execCommand('mceRemoveFormat', false, 'b');
+            // Keep your FormatChanged event handler
+            editor.on('FormatChanged', function (e) {
+              const selectedNode = editor.selection.getNode();
+              if (selectedNode) {
+                const tagName = selectedNode.nodeName;
+                if (tagName === 'P' || tagName === 'PRE') {
+                  editor.execCommand('RemoveFormat');
+                  editor.execCommand('mceRemoveFormat', false, 'strong');
+                  editor.execCommand('mceRemoveFormat', false, 'b');
+                }
+              }
+            });
+            
+            // Add a specific handling for the Clear Formatting toolbar button
+            editor.on('init', function() {
+              editor.shortcuts.add('meta+space', 'Clear formatting and convert to paragraph', function() {
+                editor.execCommand('RemoveFormat');
+                editor.formatter.apply('p');
+                
+                const paragraphNode = editor.selection.getNode();
+                if (paragraphNode) {
+                  paragraphNode.style.fontFamily = 'Linotype Devanagari';
+                  paragraphNode.style.fontSize = '13pt';
+                  paragraphNode.style.margin = '0';
+                }
+              });
+              
+              // Look for the clear formatting button and add a custom handler
+              const clearFormatButton = editor.editorContainer.querySelector('[title="Clear formatting"]');
+              if (clearFormatButton) {
+                clearFormatButton.addEventListener('mousedown', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Execute our custom command that applies paragraph formatting after clearing
+                  editor.execCommand('RemoveFormat');
+                  editor.formatter.apply('p');
+                  
+                  const paragraphNode = editor.selection.getNode();
+                  if (paragraphNode) {
+                    paragraphNode.style.fontFamily = 'Linotype Devanagari';
+                    paragraphNode.style.fontSize = '13pt';
+                    paragraphNode.style.margin = '0';
+                  }
+                  
+                  return false;
+                });
+              }
+            });
+          },
+          formats: {
+            h1: { block: 'h1' },
+            h2: { block: 'h2' },
+            h6: { block: 'h6' },
+            p: { block: 'p' },
+            blockquote: { block: 'blockquote' },
+            pre: { block: 'pre' }
           }
-        }
-      });
-    },
-    formats: {
-      h1: { block: 'h1' },
-      h2: { block: 'h2' },
-      h6: { block: 'h6' },
-      p: { block: 'p' },
-      blockquote: { block: 'blockquote' },
-      pre: { block: 'pre' }
-    }
-  }}
-  
-  onEditorChange={(newContent) => {
-    setContent(newContent);
-    const newImages = extractImagesFromContent(newContent);
-    setAllImages(prevImages => {
-      const combinedImages = [...new Set([...prevImages, ...newImages])];
-      return combinedImages.filter(url => url !== headerImage);
-    });
-  }}
-/>
+        }}
+        
+        onEditorChange={(newContent) => {
+          setContent(newContent);
+          const newImages = extractImagesFromContent(newContent);
+          setAllImages(prevImages => {
+            const combinedImages = [...new Set([...prevImages, ...newImages])];
+            return combinedImages.filter(url => url !== headerImage);
+          });
+        }}
+        
+      />
 
 
       <Button type="primary" onClick={handleSave} style={{ marginTop: 20 }}>

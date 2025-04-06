@@ -52,7 +52,6 @@ const NewsManagement = () => {
       ['conurbano', 'Conurbano'],
       ['provincias', 'Provincias'],
       ['municipios', 'Municipios'],
-      ['protestas', 'Protestas']
     ]],
     ['Cultura', [
       ['cine', 'Cine'],
@@ -574,10 +573,13 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="editor_en_jefe" label="Editor en Jefe">
+          <Form.Item name="editor_en_jefe" 
+          label="Editor"
+          rules={[{ required: true, message: '¡Por favor seleccione un editor!' }]}
+          >
             <Select
               showSearch
-              placeholder="Seleccione un editor en jefe"
+              placeholder="Seleccione un editor"
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
@@ -594,8 +596,8 @@ const NewsManagement = () => {
 
           <Form.Item 
             name="categorias" 
-            label="Categorías"
-            rules={[{ required: true, message: '¡Por favor seleccione al menos una categoría!' }]}
+            label="Secciones" //las secciones en realidad son categorias en el backend
+            rules={[{ required: true, message: '¡Por favor seleccione al menos una seccion!' }]}
           >
             <Select
               mode="multiple"
@@ -610,7 +612,11 @@ const NewsManagement = () => {
             <Checkbox>Solo para Suscriptores</Checkbox>
           </Form.Item>
 
-          <Form.Item name="estado" label="Estado">
+          <Form.Item 
+          name="estado" 
+          label="Estado"
+          rules={[{ required: true, message: '¡Por favor seleccione un estado!' }]}
+          >
             <Select>
               {filteredPublicationStates.map(state => (
                 <Option key={state.id} value={state.id}>{state.nombre_estado}</Option>
@@ -618,7 +624,9 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="Palabras_clave" label="Palabras clave (separe cada palabra clave por una coma ',' ej: Argentina,Ultima hora)">
+          <Form.Item name="Palabras_clave" label="Categorias (separe cada Categoria por una coma ',' ej: Argentina,Ultima hora)"
+          rules={[{ required: true, message: '¡Por favor seleccione al menos una Categoria!' }]} //las Categorias en realidad son Palabras_clave en el backend
+          >
             <TextArea rows={4} />
           </Form.Item>
         </Form>

@@ -54,7 +54,6 @@ const SubcategoryPage = () => {
     'conurbano': 'Política',
     'provincias': 'Política',
     'municipios': 'Política',
-    'protestas': 'Política',
     'cine': 'Cultura',
     'literatura': 'Cultura',
     'moda': 'Cultura',

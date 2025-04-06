@@ -50,7 +50,7 @@ const SectionPage = () => {
   // Definir las categorías principales y sus subcategorías
   const mainSections = {
     'portada': ['portada'],
-    'politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'protestas'],
+    'politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios'],
     'cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos'],
     'economia': ['finanzas', 'negocios', 'empresas', 'dolar'],
     'mundo': ['estados_unidos', 'politica_exterior', 'medio_oriente', 'asia', 'internacional']

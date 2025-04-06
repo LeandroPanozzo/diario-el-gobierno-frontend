@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import './register.css';
-import  api from '../context/axiosConfig';
+import api from '../context/axiosConfig';
 
 export const Register = () => {
   const [formData, setFormData] = useState({
@@ -25,8 +25,12 @@ export const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Limpiar errores previos
     setError(null);
+
+    if (/\s/.test(formData.username)) {
+      setError('El nombre de usuario no debe contener espacios. Usa guiones bajos "_" en su lugar.');
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -53,25 +57,18 @@ export const Register = () => {
     } catch (err) {
       console.error('Error de registro:', err.response);
       
-      // Verificar si hay un error específico sobre el correo electrónico
       if (err.response && err.response.data) {
         if (err.response.data.email) {
-          // Si el error es específicamente sobre el email
           setError(`Ya existe una cuenta con este correo electrónico: ${formData.email}`);
         } else if (err.response.data.username) {
-          // Si el error es sobre el nombre de usuario
           setError(`El nombre de usuario ${formData.username} ya está en uso`);
         } else if (err.response.data.message) {
-          // Mensaje general
           setError(err.response.data.message);
         } else if (err.response.data.error) {
-          // Otro formato de error
           setError(err.response.data.error);
         } else if (typeof err.response.data === 'string') {
-          // Si el backend devuelve directamente un string
           setError(err.response.data);
         } else {
-          // Fallback para otros errores
           setError('Ha ocurrido un error durante el registro. Por favor, inténtalo de nuevo.');
         }
       } else {
@@ -90,6 +87,9 @@ export const Register = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">Nombre de usuario</label>
+            <small className="note">
+              (Nombre sin espacios. En su lugar, utiliza guion bajo "_")
+            </small>
             <input
               type="text"
               name="username"
@@ -132,7 +132,7 @@ export const Register = () => {
             />
           </div>
 
-          <button type="submit" style={{marginTop: '10px'}}>Registrar</button>
+          <button type="submit" style={{ marginTop: '10px' }}>Registrar</button>
         </form>
 
         <p className="login-link">

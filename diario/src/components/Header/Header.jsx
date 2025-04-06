@@ -27,7 +27,7 @@ function Header() {
         { nombre: 'Conurbano', path: 'conurbano' },
         { nombre: 'Provincias', path: 'provincias' },
         { nombre: 'Municipios', path: 'municipios' },
-        { nombre: 'Protestas', path: 'protestas' },
+
       ],
     },
     {
