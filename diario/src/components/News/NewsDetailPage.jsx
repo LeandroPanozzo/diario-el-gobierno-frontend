@@ -6,6 +6,7 @@ import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
+import TwitterEmbed from './TwitterEmbed';
 
 // Función para extraer la primera imagen del contenido HTML
 const extractFirstImageFromContent = (htmlContent) => {
@@ -66,17 +67,66 @@ const NewsDetail = () => {
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
   };
+
+  // Añade este useEffect para cargar el script de Twitter
+useEffect(() => {
+  // Cargar el script de Twitter solo si no está ya cargado
+  if (!window.twttr) {
+    const script = document.createElement('script');
+    script.src = 'https://platform.twitter.com/widgets.js';
+    script.async = true;
+    script.charset = 'utf-8';
+    document.body.appendChild(script);
+    
+    return () => {
+      // Limpieza opcional cuando el componente se desmonta
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }
+}, []);
 // Función para envolver videos de YouTube en contenedores centrados
 const processContent = (htmlContent) => {
-  // Esto puede hacerse de manera más robusta con un parser de DOM,
-  // pero aquí usamos una solución simple con regex
-  const wrappedContent = htmlContent.replace(
+  if (!htmlContent) return '';
+  
+  // Crear un elemento DOM temporal para modificar el contenido
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  
+  // Procesar videos de YouTube como ya tenías
+  const wrappedYoutubeContent = htmlContent.replace(
     /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
     '<div class="video-container">$1</div>'
   );
   
-  return wrappedContent;
+  // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
+  const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
+  const markedContent = wrappedYoutubeContent.replace(
+    tweetRegex,
+    '<!-- TWITTER_EMBED:$1 -->'
+  );
+  
+  return markedContent;
 };
+const renderNewsContent = () => {
+  if (!contenido) return null;
+  
+  const processedContent = processContent(contenido);
+  
+  // Dividir el contenido por los marcadores de Twitter
+  const parts = processedContent.split(/<!-- TWITTER_EMBED:(.*?) -->/);
+  
+  return parts.map((part, index) => {
+    // Los índices pares son contenido HTML normal
+    if (index % 2 === 0) {
+      return <div key={`content-${index}`} dangerouslySetInnerHTML={{ __html: part }} />;
+    }
+    // Los índices impares son URLs de Twitter
+    return <TwitterEmbed key={`tweet-${index}`} tweetUrl={part} />;
+  });
+};
+
   const readContentAloud = () => {
     if (newsData && newsData.contenido) {
       const plainText = stripHtmlPalabras_clave(newsData.contenido);
@@ -456,14 +506,15 @@ const processContent = (htmlContent) => {
 
       
       <div 
-        className="news-content" 
-        style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          overflowWrap: 'break-word'
-        }}
-        dangerouslySetInnerHTML={{ __html: processContent(contenido) }}
-      ></div>
+  className="news-content" 
+  style={{
+    maxWidth: '800px',
+    margin: '0 auto',
+    overflowWrap: 'break-word'
+  }}
+>
+  {renderNewsContent()}
+</div>
 
       <div className="tags-section" style={{ marginBottom: '30px' }}>
         <h3 className="tags-title">Palabras clave </h3>
