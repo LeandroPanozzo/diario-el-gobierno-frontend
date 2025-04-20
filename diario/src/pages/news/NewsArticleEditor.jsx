@@ -112,15 +112,15 @@ const NewsManagement = () => {
   const fetchNews = () => {
     api.get('noticias/')
       .then(response => {
-        // Asegurarse de que estamos usando el trabajadorId (no el UserProfile ID)
-        const filteredNews = response.data
-          .filter(noticia => 
-            noticia.autor === trabajadorId || noticia.editor_en_jefe === trabajadorId
-          );
+        // Filtra noticias donde el usuario es autor o está en el array de editores_en_jefe
+        const filteredNews = response.data.filter(noticia => 
+          noticia.autor === trabajadorId || 
+          (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
+        );
         
         console.log(`Filtrando noticias para trabajador ID: ${trabajadorId}`);
         filteredNews.forEach(noticia => {
-          console.log(`Noticia: ${noticia.nombre_noticia} - ID Autor: ${noticia.autor}, ID Editor: ${noticia.editor_en_jefe}, Fecha: ${noticia.fecha_publicacion}`);
+          console.log(`Noticia: ${noticia.nombre_noticia} - ID Autor: ${noticia.autor}, IDs Editores: ${JSON.stringify(noticia.editores_en_jefe)}, Fecha: ${noticia.fecha_publicacion}`);
         });
         
         // Ordenar las noticias por fecha (más reciente primero)
@@ -208,17 +208,27 @@ const NewsManagement = () => {
 
   const showModal = (record = null) => {
     if (record) {
+      // Convertir editores_en_jefe a array si no lo es
+      const editoresEnJefe = Array.isArray(record.editores_en_jefe) 
+        ? record.editores_en_jefe 
+        : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
+      
       form.setFieldsValue({
         ...record,
         fecha_publicacion: moment(record.fecha_publicacion),
         solo_para_subscriptores: record.solo_para_subscriptores || false,
         Palabras_clave: record.Palabras_clave || '',
         categorias: record.categorias || [],
+        editores_en_jefe: editoresEnJefe, // Configurar como array
         estado: record.estado ? parseInt(record.estado, 10) : undefined,
       });
       setEditingId(record.id);
 
-     if (trabajadorId === record.editor_en_jefe || trabajadorId === record.autor) {
+      // Actualiza la condición para verificar si el usuario actual está entre los editores
+      if (
+        trabajadorId === record.autor || 
+        (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId))
+      ) {
         setFilteredPublicationStates(publicationStates);
       } else {
         setFilteredPublicationStates([]);
@@ -227,7 +237,8 @@ const NewsManagement = () => {
       form.resetFields();
       // Si es una nueva noticia, establecer el autor como el trabajador actual
       form.setFieldsValue({
-        autor: trabajadorId
+        autor: trabajadorId,
+        editores_en_jefe: [] // Inicializar como array vacío
       });
       setEditingId(null);
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
@@ -241,13 +252,18 @@ const NewsManagement = () => {
         values.categorias = values.categorias ? [values.categorias] : [];
       }
       
+      // Asegúrate de que los editores_en_jefe sean un array
+      if (!Array.isArray(values.editores_en_jefe)) {
+        values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
+      }
+      
       const noticiaEditada = {
         nombre_noticia: values.nombre_noticia,
         fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
         Palabras_clave: values.Palabras_clave || '',
-        autor: parseInt(values.autor, 10), // Aseguramos que sea número
-        editor_en_jefe: parseInt(values.editor_en_jefe, 10), // Aseguramos que sea número
+        autor: parseInt(values.autor, 10),
+        editores_en_jefe: values.editores_en_jefe, // Enviar como array
         estado: parseInt(values.estado, 10),
         solo_para_subscriptores: values.solo_para_subscriptores || false,
         subtitulo: values.subtitulo || 'default content',
@@ -319,11 +335,13 @@ const NewsManagement = () => {
       key: 'nombre_noticia',
       render: (text, record) => {
         const authorObj = editors.find(editor => editor.id === record.autor);
-        const editorObj = editors.find(editor => editor.id === record.editor_en_jefe);
         
-        console.log("News record:", record);
-        console.log("Author ID:", record.autor, "Author object:", authorObj);
-        console.log("Editor ID:", record.editor_en_jefe, "Editor object:", editorObj);
+        // Obtener todos los objetos de editores en lugar de solo uno
+        const editorObjs = Array.isArray(record.editores_en_jefe) 
+          ? record.editores_en_jefe.map(editorId => 
+              editors.find(editor => editor.id === editorId)
+            ).filter(Boolean) // Filtrar para eliminar posibles undefined
+          : [];
         
         return (
           <div style={{ 
@@ -355,15 +373,17 @@ const NewsManagement = () => {
   
             <div style={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: '10px'
             }}>
-              <strong>Editor:</strong>
-              <span>
-                {editorObj
-                  ? `${editorObj.nombre} ${editorObj.apellido} (ID: ${editorObj.id})`
-                  : `Unknown (ID: ${record.editor_en_jefe})`}
-              </span>
+              <strong>Editores:</strong>
+              <div>
+                {editorObjs.length > 0 
+                  ? editorObjs.map(editor => 
+                      `${editor.nombre} ${editor.apellido} (ID: ${editor.id})`
+                    ).join(', ')
+                  : 'Ninguno asignado'}
+              </div>
             </div>
   
             <div style={{
@@ -559,7 +579,11 @@ const NewsManagement = () => {
             <Input />
           </Form.Item>
 
-          <Form.Item name="autor" label="Autor" rules={[{ required: true, message: '¡Por favor seleccione un autor!' }]}>
+          <Form.Item 
+            name="autor" 
+            label="Autor" 
+            rules={[{ required: true, message: '¡Por favor seleccione un autor!' }]}
+          >
             <Select
               showSearch
               placeholder="Seleccione un autor"
@@ -573,13 +597,15 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="editor_en_jefe" 
-          label="Editor"
-          rules={[{ required: true, message: '¡Por favor seleccione un editor!' }]}
+          <Form.Item 
+            name="editores_en_jefe" 
+            label="Editores"
+            rules={[{ required: true, message: '¡Por favor seleccione al menos un editor!' }]}
           >
             <Select
+              mode="multiple"
               showSearch
-              placeholder="Seleccione un editor"
+              placeholder="Seleccione editores"
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
@@ -590,14 +616,18 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="fecha_publicacion" label="Fecha de Publicación" rules={[{ required: true, message: '¡Por favor seleccione la fecha de publicación!' }]}>
+          <Form.Item 
+            name="fecha_publicacion" 
+            label="Fecha de Publicación" 
+            rules={[{ required: true, message: '¡Por favor seleccione la fecha de publicación!' }]}
+          >
             <DatePicker />
           </Form.Item>
 
           <Form.Item 
             name="categorias" 
-            label="Secciones" //las secciones en realidad son categorias en el backend
-            rules={[{ required: true, message: '¡Por favor seleccione al menos una seccion!' }]}
+            label="Secciones" 
+            rules={[{ required: true, message: '¡Por favor seleccione al menos una sección!' }]}
           >
             <Select
               mode="multiple"
@@ -624,7 +654,7 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="Palabras_clave" label="Categorias (separe cada Categoria por una coma ',' ej: Argentina,Ultima hora)"
+          <Form.Item name="Palabras_clave" label="Categorias (separe cada categoría por una coma ',' y usar guion bajo '_' para separar las palabras en lugar del espacio. Ejemplo: Argentina,Javier_Milei,Opinión)"
           rules={[{ required: true, message: '¡Por favor seleccione al menos una Categoria!' }]} //las Categorias en realidad son Palabras_clave en el backend
           >
             <TextArea rows={4} />

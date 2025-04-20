@@ -48,7 +48,7 @@ const NewsDetail = () => {
   const { id } = useParams();
   const [newsData, setNewsData] = useState(null);
   const [authorData, setAuthorData] = useState(null);
-  const [editorData, setEditorData] = useState(null);
+  const [editorsData, setEditorsData] = useState([]);
   const [Palabras_clave, setPalabras_clave] = useState([]);
   const { user } = useUser();
   const [speechState, setSpeechState] = useState('stopped');
@@ -279,19 +279,40 @@ const renderNewsContent = () => {
         const response = await api.get(`noticias/${id}/`);
         const news = response.data;
         setNewsData(news);
-
+    
         if (news.Palabras_clave) {
           setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
         }
-
+    
         if (news.autor) {
           const authorResponse = await api.get(`trabajadores/${news.autor}/`);
           setAuthorData(authorResponse.data);
         }
         
-        if (news.editor_en_jefe) {
-          const editorResponse = await api.get(`trabajadores/${news.editor_en_jefe}/`);
-          setEditorData(editorResponse.data);
+        // Handle multiple editors
+        if (news.editores_en_jefe && Array.isArray(news.editores_en_jefe) && news.editores_en_jefe.length > 0) {
+          // Create an array to store all editor data
+          const editorsDataArray = [];
+          
+          // Fetch each editor's data
+          for (const editorId of news.editores_en_jefe) {
+            try {
+              const editorResponse = await api.get(`trabajadores/${editorId}/`);
+              editorsDataArray.push(editorResponse.data);
+            } catch (editorError) {
+              console.error(`Error fetching editor with ID ${editorId}:`, editorError);
+            }
+          }
+          
+          setEditorsData(editorsDataArray);
+        } else if (news.editor_en_jefe) {
+          // For backward compatibility with the old single editor field
+          try {
+            const editorResponse = await api.get(`trabajadores/${news.editor_en_jefe}/`);
+            setEditorsData([editorResponse.data]);
+          } catch (error) {
+            console.error('Error fetching editor data:', error);
+          }
         }
       } catch (error) {
         console.error('Error fetching news data:', error);
@@ -415,13 +436,25 @@ const renderNewsContent = () => {
               </>
             )}
           </div>
-          {editorData && (
+          {editorsData.length > 0 && (
             <div className="editor-info">
-              <img src={editorData.foto_perfil} alt={`${editorData.nombre} ${editorData.apellido}`} className="profile-image" />
-              <div className="editor-details">
-                <Link to={`/trabajador/${editorData.id}/noticias`}>
-                  <span className="editor-name">Editor: {editorData.nombre} {editorData.apellido}</span>
-                </Link>
+              <h3 className="editors-title" style={{ fontSize: '16px', margin: '10px 0' }}>Editores:</h3>
+              <div className="editors-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {editorsData.map((editor, index) => (
+                  <div key={index} className="editor-item" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                    <img 
+                      src={editor.foto_perfil} 
+                      alt={`${editor.nombre} ${editor.apellido}`} 
+                      className="profile-image" 
+                      style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '5px' }}
+                    />
+                    <div className="editor-details">
+                      <Link to={`/trabajador/${editor.id}/noticias`}>
+                        <span className="editor-name">{editor.nombre} {editor.apellido}</span>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
