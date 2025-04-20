@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'http://127.0.0.1:8000/diarioback/', // Mantener tu configuración de URL
+    baseURL: 'https://diario-el-gobierno-backend.onrender.com/diarioback/', // Mantener tu configuración de URL
     headers: {
         'Content-Type': 'application/json',
     },
