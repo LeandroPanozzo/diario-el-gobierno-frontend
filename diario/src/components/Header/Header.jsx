@@ -23,10 +23,11 @@ function Header() {
       path: 'Politica',
       subcategorias: [
         { nombre: 'Legislativos', path: 'legislativos' },
-        { nombre: 'Judiciales', path: 'judiciales' },
-        { nombre: 'Conurbano', path: 'conurbano' },
+        { nombre: 'Policiales', path: 'policiales' },
+        { nombre: 'Elecciones', path: 'elecciones' },
+        { nombre: 'Gobierno', path: 'gobierno' },
         { nombre: 'Provincias', path: 'provincias' },
-        { nombre: 'Municipios', path: 'municipios' },
+        { nombre: 'Capital', path: 'capital' },
 
       ],
     },
@@ -35,8 +36,9 @@ function Header() {
       path: 'Economia',
       subcategorias: [
         { nombre: 'Finanzas', path: 'finanzas' },
-        { nombre: 'Negocios', path: 'negocios' },
-        { nombre: 'Empresas', path: 'empresas' },
+        { nombre: 'Comercio internacional', path: 'comercio_internacional' },
+        { nombre: 'Politica economica', path: 'politica_economica' },
+        { nombre: 'Pobreza e inflacion', path: 'pobreza_e_inflacion' },
         { nombre: 'Dolar', path: 'dolar' },
       ],
     },
@@ -46,9 +48,11 @@ function Header() {
       subcategorias: [
         { nombre: 'Cine', path: 'cine' },
         { nombre: 'Literatura', path: 'literatura' },
-        { nombre: 'Moda', path: 'moda' },
+        { nombre: 'Salud', path: 'salud' },
         { nombre: 'Tecnologia', path: 'tecnologia' },
         { nombre: 'Eventos', path: 'eventos' },
+        { nombre: 'Educacion', path: 'educacion' },
+        { nombre: 'Efemerides', path: 'efemerides' },
       ],
     },
     {
@@ -56,10 +60,22 @@ function Header() {
       path: 'Mundo',
       subcategorias: [
         { nombre: 'Estados Unidos', path: 'estados_unidos' },
-        { nombre: 'Politica Exterior', path: 'politica_exterior' },
+        { nombre: 'Argentina', path: 'argentina' },
         { nombre: 'Medio Oriente', path: 'medio_oriente' },
         { nombre: 'Asia', path: 'asia' },
         { nombre: 'Internacional', path: 'internacional' },
+        { nombre: 'Latinoamerica', path: 'latinoamerica' },
+      ],
+    },
+    {
+      nombre: 'Tipos de notas',
+      path: 'Tipos de notas',
+      subcategorias: [
+        { nombre: 'De analisis', path: 'de_analisis' },
+        { nombre: 'De opinion', path: 'de_opinion' },
+        { nombre: 'Informativas', path: 'informativas' },
+        { nombre: 'Entrevistas', path: 'entrevistas' },
+
       ],
     },
     {
@@ -68,12 +84,7 @@ function Header() {
       external: true,
       subcategorias: [],
     },
-    {
-      nombre: 'Noticias Pasadas',
-      path: 'https://iky.b07.myftpupload.com/',
-      external: true,
-      subcategorias: [],
-    },
+    
   ];
 
   useEffect(() => {
