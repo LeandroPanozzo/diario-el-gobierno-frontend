@@ -71,11 +71,7 @@ function Footer() {
                   diarioelgobiernoargentina@gmail.com
                 </a>
               </li>
-              <li>
-                <a href="mailto:redaccion@diarioelgobierno.pe" style={{color: '#333'}}>
-                  redaccion@diarioelgobierno.pe
-                </a>
-              </li>
+              
             </ul>
           </div>
         </div>
@@ -87,6 +83,7 @@ function Footer() {
           <p>Propietario: S. A. ElGobierno</p>
           <p>Copyright 2024 S.A. ElGobierno | Todos los derechos reservados.</p>
           <p>Queda prohibida la reproducción total o parcial del presente diario.</p>
+          <p>Página creada por el equipo de programación de El Gobierno Argentina:</p>
         </div>
       </div>
     </footer>
