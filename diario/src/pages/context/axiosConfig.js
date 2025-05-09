@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'Http://64.23.212.155/diarioback/', // Mantener tu configuración de URL
+    baseURL: 'http://64.23.212.155/diarioback/',
     headers: {
         'Content-Type': 'application/json',
     },
