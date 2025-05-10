@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: 'http://64.23.212.155/diarioback/',
+    baseURL: 'https://api.diarioelgobierno.ar/diarioback/', // Mantener tu configuración de URL
     headers: {
         'Content-Type': 'application/json',
     },

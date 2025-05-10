@@ -83,7 +83,7 @@ function Footer() {
           <p>Propietario: S. A. ElGobierno</p>
           <p>Copyright 2024 S.A. ElGobierno | Todos los derechos reservados.</p>
           <p>Queda prohibida la reproducción total o parcial del presente diario.</p>
-          <p>Página creada por el equipo de programación de El Gobierno Argentina:</p>
+          <p>Página creada por el equipo de programación de El Gobierno Argentina: Leandro Panozzo, Nicolás Alvarado, Juan Estanislao Cobas</p>
         </div>
       </div>
     </footer>
