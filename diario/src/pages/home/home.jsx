@@ -30,6 +30,7 @@ const HomePage = () => {
   const [sectionNews, setSectionNews] = useState({});
   const [recentNews, setRecentNews] = useState([]);
   const [mostViewedNews, setMostViewedNews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   // Content processing functions
@@ -46,30 +47,6 @@ const HomePage = () => {
 
   const truncateTitle = (title, maxLength) => {
     return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
-  };
-
-  const truncateContent = (content, type) => {
-    const plainText = stripHtml(content);
-    
-    switch (type) {
-      case 'default':
-        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
-      case 'main':
-        return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
-      case 'secondary':
-        return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
-      case 'recent':
-        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
-      default:
-        return plainText;
-    }
-  };
-
-  const truncateSubtitle = (subtitle, content) => {
-    if (subtitle === 'default content') {
-      return truncateContent(content);
-    }
-    return subtitle;
   };
 
   // Procesar los datos de noticias para extraer imágenes del contenido
@@ -89,138 +66,88 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const fetchFeaturedNews = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const response = await api.get('noticias');
-        const filteredNews = response.data.filter(
-          newsItem => newsItem.estado === 3 && newsItem.categorias.includes('Portada')
-        );
-        const sortedNews = filteredNews.sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
-        await fetchAuthorsAndEditors(sortedNews);
-        // Procesar las noticias para extraer imágenes del contenido
-        const processedNews = processNewsWithImages(sortedNews);
-        setFeaturedNews(processedNews.slice(0, 5));
-      } catch (error) {
-        console.error('Failed to fetch featured news:', error);
-      }
-    };
-
-    const fetchSectionNews = async () => {
-      // Definir las secciones principales y sus subcategorías
-      const mainSections = {
-        'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
-        'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
-        'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
-        'Mundo': [ 'estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
-        'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
-      };
-
-      try {
-        const response = await api.get('noticias');
-        const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-        await fetchAuthorsAndEditors(filteredNews);
-
-        const newSectionNews = {};
-        
-        Object.entries(mainSections).forEach(([mainSection, subcategories]) => {
-          const sectionNews = filteredNews.filter(newsItem => {
-            const categories = newsItem.categorias;
-            return categories.some(category => 
-              subcategories.includes(category.toLowerCase())
-            );
-          }).sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
+        // Realizar todas las peticiones en paralelo para mejorar el rendimiento
+        const [featuredResponse, recentResponse, mostViewedResponse] = await Promise.all([
+          // 1. Noticias destacadas (Portada) - Usar el endpoint especializado con límite y incluir datos de autor
+          api.get('noticias/por_categoria?categoria=Portada&estado=3&limit=5&include_autor=true'),
           
-          // Procesar las noticias para extraer imágenes del contenido
-          const processedNews = processNewsWithImages(sectionNews);
-          newSectionNews[mainSection] = processedNews.slice(0, 7);
+          // 2. Noticias recientes - Limitar a las 5 más recientes e incluir datos de autor
+          api.get('noticias?estado=3&limit=5&include_autor=true'),
+          
+          // 3. Noticias más vistas - Usar el endpoint especializado
+          api.get('noticias/mas_vistas?limit=5&include_autor=true')
+        ]);
+
+        // 4. Noticias por sección - Usar un objeto para guardar todas las promesas
+        const mainSections = {
+          'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
+          'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
+          'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
+          'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
+          'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
+        };
+
+        // Crear un array de promesas para las secciones
+        const sectionPromises = Object.entries(mainSections).map(async ([mainSection, subcategories]) => {
+          // Convertir el array de subcategorías en una cadena separada por comas
+          const categoriesParam = subcategories.join(',');
+          const response = await api.get(`noticias/por_categoria?categoria=${categoriesParam}&estado=3&limit=7&include_autor=true`);
+          return { section: mainSection, news: response.data };
         });
 
-        setSectionNews(newSectionNews);
-      } catch (error) {
-        console.error('Failed to fetch section news:', error);
-      }
-    };
+        // Esperar a que se completen todas las promesas de secciones
+        const sectionsResults = await Promise.all(sectionPromises);
 
-    const fetchRecentNews = async () => {
-      try {
-        const response = await api.get('noticias');
-        const sortedNews = response.data
-          .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
-
-        await fetchAuthorsAndEditors(sortedNews);
-        // Procesar las noticias para extraer imágenes del contenido
-        const processedNews = processNewsWithImages(sortedNews);
-        setRecentNews(processedNews.slice(0, 5));
-      } catch (error) {
-        console.error('Failed to fetch recent news:', error);
-      }
-    };
-    
-    const fetchMostViewedNews = async () => {
-      try {
-        const response = await api.get('noticias/mas_vistas/');
-        const filteredNews = response.data
-          .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => b.contador_visitas - a.contador_visitas)
-          .slice(0, 5);
+        // Procesar los resultados de las noticias destacadas
+        const processedFeaturedNews = processNewsWithImages(featuredResponse.data);
+        setFeaturedNews(processedFeaturedNews);
         
-        await fetchAuthorsAndEditors(filteredNews);
-        // Procesar las noticias para extraer imágenes del contenido
-        const processedNews = processNewsWithImages(filteredNews);
-        setMostViewedNews(processedNews);
+        // Procesar los resultados de las noticias recientes
+        const processedRecentNews = processNewsWithImages(recentResponse.data);
+        setRecentNews(processedRecentNews);
+        
+        // Procesar los resultados de las noticias más vistas
+        const processedMostViewedNews = processNewsWithImages(mostViewedResponse.data);
+        setMostViewedNews(processedMostViewedNews);
+
+        // Procesar los resultados de las secciones
+        const newSectionNews = {};
+        sectionsResults.forEach(result => {
+          newSectionNews[result.section] = processNewsWithImages(result.news);
+        });
+        setSectionNews(newSectionNews);
+
       } catch (error) {
-        console.error('Failed to fetch most viewed news:', error);
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    const fetchAuthorsAndEditors = async (newsList) => {
-      for (const newsItem of newsList) {
-        if (newsItem.autor) {
-          try {
-            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
-            newsItem.autorData = authorResponse.data;
-          } catch (error) {
-            console.error('Error fetching author data:', error);
-          }
-        }
-        if (newsItem.editor_en_jefe) {
-          try {
-            const editorResponse = await api.get(`trabajadores/${newsItem.editor_en_jefe}/`);
-            newsItem.editorData = editorResponse.data;
-          } catch (error) {
-            console.error('Error fetching editor data:', error);
-          }
-        }
-      }
-    };
-
-    fetchFeaturedNews();
-    fetchSectionNews();
-    fetchRecentNews();
-    fetchMostViewedNews();
+    fetchData();
   }, []);
 
   const renderNewsSection = (newsArray, sectionTitle) => (
     <div className="news-section" key={sectionTitle}>
-      
       <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
       <div className="news-grid">
         {newsArray.length > 0 && (
-          <div className="main-article " onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
-              <div className='recent-new'>
-            <img src={newsArray[0].contentImage} alt={newsArray[0].nombre_noticia} />
-              </div>
+          <div className="main-article" onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
+            <div className='recent-new'>
+              <img src={newsArray[0].contentImage} alt={newsArray[0].nombre_noticia} />
+            </div>
             <div className="main-article-content">
               <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
               <div>
-              
-              {newsArray[0].autorData && (
-                <p className="author">
-                  por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
-                </p>
-              )}
-              <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
+                {newsArray[0].autorData && (
+                  <p className="author">
+                    por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
+                  </p>
+                )}
+                <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
               </div>
               <p className="article-preview">
                 {getFirstParagraphContent(newsArray[0].contenido)}
@@ -235,8 +162,8 @@ const HomePage = () => {
               className="secondary-article"
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
-              <div className='secondary-article-img '>
-              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} />
+              <div className='secondary-article-img'>
+                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} />
               </div>
               <div className="secondary-article-content">
                 <h4>{newsItem.nombre_noticia}</h4>
@@ -265,7 +192,7 @@ const HomePage = () => {
             onClick={() => navigate(`/noticia/${newsItem.id}`)}
           >
             <div className='recent-new'>
-            <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
+              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
             </div>
             <div className="recent-news-content">
               <h4>{newsItem.nombre_noticia}</h4>
@@ -289,7 +216,7 @@ const HomePage = () => {
               onClick={() => navigate(`/noticia/${newsItem.id}`)}
             >
               <div className='recent-new'>
-              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
+                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
               </div>
               <div className="recent-news-content">
                 <h4>{newsItem.nombre_noticia}</h4>
@@ -305,6 +232,10 @@ const HomePage = () => {
       </div>
     </div>
   );
+
+  if (isLoading) {
+    return <div className="loading">Cargando noticias...</div>;
+  }
 
   return (
     <div className="container">
