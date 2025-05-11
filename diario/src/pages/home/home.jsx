@@ -296,7 +296,6 @@ const HomePage = () => {
     return (
       <div className="container">
         <div className="loading-state">
-          <h2>Cargando noticias...</h2>
         </div>
       </div>
     );
