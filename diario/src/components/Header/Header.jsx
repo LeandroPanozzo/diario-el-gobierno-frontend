@@ -136,6 +136,8 @@ function Header() {
   };
   const handleLogout = () => {
     // Clear all auth data
+    localStorage.clear();
+    sessionStorage.clear();
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
     localStorage.removeItem('user');
