@@ -54,20 +54,37 @@ const SubcategoryPage = () => {
     'conurbano': 'Política',
     'provincias': 'Política',
     'municipios': 'Política',
+    'policiales': 'Política',
+    'elecciones': 'Política',
+    'gobierno': 'Política',
+    'capital': 'Política',
+    'nacion': 'Política',
     'cine': 'Cultura',
     'literatura': 'Cultura',
     'moda': 'Cultura',
     'tecnologia': 'Cultura',
     'eventos': 'Cultura',
+    'salud': 'Cultura',
+    'educacion': 'Cultura',
+    'efemerides': 'Cultura',
+    'deporte': 'Cultura',
     'finanzas': 'Economía',
     'negocios': 'Economía',
     'empresas': 'Economía',
     'dolar': 'Economía',
+    'comercio_internacional': 'Economía',
+    'politica_economica': 'Economía',
+    'pobreza_e_inflacion': 'Economía',
     'estados_unidos': 'Mundo',
     'politica_exterior': 'Mundo',
     'medio_oriente': 'Mundo',
     'asia': 'Mundo',
     'internacional': 'Mundo',
+    'latinoamerica': 'Mundo',
+    'de_analisis': 'Tipos de notas',
+    'de_opinion': 'Tipos de notas',
+    'informativas': 'Tipos de notas',
+    'entrevistas': 'Tipos de notas',
   };
 
   const stripHtml = (html) => {
@@ -90,7 +107,15 @@ const SubcategoryPage = () => {
         const filteredNews = response.data
           .filter(newsItem => {
             if (newsItem.estado !== 3) return false;
-            return newsItem.categorias.includes(normalizedSubcategory);
+            
+            // CORRECCIÓN: Asegurarnos de que categorias sea un array
+            const categoriesArray = Array.isArray(newsItem.categorias) 
+              ? newsItem.categorias 
+              : (typeof newsItem.categorias === 'string' && newsItem.categorias 
+                 ? newsItem.categorias.split(',').map(cat => cat.trim().toLowerCase())
+                 : []);
+            
+            return categoriesArray.includes(normalizedSubcategory);
           })
           .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
 

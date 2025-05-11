@@ -108,10 +108,11 @@ const HomePage = () => {
     const fetchSectionNews = async () => {
       // Definir las secciones principales y sus subcategorías
       const mainSections = {
-        'Politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'protestas'],
-        'Cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos'],
-        'Economia': ['finanzas', 'negocios', 'empresas', 'dolar'],
-        'Mundo': ['politica_exterior', 'estados_unidos', 'asia', 'medio_oriente', 'internacional']
+        'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
+        'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
+        'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
+        'Mundo': [ 'estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
+        'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
       };
 
       try {

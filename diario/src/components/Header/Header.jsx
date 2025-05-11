@@ -28,6 +28,7 @@ function Header() {
         { nombre: 'Gobierno', path: 'gobierno' },
         { nombre: 'Provincias', path: 'provincias' },
         { nombre: 'Capital', path: 'capital' },
+        { nombre: 'Nacion', path: 'nacion' },
 
       ],
     },
@@ -53,6 +54,7 @@ function Header() {
         { nombre: 'Eventos', path: 'eventos' },
         { nombre: 'Educacion', path: 'educacion' },
         { nombre: 'Efemerides', path: 'efemerides' },
+        { nombre: 'Deporte', path: 'deporte' },
       ],
     },
     {
@@ -60,7 +62,6 @@ function Header() {
       path: 'Mundo',
       subcategorias: [
         { nombre: 'Estados Unidos', path: 'estados_unidos' },
-        { nombre: 'Argentina', path: 'argentina' },
         { nombre: 'Medio Oriente', path: 'medio_oriente' },
         { nombre: 'Asia', path: 'asia' },
         { nombre: 'Internacional', path: 'internacional' },

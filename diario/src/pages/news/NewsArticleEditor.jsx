@@ -53,6 +53,7 @@ const NewsManagement = () => {
       ['gobierno', 'Gobierno'],
       ['provincias', 'Provincias'],
       ['capital', 'Capital'],
+      ['nacion', 'Nacion'],
     ]],
     ['Cultura', [
       ['cine', 'Cine'],
@@ -62,6 +63,7 @@ const NewsManagement = () => {
       ['eventos', 'Eventos'],
       ['educacion', 'Educacion'],
       ['efemerides', 'Efemerides'],
+      ['deporte', 'Deporte'],
     ]],
     ['Economia', [
       ['finanzas', 'Finanzas'],

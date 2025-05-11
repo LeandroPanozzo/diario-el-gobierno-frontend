@@ -11,7 +11,7 @@ const SectionPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
 
-  // Función para extraer la primera imagen del contenido HTML (igual que en HomePage)
+  // Función para extraer la primera imagen del contenido HTML
   const extractFirstImageFromContent = (htmlContent) => {
     if (!htmlContent) return null;
     
@@ -50,10 +50,10 @@ const SectionPage = () => {
   // Definir las categorías principales y sus subcategorías
   const mainSections = {
     'portada': ['portada'],
-    'politica': ['legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios'],
-    'cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos'],
-    'economia': ['finanzas', 'negocios', 'empresas', 'dolar'],
-    'mundo': ['estados_unidos', 'politica_exterior', 'medio_oriente', 'asia', 'internacional']
+    'politica': ['nacion','legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'policiales', 'elecciones', 'gobierno', 'capital'],
+    'cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos', 'salud', 'educacion', 'efemerides', 'deporte'],
+    'economia': ['finanzas', 'negocios', 'empresas', 'dolar', 'comercio_internacional', 'politica_economica', 'pobreza_e_inflacion'],
+    'mundo': ['estados_unidos', 'politica_exterior', 'medio_oriente', 'asia', 'internacional', 'latinoamerica']
   };
 
   // Función para eliminar etiquetas HTML
@@ -82,8 +82,15 @@ const SectionPage = () => {
           .filter(newsItem => {
             if (newsItem.estado !== 3) return false;
             
+            // CORRECCIÓN: Asegurarnos de que categorias sea un array
+            const categoriesArray = Array.isArray(newsItem.categorias) 
+              ? newsItem.categorias 
+              : (typeof newsItem.categorias === 'string' && newsItem.categorias 
+                 ? newsItem.categorias.split(',').map(cat => cat.trim().toLowerCase())
+                 : []);
+            
             // Verificar si alguna de las categorías de la noticia está en las subcategorías
-            return newsItem.categorias.some(category => 
+            return categoriesArray.some(category => 
               subcategories.includes(category.toLowerCase())
             );
           })
@@ -91,7 +98,7 @@ const SectionPage = () => {
 
         await fetchAuthors(filteredNews);
         
-        // Procesar las noticias para extraer imágenes del contenido (como en HomePage)
+        // Procesar las noticias para extraer imágenes del contenido
         const processedNews = processNewsWithImages(filteredNews);
         setNews(processedNews);
 
@@ -170,9 +177,17 @@ const SectionPage = () => {
                       </p>
                     )}
                     <p className="news-category">
-                      {newsItem.categorias
-                        .filter(cat => mainSections[sectionName.toLowerCase()]?.includes(cat.toLowerCase()))
-                        .join(', ')}
+                      {Array.isArray(newsItem.categorias) 
+                        ? newsItem.categorias
+                            .filter(cat => mainSections[sectionName.toLowerCase()]?.includes(cat.toLowerCase()))
+                            .join(', ')
+                        : (typeof newsItem.categorias === 'string' && newsItem.categorias
+                            ? newsItem.categorias
+                                .split(',')
+                                .map(cat => cat.trim())
+                                .filter(cat => mainSections[sectionName.toLowerCase()]?.includes(cat.toLowerCase()))
+                                .join(', ')
+                            : '')}
                     </p>
                   </div>
                 </div>
