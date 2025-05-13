@@ -86,15 +86,15 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFeaturedNews = async () => {
       try {
-        // Cambiado: Ahora usamos 'noticias' en lugar de 'noticias/mas_vistas/' para obtener las más recientes
-        const response = await api.get('noticias');
-        const filteredNews = response.data
-          .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion)); // Ordenar por fecha, más recientes primero
+        // Usamos el endpoint destacadas para obtener noticias para el carrusel
+        const response = await api.get('noticias/destacadas/', {
+          params: { limit: 12 } // 12 noticias para el carrusel (4 slides x 3 noticias)
+        });
         
+        const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
         await fetchAuthorsAndEditors(filteredNews);
         const processedNews = processNewsWithImages(filteredNews);
-        setFeaturedNews(processedNews.slice(0, 12)); // Tomamos las 12 más recientes para el carrusel
+        setFeaturedNews(processedNews);
       } catch (error) {
         console.error('Failed to fetch featured news:', error);
       }
@@ -106,28 +106,36 @@ const HomePage = () => {
         'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
         'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
         'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
-        'Mundo': [ 'estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
+        'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
         'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
       };
 
       try {
-        const response = await api.get('noticias');
-        const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-        await fetchAuthorsAndEditors(filteredNews);
-
         const newSectionNews = {};
         
-        Object.entries(mainSections).forEach(([mainSection, subcategories]) => {
-          const sectionNews = filteredNews.filter(newsItem => {
-            const categories = newsItem.categorias;
-            return categories.some(category => 
-              subcategories.includes(category.toLowerCase())
-            );
-          }).sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
-          
-          const processedNews = processNewsWithImages(sectionNews);
-          newSectionNews[mainSection] = processedNews.slice(0, 7);
-        });
+        // Obtener noticias para cada sección usando el endpoint por_categoria
+        for (const [mainSection, subcategories] of Object.entries(mainSections)) {
+          try {
+            // Creamos una string con las categorías separadas por coma
+            const categoriaParam = subcategories.join(',');
+            
+            // Llamamos al endpoint por_categoria con las categorías de esta sección
+            const response = await api.get('noticias/por_categoria/', {
+              params: {
+                categoria: categoriaParam,
+                estado: 3, // Solo noticias publicadas
+                limit: 7 // Limitamos a 7 noticias por sección
+              }
+            });
+            
+            await fetchAuthorsAndEditors(response.data);
+            const processedNews = processNewsWithImages(response.data);
+            newSectionNews[mainSection] = processedNews;
+          } catch (error) {
+            console.error(`Failed to fetch ${mainSection} news:`, error);
+            newSectionNews[mainSection] = []; // Aseguramos un array vacío en caso de error
+          }
+        }
 
         setSectionNews(newSectionNews);
       } catch (error) {
@@ -137,14 +145,14 @@ const HomePage = () => {
 
     const fetchRecentNews = async () => {
       try {
-        const response = await api.get('noticias');
-        const sortedNews = response.data
-          .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
-
-        await fetchAuthorsAndEditors(sortedNews);
-        const processedNews = processNewsWithImages(sortedNews);
-        setRecentNews(processedNews.slice(0, 5));
+        // Usamos el endpoint específico para noticias recientes
+        const response = await api.get('noticias/recientes/', {
+          params: { limit: 5 }
+        });
+        
+        await fetchAuthorsAndEditors(response.data);
+        const processedNews = processNewsWithImages(response.data);
+        setRecentNews(processedNews);
       } catch (error) {
         console.error('Failed to fetch recent news:', error);
       }
@@ -152,14 +160,13 @@ const HomePage = () => {
     
     const fetchMostViewedNews = async () => {
       try {
-        const response = await api.get('noticias/mas_vistas/');
-        const filteredNews = response.data
-          .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => b.contador_visitas - a.contador_visitas)
-          .slice(0, 5);
+        // Usamos el endpoint específico para noticias más vistas
+        const response = await api.get('noticias/mas_vistas/', {
+          params: { limit: 5 }
+        });
         
-        await fetchAuthorsAndEditors(filteredNews);
-        const processedNews = processNewsWithImages(filteredNews);
+        await fetchAuthorsAndEditors(response.data);
+        const processedNews = processNewsWithImages(response.data);
         setMostViewedNews(processedNews);
       } catch (error) {
         console.error('Failed to fetch most viewed news:', error);
@@ -345,120 +352,118 @@ const HomePage = () => {
     </div>
   );
 
-  // Nuevo renderizado del carrusel que inicialmente muestra solo 3 artículos
+  const renderFeaturedCarousel = () => {
+    if (featuredNews.length === 0) return null;
+    
+    return (
+      <div className="carousel-wrapper">
+        {/* Botones de navegación */}
+        <button 
+          className="carousel-arrow carousel-arrow-prev" 
+          onClick={handlePrevSlide}
+          aria-label="Anterior"
+        >
+          &#10094;
+        </button>
+        
+        <button 
+          className="carousel-arrow carousel-arrow-next" 
+          onClick={handleNextSlide}
+          aria-label="Siguiente"
+        >
+          &#10095;
+        </button>
+        
+        {/* Botón de pausa/reproducción */}
+        <div 
+          className="carousel-pause-indicator" 
+          onClick={handlePauseToggle}
+        >
+          {isPaused ? "▶ Play" : "❚❚ Pause"}
+        </div>
 
-const renderFeaturedCarousel = () => {
-  if (featuredNews.length === 0) return null;
-  
-  return (
-    <div className="carousel-wrapper">
-      {/* Botones de navegación */}
-      <button 
-        className="carousel-arrow carousel-arrow-prev" 
-        onClick={handlePrevSlide}
-        aria-label="Anterior"
-      >
-        &#10094;
-      </button>
-      
-      <button 
-        className="carousel-arrow carousel-arrow-next" 
-        onClick={handleNextSlide}
-        aria-label="Siguiente"
-      >
-        &#10095;
-      </button>
-      
-      {/* Botón de pausa/reproducción */}
-      <div 
-        className="carousel-pause-indicator" 
-        onClick={handlePauseToggle}
-      >
-        {isPaused ? "▶ Play" : "❚❚ Pause"}
-      </div>
-
-      {/* Contenedor principal del carrusel */}
-      <div className="carousel-container">
-        {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-          const startIdx = slideIndex * 3;
-          const slideNews = featuredNews.slice(startIdx, startIdx + 3);
-          
-          if (slideNews.length === 0) return null;
-          
-          // Determinar si este slide está activo (visible)
-          const isActive = slideIndex === currentSlide;
-          
-          return (
-            <div 
-              key={`slide-${slideIndex}`} 
-              className={`slide ${isActive ? 'active' : ''}`}
-              style={{ 
-                transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
-                opacity: isActive ? 1 : 0.5,
-                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-              }}
-            >
-              {/* Artículo principal (izquierda en desktop, arriba en móvil) */}
+        {/* Contenedor principal del carrusel */}
+        <div className="carousel-container">
+          {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+            const startIdx = slideIndex * 3;
+            const slideNews = featuredNews.slice(startIdx, startIdx + 3);
+            
+            if (slideNews.length === 0) return null;
+            
+            // Determinar si este slide está activo (visible)
+            const isActive = slideIndex === currentSlide;
+            
+            return (
               <div 
-                className="featured-left" 
-                onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
+                key={`slide-${slideIndex}`} 
+                className={`slide ${isActive ? 'active' : ''}`}
+                style={{ 
+                  transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
+                  opacity: isActive ? 1 : 0.5,
+                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+                }}
               >
-                <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
-                <div className="overlay">
-                  <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
-                  <p style={{ color: '#ffff' }}>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
-                  {slideNews[0]?.autorData && (
-                    <p className="author" style={{ marginTop: '-5px', color: '#ffff' }}>
-                      por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
-                    </p>
-                  )}
+                {/* Artículo principal (izquierda en desktop, arriba en móvil) */}
+                <div 
+                  className="featured-left" 
+                  onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
+                >
+                  <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
+                  <div className="overlay">
+                    <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
+                    <p style={{ color: '#ffff' }}>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
+                    {slideNews[0]?.autorData && (
+                      <p className="author" style={{ marginTop: '-5px', color: '#ffff' }}>
+                        por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Artículos secundarios (derecha en desktop, abajo en móvil) */}
+                <div className="featured-right">
+                  {slideNews.slice(1, 3).map((newsItem, idx) => (
+                    <div
+                      key={newsItem.id}
+                      className="carousel-item"
+                      onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                    >
+                      <img 
+                        src={newsItem.contentImage} 
+                        alt={newsItem.nombre_noticia} 
+                        className="carousel-image"
+                      />
+                      <div className="carousel-caption">
+                        <h3>{newsItem.nombre_noticia}</h3>
+                        <p>{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                        {newsItem.autorData && (
+                          <p className="author">
+                            por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Artículos secundarios (derecha en desktop, abajo en móvil) */}
-              <div className="featured-right">
-                {slideNews.slice(1, 3).map((newsItem, idx) => (
-                  <div
-                    key={newsItem.id}
-                    className="carousel-item"
-                    onClick={() => navigate(`/noticia/${newsItem.id}`)}
-                  >
-                    <img 
-                      src={newsItem.contentImage} 
-                      alt={newsItem.nombre_noticia} 
-                      className="carousel-image"
-                    />
-                    <div className="carousel-caption">
-                      <h3>{newsItem.nombre_noticia}</h3>
-                      <p>{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
-                      {newsItem.autorData && (
-                        <p className="author">
-                          por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        
+        {/* Indicadores de navegación (puntos) */}
+        <div className="carousel-dots">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <span 
+              key={`dot-${index}`}
+              className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+              onClick={() => handleDotClick(index)}
+              aria-label={`Ir a la diapositiva ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
-      
-      {/* Indicadores de navegación (puntos) */}
-      <div className="carousel-dots">
-        {Array.from({ length: totalSlides }).map((_, index) => (
-          <span 
-            key={`dot-${index}`}
-            className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-            onClick={() => handleDotClick(index)}
-            aria-label={`Ir a la diapositiva ${index + 1}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="container">
