@@ -43,7 +43,7 @@ const HomePage = () => {
   const getFirstParagraphContent = (content) => {
     const plainText = stripHtml(content);
     const words = plainText.split(/\s+/);
-    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
+    return words.slice(0, 13).join(' ') + (words.length > 13 ? '...' : '');
   };
 
   const truncateTitle = (title, maxLength) => {
@@ -405,10 +405,10 @@ const renderFeaturedCarousel = () => {
               >
                 <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
                 <div className="overlay">
-                  <h1>{slideNews[0]?.nombre_noticia}</h1>
-                  <p>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
+                  <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
+                  <p style={{ color: '#ffff' }}>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
                   {slideNews[0]?.autorData && (
-                    <p className="author" style={{ marginTop: '-5px' }}>
+                    <p className="author" style={{ marginTop: '-5px', color: '#ffff' }}>
                       por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
                     </p>
                   )}
