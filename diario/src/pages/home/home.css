@@ -622,7 +622,7 @@ transform: scale(1.1);
 }
 
 
-/* Estilos para el carrusel mejorado */
+/* Estilos para el carrusel mejorado y responsivo */
 
 /* Carrusel principal */
 .carousel-wrapper {
@@ -636,21 +636,23 @@ transform: scale(1.1);
 
 /* Contenedor de slides */
 .carousel-container {
-  display: flex;
-  width: 400%; /* Ancho total para 4 slides */
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  width: 100%;
+  height: 450px; /* Altura fija para desktop */
+  overflow: hidden;
 }
 
 .slide {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
   display: flex;
-  flex-shrink: 0;
-  position: relative;
-  animation: fadeIn 0.5s ease;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .slide.active {
-  opacity: 1;
   z-index: 2;
 }
 
@@ -783,7 +785,7 @@ transform: scale(1.1);
   cursor: pointer;
 }
 
-.carousel-item img {
+.carousel-item img.carousel-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -801,41 +803,91 @@ transform: scale(1.1);
 }
 
 /* Animaciones */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.slide {
+  animation-fill-mode: both;
 }
 
-/* Mejoras responsive */
+/* Media queries para pantallas móviles */
 @media screen and (max-width: 768px) {
   .carousel-container {
-    flex-direction: column;
+    height: auto;
   }
-  
+
   .slide {
     flex-direction: column;
+    height: auto;
+    position: relative;
   }
   
-  .featured-left, 
-  .carousel-item {
-    height: auto;
-    min-height: 200px;
+  .featured-left {
+    width: 100%;
+    height: 250px;
+  }
+  
+  .featured-left img {
+    height: 250px;
   }
   
   .featured-right {
+    width: 100%;
+    max-height: none;
     display: flex;
     flex-direction: column;
-    max-height: none;
+    gap: 10px;
+  }
+  
+  .carousel-item {
+    height: 150px;
   }
   
   .carousel-arrow {
     width: 35px;
     height: 35px;
-    font-size: 16px;
+    font-size: 14px;
+  }
+  
+  .carousel-dots {
+    bottom: 10px;
   }
   
   .carousel-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
+  }
+  
+  .carousel-pause-indicator {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  
+  .featured-left .overlay {
+    padding: 10px;
+  }
+  
+  .featured-left h1 {
+    font-size: 18px;
+  }
+}
+
+/* Ajustes adicionales para pantallas muy pequeñas */
+@media screen and (max-width: 480px) {
+  .featured-left {
+    height: 200px;
+  }
+  
+  .featured-left img {
+    height: 200px;
+  }
+  
+  .carousel-item {
+    height: 120px;
+  }
+  
+  .carousel-caption h3 {
+    font-size: 14px;
+  }
+  
+  .featured-left h1 {
+    font-size: 16px;
   }
 }
