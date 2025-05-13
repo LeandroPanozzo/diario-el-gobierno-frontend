@@ -7,20 +7,11 @@ import api from '../context/axiosConfig';
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
   
-  // Crear un elemento DOM temporal para buscar imágenes
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
+  // Usar expresión regular para encontrar la primera imagen más rápido que DOM
+  const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
+  const match = htmlContent.match(imgRegex);
   
-  // Buscar la primera imagen en el contenido
-  const firstImage = tempDiv.querySelector('img');
-  
-  // Si encontramos una imagen, devolver su URL
-  if (firstImage && firstImage.src) {
-    return firstImage.src;
-  }
-  
-  // No se encontró ninguna imagen
-  return null;
+  return match ? match[1] : null;
 };
 
 const HomePage = () => {
@@ -29,16 +20,22 @@ const HomePage = () => {
   const [recentNews, setRecentNews] = useState([]);
   const [mostViewedNews, setMostViewedNews] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // Estado para controlar la pantalla de carga
-  const totalSlides = 4; // Total de grupos de noticias para el carrusel
+  const [loadingStates, setLoadingStates] = useState({
+    featured: true,
+    sections: true,
+    recent: true,
+    mostViewed: true
+  });
+  const totalSlides = 4;
   const navigate = useNavigate();
   const carouselInterval = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
+  const abortController = useRef(new AbortController());
 
-  // Content processing functions
+  // Content processing functions - Optimized
   const stripHtml = (html) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || "";
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   };
 
   const getFirstParagraphContent = (content) => {
@@ -48,7 +45,7 @@ const HomePage = () => {
   };
 
   const truncateTitle = (title, maxLength) => {
-    return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
+    return title?.length > maxLength ? title.slice(0, maxLength) + '...' : title;
   };
 
   const truncateContent = (content, type) => {
@@ -68,14 +65,14 @@ const HomePage = () => {
     }
   };
 
-  // Procesar los datos de noticias para extraer imágenes del contenido
+  // Procesar los datos de noticias para extraer imágenes del contenido - Optimizado
   const processNewsWithImages = (newsItems) => {
     return newsItems.map(newsItem => {
       // Extraer la primera imagen del contenido
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
       
       // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
-      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera || '/path/to/placeholder.jpg';
       
       return {
         ...newsItem,
@@ -84,50 +81,56 @@ const HomePage = () => {
     });
   };
 
+  // Limpieza al desmontar el componente
   useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        await Promise.all([
-          fetchFeaturedNews(),
-          fetchSectionNews(),
-          fetchRecentNews(),
-          fetchMostViewedNews()
-        ]);
-        
-        // Mantén la pantalla de carga por 5 segundos incluso si los datos ya se cargaron
-        setTimeout(() => {
-          setIsLoading(false);
-        }, );
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
-        // En caso de error también quitamos la pantalla de carga después de 5 segundos
-        setTimeout(() => {
-          setIsLoading(false);
-        }, );
+    return () => {
+      // Cancelar todas las solicitudes pendientes cuando el componente se desmonte
+      abortController.current.abort();
+      if (carouselInterval.current) {
+        clearInterval(carouselInterval.current);
       }
     };
-
-    fetchAllData();
   }, []);
 
-  const fetchFeaturedNews = async () => {
+  // Cargar datos de forma incremental
+  useEffect(() => {
+    // Creamos un nuevo controlador para cada set de solicitudes
+    abortController.current = new AbortController();
+    const signal = abortController.current.signal;
+
+    // Cargar datos de forma paralela pero independiente
+    fetchFeaturedNews(signal);
+    fetchSectionNews(signal);
+    fetchRecentNews(signal);
+    fetchMostViewedNews(signal);
+  }, []);
+
+  const fetchFeaturedNews = async (signal) => {
     try {
-      // Usamos el endpoint destacadas para obtener noticias para el carrusel
       const response = await api.get('noticias/destacadas/', {
-        params: { limit: 12 } // 12 noticias para el carrusel (4 slides x 3 noticias)
+        params: { limit: 12 },
+        signal
       });
       
       const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-      await fetchAuthorsAndEditors(filteredNews);
-      const processedNews = processNewsWithImages(filteredNews);
-      setFeaturedNews(processedNews);
+      // Procesar noticias antes de buscar autores para mostrar UI más rápido
+      const newsWithImages = processNewsWithImages(filteredNews);
+      setFeaturedNews(newsWithImages);
+      setLoadingStates(prev => ({ ...prev, featured: false }));
+      
+      // Buscar datos de autores después - mejora progresiva
+      fetchAuthorsAndEditors(filteredNews).then(() => {
+        setFeaturedNews([...processNewsWithImages(filteredNews)]);
+      });
     } catch (error) {
-      console.error('Failed to fetch featured news:', error);
+      if (!signal.aborted) {
+        console.error('Failed to fetch featured news:', error);
+        setLoadingStates(prev => ({ ...prev, featured: false }));
+      }
     }
   };
 
-  const fetchSectionNews = async () => {
-    // Definir las secciones principales y sus subcategorías
+  const fetchSectionNews = async (signal) => {
     const mainSections = {
       'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
       'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
@@ -138,94 +141,167 @@ const HomePage = () => {
 
     try {
       const newSectionNews = {};
+      const sectionPromises = [];
       
-      // Obtener noticias para cada sección usando el endpoint por_categoria
+      // Crear todas las promesas primero
       for (const [mainSection, subcategories] of Object.entries(mainSections)) {
-        try {
-          // Creamos una string con las categorías separadas por coma
-          const categoriaParam = subcategories.join(',');
-          
-          // Llamamos al endpoint por_categoria con las categorías de esta sección
-          const response = await api.get('noticias/por_categoria/', {
-            params: {
-              categoria: categoriaParam,
-              estado: 3, // Solo noticias publicadas
-              limit: 7 // Limitamos a 7 noticias por sección
-            }
-          });
-          
-          await fetchAuthorsAndEditors(response.data);
+        const categoriaParam = subcategories.join(',');
+        
+        const promise = api.get('noticias/por_categoria/', {
+          params: {
+            categoria: categoriaParam,
+            estado: 3,
+            limit: 7
+          },
+          signal
+        })
+        .then(response => {
+          // Procesar imágenes inmediatamente para mostrar noticias
           const processedNews = processNewsWithImages(response.data);
           newSectionNews[mainSection] = processedNews;
-        } catch (error) {
-          console.error(`Failed to fetch ${mainSection} news:`, error);
-          newSectionNews[mainSection] = []; // Aseguramos un array vacío en caso de error
-        }
+          // Actualizar el estado inmediatamente con lo que tengamos
+          setSectionNews(prevState => ({
+            ...prevState,
+            [mainSection]: processedNews
+          }));
+          
+          // Buscar autores en segundo plano
+          return fetchAuthorsAndEditors(response.data).then(() => {
+            // Actualizar con autores cuando estén listos
+            setSectionNews(prevState => ({
+              ...prevState,
+              [mainSection]: [...processNewsWithImages(response.data)]
+            }));
+          });
+        })
+        .catch(error => {
+          if (!signal.aborted) {
+            console.error(`Failed to fetch ${mainSection} news:`, error);
+            newSectionNews[mainSection] = [];
+          }
+        });
+        
+        sectionPromises.push(promise);
       }
-
-      setSectionNews(newSectionNews);
+      
+      // Esperar a que se completen todas las promesas pero ya mostramos UI
+      Promise.all(sectionPromises).finally(() => {
+        setLoadingStates(prev => ({ ...prev, sections: false }));
+      });
     } catch (error) {
-      console.error('Failed to fetch section news:', error);
+      if (!signal.aborted) {
+        console.error('Failed to fetch section news:', error);
+        setLoadingStates(prev => ({ ...prev, sections: false }));
+      }
     }
   };
 
-  const fetchRecentNews = async () => {
+  const fetchRecentNews = async (signal) => {
     try {
-      // Usamos el endpoint específico para noticias recientes
       const response = await api.get('noticias/recientes/', {
-        params: { limit: 5 }
+        params: { limit: 5 },
+        signal
       });
       
-      await fetchAuthorsAndEditors(response.data);
-      const processedNews = processNewsWithImages(response.data);
-      setRecentNews(processedNews);
+      // Procesar imágenes inmediatamente para mostrar UI
+      const newsWithImages = processNewsWithImages(response.data);
+      setRecentNews(newsWithImages);
+      setLoadingStates(prev => ({ ...prev, recent: false }));
+      
+      // Buscar autores después - mejora progresiva
+      fetchAuthorsAndEditors(response.data).then(() => {
+        setRecentNews([...processNewsWithImages(response.data)]);
+      });
     } catch (error) {
-      console.error('Failed to fetch recent news:', error);
+      if (!signal.aborted) {
+        console.error('Failed to fetch recent news:', error);
+        setLoadingStates(prev => ({ ...prev, recent: false }));
+      }
     }
   };
   
-  const fetchMostViewedNews = async () => {
+  const fetchMostViewedNews = async (signal) => {
     try {
-      // Usamos el endpoint específico para noticias más vistas
       const response = await api.get('noticias/mas_vistas/', {
-        params: { limit: 5 }
+        params: { limit: 5 },
+        signal
       });
       
-      await fetchAuthorsAndEditors(response.data);
-      const processedNews = processNewsWithImages(response.data);
-      setMostViewedNews(processedNews);
+      // Procesar imágenes inmediatamente para mostrar UI
+      const newsWithImages = processNewsWithImages(response.data);
+      setMostViewedNews(newsWithImages);
+      setLoadingStates(prev => ({ ...prev, mostViewed: false }));
+      
+      // Buscar autores después - mejora progresiva
+      fetchAuthorsAndEditors(response.data).then(() => {
+        setMostViewedNews([...processNewsWithImages(response.data)]);
+      });
     } catch (error) {
-      console.error('Failed to fetch most viewed news:', error);
+      if (!signal.aborted) {
+        console.error('Failed to fetch most viewed news:', error);
+        setLoadingStates(prev => ({ ...prev, mostViewed: false }));
+      }
     }
   };
 
+  // Optimizado para usar lotes y caché
   const fetchAuthorsAndEditors = async (newsList) => {
-    for (const newsItem of newsList) {
-      if (newsItem.autor) {
-        try {
-          const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
-          newsItem.autorData = authorResponse.data;
-        } catch (error) {
-          console.error('Error fetching author data:', error);
-        }
+    if (!newsList || newsList.length === 0) return;
+    
+    // Crear un conjunto para evitar solicitudes duplicadas
+    const uniqueAuthorIds = new Set();
+    const uniqueEditorIds = new Set();
+    
+    // Recopilar IDs únicos
+    newsList.forEach(newsItem => {
+      if (newsItem.autor) uniqueAuthorIds.add(newsItem.autor);
+      if (newsItem.editor_en_jefe) uniqueEditorIds.add(newsItem.editor_en_jefe);
+    });
+    
+    // Cache para almacenar respuestas
+    const authorCache = {};
+    const editorCache = {};
+    
+    // Función para procesar lotes de solicitudes
+    const processBatch = async (ids, endpoint, cache) => {
+      const promises = Array.from(ids).map(id => 
+        api.get(`trabajadores/${id}/`)
+          .then(response => {
+            cache[id] = response.data;
+          })
+          .catch(error => {
+            console.error(`Error fetching data for ID ${id}:`, error);
+          })
+      );
+      
+      await Promise.allSettled(promises);
+    };
+    
+    // Procesar autores y editores en paralelo
+    await Promise.all([
+      processBatch(uniqueAuthorIds, 'trabajadores', authorCache),
+      processBatch(uniqueEditorIds, 'trabajadores', editorCache)
+    ]);
+    
+    // Aplicar datos de caché a las noticias
+    newsList.forEach(newsItem => {
+      if (newsItem.autor && authorCache[newsItem.autor]) {
+        newsItem.autorData = authorCache[newsItem.autor];
       }
-      if (newsItem.editor_en_jefe) {
-        try {
-          const editorResponse = await api.get(`trabajadores/${newsItem.editor_en_jefe}/`);
-          newsItem.editorData = editorResponse.data;
-        } catch (error) {
-          console.error('Error fetching editor data:', error);
-        }
+      if (newsItem.editor_en_jefe && editorCache[newsItem.editor_en_jefe]) {
+        newsItem.editorData = editorCache[newsItem.editor_en_jefe];
       }
-    }
+    });
   };
 
   // Efecto para controlar el carrusel automático
   useEffect(() => {
-    if (!isPaused && !isLoading) {
+    const isAnyLoading = Object.values(loadingStates).some(state => state);
+    
+    if (!isPaused && !isAnyLoading) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
-      }, 5000); // Cambiar cada 5 segundos
+      }, 5000);
     }
 
     return () => {
@@ -233,7 +309,7 @@ const HomePage = () => {
         clearInterval(carouselInterval.current);
       }
     };
-  }, [isPaused, isLoading]);
+  }, [isPaused, loadingStates]);
 
   const handlePauseToggle = () => {
     setIsPaused(!isPaused);
@@ -262,122 +338,244 @@ const HomePage = () => {
       clearInterval(carouselInterval.current);
     }
     
-    if (!isPaused && !isLoading) {
+    const isAnyLoading = Object.values(loadingStates).some(state => state);
+    
+    if (!isPaused && !isAnyLoading) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
       }, 5000);
     }
   };
 
-  const renderNewsSection = (newsArray, sectionTitle) => (
-    <div className="news-section" key={sectionTitle}>
-      <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
-      <div className="news-grid">
-        {newsArray.length > 0 && (
-          <div className="main-article" onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
-            <div className='recent-new'>
-              <img src={newsArray[0].contentImage} alt={newsArray[0].nombre_noticia} />
-            </div>
-            <div className="main-article-content">
-              <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
-              <div>
-              {newsArray[0].autorData && (
-                <p className="author">
-                  por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
-                </p>
-              )}
-              <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
+  // Componente de esqueleto para artículos principales
+  const MainArticleSkeleton = () => (
+    <div className="main-article skeleton">
+      <div className="recent-new skeleton-img"></div>
+      <div className="main-article-content">
+        <div className="skeleton-line title"></div>
+        <div className="skeleton-line meta"></div>
+        <div className="skeleton-line"></div>
+        <div className="skeleton-line"></div>
+      </div>
+    </div>
+  );
+
+  // Componente de esqueleto para artículos secundarios
+  const SecondaryArticleSkeleton = () => (
+    <div className="secondary-article skeleton">
+      <div className="secondary-article-img skeleton-img"></div>
+      <div className="secondary-article-content">
+        <div className="skeleton-line title"></div>
+        <div className="skeleton-line meta"></div>
+      </div>
+    </div>
+  );
+
+  // Componente de esqueleto para noticias recientes
+  const RecentNewsSkeleton = () => (
+    <div className="recent-news-item skeleton">
+      <div className="recent-new skeleton-img"></div>
+      <div className="recent-news-content">
+        <div className="skeleton-line title"></div>
+        <div className="skeleton-line meta"></div>
+      </div>
+    </div>
+  );
+
+  const renderNewsSection = (newsArray, sectionTitle) => {
+    const isLoading = loadingStates.sections;
+    
+    return (
+      <div className="news-section" key={sectionTitle}>
+        <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
+        <div className="news-grid">
+          {isLoading ? (
+            <>
+              <MainArticleSkeleton />
+              <div className="secondary-articles">
+                {[...Array(4)].map((_, idx) => (
+                  <SecondaryArticleSkeleton key={idx} />
+                ))}
               </div>
-              <p className="article-preview description">
-                {getFirstParagraphContent(newsArray[0].contenido)}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="secondary-articles">
-          {newsArray.slice(1, 5).map((newsItem) => (
-            <div
-              key={newsItem.id}
-              className="secondary-article"
-              onClick={() => navigate(`/noticia/${newsItem.id}`)}
-            >
-              <div className='secondary-article-img'>
-                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} />
-              </div>
-              <div className="secondary-article-content">
-                <h4>{newsItem.nombre_noticia}</h4>
-                {newsItem.autorData && (
-                  <p className="author">
-                    por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+            </>
+          ) : newsArray && newsArray.length > 0 ? (
+            <>
+              <div className="main-article" onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
+                <div className='recent-new'>
+                  <img 
+                    src={newsArray[0].contentImage} 
+                    alt={newsArray[0].nombre_noticia}
+                    loading="lazy" 
+                  />
+                </div>
+                <div className="main-article-content">
+                  <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
+                  <div>
+                  {newsArray[0].autorData && (
+                    <p className="author">
+                      por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
+                    </p>
+                  )}
+                  <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
+                  </div>
+                  <p className="article-preview description">
+                    {getFirstParagraphContent(newsArray[0].contenido)}
                   </p>
-                )}
-                <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                </div>
               </div>
-            </div>
-          ))}
+              <div className="secondary-articles">
+                {newsArray.slice(1, 5).map((newsItem) => (
+                  <div
+                    key={newsItem.id}
+                    className="secondary-article"
+                    onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                  >
+                    <div className='secondary-article-img'>
+                      <img 
+                        src={newsItem.contentImage} 
+                        alt={newsItem.nombre_noticia}
+                        loading="lazy" 
+                      />
+                    </div>
+                    <div className="secondary-article-content">
+                      <h4>{newsItem.nombre_noticia}</h4>
+                      {newsItem.autorData && (
+                        <p className="author">
+                          por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                        </p>
+                      )}
+                      <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>No hay noticias disponibles</p>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
-  const renderRecentNews = (recentNewsArray) => (
-    <div className="recent-news-section">
-      <h2 className="section-title">NOTICIAS RECIENTES</h2>
-      <div className="recent-news-list">
-        {recentNewsArray.map(newsItem => (
-          <div
-            key={newsItem.id}
-            className="recent-news-item"
-            onClick={() => navigate(`/noticia/${newsItem.id}`)}
-          >
-            <div className='recent-new'>
-              <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
-            </div>
-            <div className="recent-news-content">
-              <h4>{newsItem.nombre_noticia}</h4>
-              <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderMostViewedNews = (mostViewedNewsArray) => (
-    <div className="recent-news-section">
-      <h2 className="section-title">MÁS LEÍDAS</h2>
-      <div className="recent-news-list">
-        {mostViewedNewsArray.length > 0 ? (
-          mostViewedNewsArray.map(newsItem => (
-            <div
-              key={newsItem.id}
-              className="recent-news-item"
-              onClick={() => navigate(`/noticia/${newsItem.id}`)}
-            >
-              <div className='recent-new'>
-                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="recent-news-image" />
-              </div>
-              <div className="recent-news-content">
-                <h4>{newsItem.nombre_noticia}</h4>
-                <div className="news-meta">
+  const renderRecentNews = (recentNewsArray) => {
+    const isLoading = loadingStates.recent;
+    
+    return (
+      <div className="recent-news-section">
+        <h2 className="section-title">NOTICIAS RECIENTES</h2>
+        <div className="recent-news-list">
+          {isLoading ? (
+            [...Array(5)].map((_, idx) => (
+              <RecentNewsSkeleton key={idx} />
+            ))
+          ) : recentNewsArray && recentNewsArray.length > 0 ? (
+            recentNewsArray.map(newsItem => (
+              <div
+                key={newsItem.id}
+                className="recent-news-item"
+                onClick={() => navigate(`/noticia/${newsItem.id}`)}
+              >
+                <div className='recent-new'>
+                  <img 
+                    src={newsItem.contentImage} 
+                    alt={newsItem.nombre_noticia} 
+                    className="recent-news-image"
+                    loading="lazy" 
+                  />
+                </div>
+                <div className="recent-news-content">
+                  <h4>{newsItem.nombre_noticia}</h4>
                   <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
                 </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <p>No hay noticias destacadas</p>
-        )}
+            ))
+          ) : (
+            <p>No hay noticias recientes</p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderMostViewedNews = (mostViewedNewsArray) => {
+    const isLoading = loadingStates.mostViewed;
+    
+    return (
+      <div className="recent-news-section">
+        <h2 className="section-title">MÁS LEÍDAS</h2>
+        <div className="recent-news-list">
+          {isLoading ? (
+            [...Array(5)].map((_, idx) => (
+              <RecentNewsSkeleton key={idx} />
+            ))
+          ) : mostViewedNewsArray && mostViewedNewsArray.length > 0 ? (
+            mostViewedNewsArray.map(newsItem => (
+              <div
+                key={newsItem.id}
+                className="recent-news-item"
+                onClick={() => navigate(`/noticia/${newsItem.id}`)}
+              >
+                <div className='recent-new'>
+                  <img 
+                    src={newsItem.contentImage} 
+                    alt={newsItem.nombre_noticia} 
+                    className="recent-news-image"
+                    loading="lazy" 
+                  />
+                </div>
+                <div className="recent-news-content">
+                  <h4>{newsItem.nombre_noticia}</h4>
+                  <div className="news-meta">
+                    <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No hay noticias destacadas</p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderFeaturedCarousel = () => {
-    if (featuredNews.length === 0) return null;
+    const isLoading = loadingStates.featured;
+    
+    if (isLoading) {
+      return (
+        <div className="carousel-wrapper">
+          <div className="carousel-container skeleton-carousel">
+            <div className="slide active">
+              <div className="featured-left skeleton">
+                <div className="skeleton-img"></div>
+                <div className="overlay">
+                  <div className="skeleton-line title"></div>
+                  <div className="skeleton-line meta"></div>
+                </div>
+              </div>
+              <div className="featured-right">
+                {[...Array(2)].map((_, idx) => (
+                  <div key={idx} className="carousel-item skeleton">
+                    <div className="skeleton-img"></div>
+                    <div className="carousel-caption">
+                      <div className="skeleton-line title"></div>
+                      <div className="skeleton-line meta"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    if (!featuredNews || featuredNews.length === 0) return null;
     
     return (
       <div className="carousel-wrapper">
-        {/* Botones de navegación */}
         <button 
           className="carousel-arrow carousel-arrow-prev" 
           onClick={handlePrevSlide}
@@ -394,7 +592,6 @@ const HomePage = () => {
           &#10095;
         </button>
         
-        {/* Botón de pausa/reproducción */}
         <div 
           className="carousel-pause-indicator" 
           onClick={handlePauseToggle}
@@ -402,7 +599,6 @@ const HomePage = () => {
           {isPaused ? "▶ Play" : "❚❚ Pause"}
         </div>
 
-        {/* Contenedor principal del carrusel */}
         <div className="carousel-container">
           {Array.from({ length: totalSlides }).map((_, slideIndex) => {
             const startIdx = slideIndex * 3;
@@ -410,7 +606,6 @@ const HomePage = () => {
             
             if (slideNews.length === 0) return null;
             
-            // Determinar si este slide está activo (visible)
             const isActive = slideIndex === currentSlide;
             
             return (
@@ -423,12 +618,15 @@ const HomePage = () => {
                   transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
                 }}
               >
-                {/* Artículo principal (izquierda en desktop, arriba en móvil) */}
                 <div 
                   className="featured-left" 
                   onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
                 >
-                  <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
+                  <img 
+                    src={slideNews[0]?.contentImage} 
+                    alt={slideNews[0]?.nombre_noticia}
+                    loading={slideIndex === 0 ? "eager" : "lazy"} 
+                  />
                   <div className="overlay">
                     <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
                     <p style={{ color: '#ffff' }}>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
@@ -440,7 +638,6 @@ const HomePage = () => {
                   </div>
                 </div>
 
-                {/* Artículos secundarios (derecha en desktop, abajo en móvil) */}
                 <div className="featured-right">
                   {slideNews.slice(1, 3).map((newsItem, idx) => (
                     <div
@@ -452,6 +649,7 @@ const HomePage = () => {
                         src={newsItem.contentImage} 
                         alt={newsItem.nombre_noticia} 
                         className="carousel-image"
+                        loading={slideIndex === 0 ? "eager" : "lazy"} 
                       />
                       <div className="carousel-caption">
                         <h3>{newsItem.nombre_noticia}</h3>
@@ -470,7 +668,6 @@ const HomePage = () => {
           })}
         </div>
         
-        {/* Indicadores de navegación (puntos) */}
         <div className="carousel-dots">
           {Array.from({ length: totalSlides }).map((_, index) => (
             <span 
@@ -485,42 +682,60 @@ const HomePage = () => {
     );
   };
 
-  // Definimos la pantalla de carga
-  const renderLoadingScreen = () => (
-    <div className="loading-screen" style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: '#ffffff',
-      zIndex: 1000,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }}>
-      <div className="loading-spinner" style={{
-        width: '50px',
-        height: '50px',
-        borderRadius: '50%',
-        border: '5px solid #f3f3f3',
-        borderTop: '5px solid #3498db',
-        animation: 'spin 1s linear infinite'
-      }}></div>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+  // Reglas CSS para los esqueletos de carga
+  const SkeletonStyles = () => (
+    <style>{`
+      .skeleton {
+        animation: pulse 1.5s infinite alternate;
+        background: #f0f0f0;
+      }
+      
+      .skeleton-img {
+        width: 100%;
+        height: 200px;
+        background: #e0e0e0;
+        border-radius: 4px;
+      }
+      
+      .skeleton-line {
+        height: 12px;
+        margin: 8px 0;
+        background: #e0e0e0;
+        border-radius: 2px;
+      }
+      
+      .skeleton-line.title {
+        height: 20px;
+        width: 80%;
+      }
+      
+      .skeleton-line.meta {
+        width: 40%;
+      }
+      
+      .recent-news-item.skeleton .skeleton-img {
+        height: 80px;
+      }
+      
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
         }
-      `}</style>
-    </div>
+        100% {
+          opacity: 1;
+        }
+      }
+    `}</style>
   );
+
+  // Determinar si debe mostrar la pantalla de carga completa
+  const isFullyLoading = Object.values(loadingStates).every(state => state);
 
   return (
     <div className="container">
-      {isLoading && renderLoadingScreen()}
+      <SkeletonStyles />
       
-      <main style={{ visibility: isLoading ? 'hidden' : 'visible' }}>
+      <main>
         <div className="featured-article">
           {renderFeaturedCarousel()}
         </div>
