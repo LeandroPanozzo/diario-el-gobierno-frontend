@@ -8,6 +8,9 @@ import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
 import TwitterEmbed from './TwitterEmbed';
 
+// Imagen por defecto para usuarios sin foto de perfil
+const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
 // Función para extraer la primera imagen del contenido HTML
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
@@ -427,10 +430,20 @@ const renderNewsContent = () => {
           <div className="author-info">
             {authorData && (
               <>
-                <img src={authorData.foto_perfil} alt={`${authorData.nombre} ${authorData.apellido}`} className="profile-image" />
+                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Por:</h3>
+                <img 
+                  src={authorData.foto_perfil || DEFAULT_AVATAR} 
+                  alt={`${authorData.nombre} ${authorData.apellido}`} 
+                  className="profile-image" 
+                  style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '5px' }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = DEFAULT_AVATAR;
+                  }}
+                />
                 <div className="author-details">
                   <Link to={`/trabajador/${authorData.id}/noticias`}>
-                    <span className="author-name">Por: {authorData.nombre} {authorData.apellido}</span>
+                    <span className="author-name">{authorData.nombre} {authorData.apellido}</span>
                   </Link>
                 </div>
               </>
@@ -443,10 +456,14 @@ const renderNewsContent = () => {
                 {editorsData.map((editor, index) => (
                   <div key={index} className="editor-item" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
                     <img 
-                      src={editor.foto_perfil} 
+                      src={editor.foto_perfil || DEFAULT_AVATAR} 
                       alt={`${editor.nombre} ${editor.apellido}`} 
                       className="profile-image" 
                       style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '5px' }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = DEFAULT_AVATAR;
+                      }}
                     />
                     <div className="editor-details">
                       <Link to={`/trabajador/${editor.id}/noticias`}>
