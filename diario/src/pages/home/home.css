@@ -125,7 +125,7 @@ transform: scale(1.1);
 .featured-left:hover h1,
 .carousel-caption:hover h3 {
 
-  color: black;
+  color: rgb(255, 255, 255);
 
 }
 
@@ -623,3 +623,219 @@ transform: scale(1.1);
 }
 
 
+/* Estilos para el carrusel mejorado */
+
+/* Carrusel principal */
+.carousel-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+/* Contenedor de slides */
+.carousel-container {
+  display: flex;
+  width: 400%; /* Ancho total para 4 slides */
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide {
+  width: 100%;
+  display: flex;
+  flex-shrink: 0;
+  position: relative;
+  animation: fadeIn 0.5s ease;
+}
+
+.slide.active {
+  opacity: 1;
+  z-index: 2;
+}
+
+/* Controles del carrusel */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  font-size: 18px;
+}
+
+.carousel-arrow:hover {
+  background-color: rgba(21, 106, 162, 0.8);
+}
+
+.carousel-arrow-prev {
+  left: 15px;
+}
+
+.carousel-arrow-next {
+  right: 15px;
+}
+
+/* Indicadores de puntos */
+.carousel-dots {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.carousel-dot {
+  width: 12px;
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carousel-dot.active {
+  background-color: #156AA2;
+  transform: scale(1.2);
+}
+
+.carousel-dot:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Botón de pausa/reproducción */
+.carousel-pause-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.carousel-pause-indicator:hover {
+  background-color: rgba(21, 106, 162, 0.8);
+}
+
+/* Ajustes específicos para el layout */
+.featured-left {
+  flex: 2;
+  position: relative;
+  overflow: hidden;
+  background-color: #fff;
+  height: 450px;
+  transition: transform 0.3s ease;
+}
+
+.featured-left img {
+  width: 100%;
+  height: 450px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.featured-left .overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9), transparent);
+  padding: 20px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.featured-right {
+  flex: 1;
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: 1fr;
+  gap: 15px;
+  max-height: 450px;
+  overflow: hidden;
+}
+
+.carousel-item {
+  overflow: hidden;
+  position: relative;
+  background-color: #fff;
+  height: 217px;
+  cursor: pointer;
+}
+
+.carousel-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.carousel-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.8), transparent);
+  color: #fff;
+  padding: 15px;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mejoras responsive */
+@media screen and (max-width: 768px) {
+  .carousel-container {
+    flex-direction: column;
+  }
+  
+  .slide {
+    flex-direction: column;
+  }
+  
+  .featured-left, 
+  .carousel-item {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .featured-right {
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+  }
+  
+  .carousel-arrow {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+  
+  .carousel-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
