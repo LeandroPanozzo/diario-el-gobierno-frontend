@@ -34,41 +34,34 @@ const HomePage = () => {
   const carouselInterval = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Content processing functions - Fixed truncation issues
+  // Content processing functions
   const stripHtml = (html) => {
-    if (!html) return "";
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || "";
   };
 
   const getFirstParagraphContent = (content) => {
-    if (!content) return "";
     const plainText = stripHtml(content);
     const words = plainText.split(/\s+/);
-    return words.slice(0, 30).join(' ') + (words.length > 30 ? '...' : '');
+    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
   };
 
-  // Improved truncation function - Ensures titles are displayed properly
   const truncateTitle = (title, maxLength) => {
-    if (!title) return "";
-    // Only truncate if title is longer than maxLength
     return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
   };
 
-  // Improved content truncation
   const truncateContent = (content, type) => {
-    if (!content) return "";
     const plainText = stripHtml(content);
     
     switch (type) {
       case 'default':
-        return plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText;
+        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
       case 'main':
-        return plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText;
+        return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
       case 'secondary':
-        return plainText.length > 80 ? plainText.slice(0, 80) + '...' : plainText;
+        return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
       case 'recent':
-        return plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText;
+        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
       default:
         return plainText;
     }
@@ -81,7 +74,7 @@ const HomePage = () => {
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
       
       // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
-      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera || '/api/placeholder/400/300';
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
       
       return {
         ...newsItem,
@@ -259,7 +252,7 @@ const HomePage = () => {
               <img src={newsArray[0].contentImage} alt={newsArray[0].nombre_noticia} />
             </div>
             <div className="main-article-content">
-              <h3>{newsArray[0].nombre_noticia}</h3>
+              <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
               <div>
               {newsArray[0].autorData && (
                 <p className="author">
@@ -353,118 +346,119 @@ const HomePage = () => {
   );
 
   // Nuevo renderizado del carrusel que inicialmente muestra solo 3 artículos
-  const renderFeaturedCarousel = () => {
-    if (featuredNews.length === 0) return null;
-    
-    return (
-      <div className="carousel-wrapper">
-        {/* Botones de navegación */}
-        <button 
-          className="carousel-arrow carousel-arrow-prev" 
-          onClick={handlePrevSlide}
-          aria-label="Anterior"
-        >
-          &#10094;
-        </button>
-        
-        <button 
-          className="carousel-arrow carousel-arrow-next" 
-          onClick={handleNextSlide}
-          aria-label="Siguiente"
-        >
-          &#10095;
-        </button>
-        
-        {/* Botón de pausa/reproducción */}
-        <div 
-          className="carousel-pause-indicator" 
-          onClick={handlePauseToggle}
-        >
-          {isPaused ? "▶ Play" : "❚❚ Pause"}
-        </div>
 
-        {/* Contenedor principal del carrusel */}
-        <div className="carousel-container">
-          {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-            const startIdx = slideIndex * 3;
-            const slideNews = featuredNews.slice(startIdx, startIdx + 3);
-            
-            if (slideNews.length === 0) return null;
-            
-            // Determinar si este slide está activo (visible)
-            const isActive = slideIndex === currentSlide;
-            
-            return (
+const renderFeaturedCarousel = () => {
+  if (featuredNews.length === 0) return null;
+  
+  return (
+    <div className="carousel-wrapper">
+      {/* Botones de navegación */}
+      <button 
+        className="carousel-arrow carousel-arrow-prev" 
+        onClick={handlePrevSlide}
+        aria-label="Anterior"
+      >
+        &#10094;
+      </button>
+      
+      <button 
+        className="carousel-arrow carousel-arrow-next" 
+        onClick={handleNextSlide}
+        aria-label="Siguiente"
+      >
+        &#10095;
+      </button>
+      
+      {/* Botón de pausa/reproducción */}
+      <div 
+        className="carousel-pause-indicator" 
+        onClick={handlePauseToggle}
+      >
+        {isPaused ? "▶ Play" : "❚❚ Pause"}
+      </div>
+
+      {/* Contenedor principal del carrusel */}
+      <div className="carousel-container">
+        {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+          const startIdx = slideIndex * 3;
+          const slideNews = featuredNews.slice(startIdx, startIdx + 3);
+          
+          if (slideNews.length === 0) return null;
+          
+          // Determinar si este slide está activo (visible)
+          const isActive = slideIndex === currentSlide;
+          
+          return (
+            <div 
+              key={`slide-${slideIndex}`} 
+              className={`slide ${isActive ? 'active' : ''}`}
+              style={{ 
+                transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
+                opacity: isActive ? 1 : 0.5,
+                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+              }}
+            >
+              {/* Artículo principal (izquierda en desktop, arriba en móvil) */}
               <div 
-                key={`slide-${slideIndex}`} 
-                className={`slide ${isActive ? 'active' : ''}`}
-                style={{ 
-                  transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
-                  opacity: isActive ? 1 : 0.5,
-                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-                }}
+                className="featured-left" 
+                onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
               >
-                {/* Artículo principal (izquierda en desktop, arriba en móvil) */}
-                <div 
-                  className="featured-left" 
-                  onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
-                >
-                  <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
-                  <div className="overlay">
-                    <h1>{slideNews[0]?.nombre_noticia}</h1>
-                    <p>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
-                    {slideNews[0]?.autorData && (
-                      <p className="author" style={{ marginTop: '-5px' }}>
-                        por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Artículos secundarios (derecha en desktop, abajo en móvil) */}
-                <div className="featured-right">
-                  {slideNews.slice(1, 3).map((newsItem, idx) => (
-                    <div
-                      key={newsItem.id}
-                      className="carousel-item"
-                      onClick={() => navigate(`/noticia/${newsItem.id}`)}
-                    >
-                      <img 
-                        src={newsItem.contentImage} 
-                        alt={newsItem.nombre_noticia} 
-                        className="carousel-image"
-                      />
-                      <div className="carousel-caption">
-                        <h3>{newsItem.nombre_noticia}</h3>
-                        <p>{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
-                        {newsItem.autorData && (
-                          <p className="author">
-                            por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <img src={slideNews[0]?.contentImage} alt={slideNews[0]?.nombre_noticia} />
+                <div className="overlay">
+                  <h1>{slideNews[0]?.nombre_noticia}</h1>
+                  <p>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
+                  {slideNews[0]?.autorData && (
+                    <p className="author" style={{ marginTop: '-5px' }}>
+                      por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
+                    </p>
+                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-        
-        {/* Indicadores de navegación (puntos) */}
-        <div className="carousel-dots">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <span 
-              key={`dot-${index}`}
-              className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-              onClick={() => handleDotClick(index)}
-              aria-label={`Ir a la diapositiva ${index + 1}`}
-            />
-          ))}
-        </div>
+
+              {/* Artículos secundarios (derecha en desktop, abajo en móvil) */}
+              <div className="featured-right">
+                {slideNews.slice(1, 3).map((newsItem, idx) => (
+                  <div
+                    key={newsItem.id}
+                    className="carousel-item"
+                    onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                  >
+                    <img 
+                      src={newsItem.contentImage} 
+                      alt={newsItem.nombre_noticia} 
+                      className="carousel-image"
+                    />
+                    <div className="carousel-caption">
+                      <h3>{newsItem.nombre_noticia}</h3>
+                      <p>{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                      {newsItem.autorData && (
+                        <p className="author">
+                          por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  };
+      
+      {/* Indicadores de navegación (puntos) */}
+      <div className="carousel-dots">
+        {Array.from({ length: totalSlides }).map((_, index) => (
+          <span 
+            key={`dot-${index}`}
+            className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+            onClick={() => handleDotClick(index)}
+            aria-label={`Ir a la diapositiva ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
 
   return (
     <div className="container">
