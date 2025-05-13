@@ -45,7 +45,6 @@ const NewsManagement = () => {
   }, [screens]);
   
   const CATEGORIAS = [
-    ['Portada', 'portada'],
     ['Politica', [
       ['legislativos', 'Legislativos'],
       ['policiales', 'Policiales'],
@@ -100,7 +99,10 @@ const NewsManagement = () => {
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      // Limpiar los event listeners cuando el componente se desmonte
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
   
   // Efecto adicional para cargar noticias cuando tengamos el ID del trabajador
@@ -219,6 +221,37 @@ const NewsManagement = () => {
     });
   };
 
+  // Función para limpiar el caché y el almacenamiento del navegador
+  const clearBrowserStorage = () => {
+    // Lista de claves que NO deben eliminarse (preservar)
+    const preserveKeys = ['access', 'refresh', 'trabajadorId'];
+    
+    // Guardar temporalmente las claves que queremos preservar
+    const tempStorage = {};
+    preserveKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      if (value) {
+        tempStorage[key] = value;
+      }
+    });
+    
+    // Limpiar localStorage
+    localStorage.clear();
+    
+    // Restaurar las claves preservadas
+    Object.keys(tempStorage).forEach(key => {
+      localStorage.setItem(key, tempStorage[key]);
+    });
+    
+    // Limpiar sessionStorage
+    sessionStorage.clear();
+    
+    // Intentar limpiar caché (esto es limitado en lo que JavaScript puede hacer)
+    console.log("Caché del navegador limpiado");
+    
+    message.success("Almacenamiento del navegador limpiado correctamente");
+  };
+
   const showModal = (record = null) => {
     if (record) {
       // Convertir editores_en_jefe a array si no lo es
@@ -297,13 +330,27 @@ const NewsManagement = () => {
         const method = editingId ? 'put' : 'post';
       
         api[method](endpoint, noticiaEditada)
-          .finally(() => {
+          .then(() => {
+            message.success(editingId ? "Noticia actualizada con éxito" : "Noticia creada con éxito");
+            // Limpiar caché del navegador
+            clearBrowserStorage();
+            
             setIsModalVisible(false);
+            
+            // Recargar la página después de un breve retraso
             setTimeout(() => {
-              window.location = window.location;
-            }, 100);
+              fetchNews(); // Primero intentar recargar solo los datos
+              
+              // Si es necesario, recargar completamente la página
+              // window.location = window.location;
+            }, 500);
+          })
+          .catch(error => {
+            console.error("Error al guardar la noticia:", error);
+            message.error("Error al guardar la noticia");
           });
       };
+      
       submitData();
     });
   };
@@ -312,6 +359,8 @@ const NewsManagement = () => {
     api.delete(`noticias/${id}/`)
       .then(() => {
         message.success("Noticia eliminada con éxito");
+        // Limpiar caché después de eliminar
+        clearBrowserStorage();
         fetchNews(); // Recargar las noticias en lugar de recargar la página
       })
       .catch(error => {
@@ -543,18 +592,28 @@ const NewsManagement = () => {
                 marginBottom: isMobile ? '16px' : 0 
               }} 
             />
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => showModal()} 
-              block={isMobile}
-              style={{ 
-                width: isMobile ? '100%' : 'auto',
-                marginBottom: isMobile ? '16px' : 0
-              }}
-            >
-              Añadir Noticia
-            </Button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => showModal()} 
+                style={{ 
+                  width: isMobile ? '100%' : 'auto',
+                  marginBottom: isMobile ? '16px' : 0
+                }}
+              >
+                Añadir Noticia
+              </Button>
+              <Button
+                onClick={clearBrowserStorage}
+                style={{ 
+                  width: isMobile ? '100%' : 'auto',
+                  marginBottom: isMobile ? '16px' : 0
+                }}
+              >
+                Limpiar Caché
+              </Button>
+            </div>
           </div>
         </Layout.Header>
         

@@ -13,11 +13,7 @@ function Header() {
 
   // Definir las categorías y subcategorías
   const categorias = [
-    {
-      nombre: 'Portada',
-      path: 'Portada',
-      subcategorias: [],
-    },
+    
     {
       nombre: 'Politica',
       path: 'Politica',

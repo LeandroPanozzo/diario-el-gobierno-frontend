@@ -813,6 +813,12 @@ transform: scale(1.1);
     height: auto;
   }
 
+  .carousel-arrow {
+    display: none; /* Oculta las flechas de navegación */
+  }
+  .carousel-pause-indicator {
+    display: none; /* Oculta el indicador de pausa */
+  }
   .slide {
     flex-direction: column;
     height: auto;
@@ -899,7 +905,9 @@ transform: scale(1.1);
   .featured-left {
     height: 200px;
   }
-  
+  .carousel-dots {
+    display: none;
+  }
   .featured-left img {
     height: 200px;
   }

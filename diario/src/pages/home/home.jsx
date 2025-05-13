@@ -29,6 +29,7 @@ const HomePage = () => {
   const [recentNews, setRecentNews] = useState([]);
   const [mostViewedNews, setMostViewedNews] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoading, setIsLoading] = useState(true); // Estado para controlar la pantalla de carga
   const totalSlides = 4; // Total de grupos de noticias para el carrusel
   const navigate = useNavigate();
   const carouselInterval = useRef(null);
@@ -84,125 +85,144 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const fetchFeaturedNews = async () => {
+    const fetchAllData = async () => {
       try {
-        // Usamos el endpoint destacadas para obtener noticias para el carrusel
-        const response = await api.get('noticias/destacadas/', {
-          params: { limit: 12 } // 12 noticias para el carrusel (4 slides x 3 noticias)
-        });
+        await Promise.all([
+          fetchFeaturedNews(),
+          fetchSectionNews(),
+          fetchRecentNews(),
+          fetchMostViewedNews()
+        ]);
         
-        const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-        await fetchAuthorsAndEditors(filteredNews);
-        const processedNews = processNewsWithImages(filteredNews);
-        setFeaturedNews(processedNews);
+        // Mantén la pantalla de carga por 5 segundos incluso si los datos ya se cargaron
+        setTimeout(() => {
+          setIsLoading(false);
+        }, );
       } catch (error) {
-        console.error('Failed to fetch featured news:', error);
+        console.error('Error al cargar datos:', error);
+        // En caso de error también quitamos la pantalla de carga después de 5 segundos
+        setTimeout(() => {
+          setIsLoading(false);
+        }, );
       }
     };
 
-    const fetchSectionNews = async () => {
-      // Definir las secciones principales y sus subcategorías
-      const mainSections = {
-        'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
-        'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
-        'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
-        'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
-        'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
-      };
-
-      try {
-        const newSectionNews = {};
-        
-        // Obtener noticias para cada sección usando el endpoint por_categoria
-        for (const [mainSection, subcategories] of Object.entries(mainSections)) {
-          try {
-            // Creamos una string con las categorías separadas por coma
-            const categoriaParam = subcategories.join(',');
-            
-            // Llamamos al endpoint por_categoria con las categorías de esta sección
-            const response = await api.get('noticias/por_categoria/', {
-              params: {
-                categoria: categoriaParam,
-                estado: 3, // Solo noticias publicadas
-                limit: 7 // Limitamos a 7 noticias por sección
-              }
-            });
-            
-            await fetchAuthorsAndEditors(response.data);
-            const processedNews = processNewsWithImages(response.data);
-            newSectionNews[mainSection] = processedNews;
-          } catch (error) {
-            console.error(`Failed to fetch ${mainSection} news:`, error);
-            newSectionNews[mainSection] = []; // Aseguramos un array vacío en caso de error
-          }
-        }
-
-        setSectionNews(newSectionNews);
-      } catch (error) {
-        console.error('Failed to fetch section news:', error);
-      }
-    };
-
-    const fetchRecentNews = async () => {
-      try {
-        // Usamos el endpoint específico para noticias recientes
-        const response = await api.get('noticias/recientes/', {
-          params: { limit: 5 }
-        });
-        
-        await fetchAuthorsAndEditors(response.data);
-        const processedNews = processNewsWithImages(response.data);
-        setRecentNews(processedNews);
-      } catch (error) {
-        console.error('Failed to fetch recent news:', error);
-      }
-    };
-    
-    const fetchMostViewedNews = async () => {
-      try {
-        // Usamos el endpoint específico para noticias más vistas
-        const response = await api.get('noticias/mas_vistas/', {
-          params: { limit: 5 }
-        });
-        
-        await fetchAuthorsAndEditors(response.data);
-        const processedNews = processNewsWithImages(response.data);
-        setMostViewedNews(processedNews);
-      } catch (error) {
-        console.error('Failed to fetch most viewed news:', error);
-      }
-    };
-
-    const fetchAuthorsAndEditors = async (newsList) => {
-      for (const newsItem of newsList) {
-        if (newsItem.autor) {
-          try {
-            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
-            newsItem.autorData = authorResponse.data;
-          } catch (error) {
-            console.error('Error fetching author data:', error);
-          }
-        }
-        if (newsItem.editor_en_jefe) {
-          try {
-            const editorResponse = await api.get(`trabajadores/${newsItem.editor_en_jefe}/`);
-            newsItem.editorData = editorResponse.data;
-          } catch (error) {
-            console.error('Error fetching editor data:', error);
-          }
-        }
-      }
-    };
-
-    fetchFeaturedNews();
-    fetchSectionNews();
-    fetchRecentNews();
-    fetchMostViewedNews();
+    fetchAllData();
   }, []);
+
+  const fetchFeaturedNews = async () => {
+    try {
+      // Usamos el endpoint destacadas para obtener noticias para el carrusel
+      const response = await api.get('noticias/destacadas/', {
+        params: { limit: 12 } // 12 noticias para el carrusel (4 slides x 3 noticias)
+      });
+      
+      const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
+      await fetchAuthorsAndEditors(filteredNews);
+      const processedNews = processNewsWithImages(filteredNews);
+      setFeaturedNews(processedNews);
+    } catch (error) {
+      console.error('Failed to fetch featured news:', error);
+    }
+  };
+
+  const fetchSectionNews = async () => {
+    // Definir las secciones principales y sus subcategorías
+    const mainSections = {
+      'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
+      'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
+      'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
+      'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
+      'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
+    };
+
+    try {
+      const newSectionNews = {};
+      
+      // Obtener noticias para cada sección usando el endpoint por_categoria
+      for (const [mainSection, subcategories] of Object.entries(mainSections)) {
+        try {
+          // Creamos una string con las categorías separadas por coma
+          const categoriaParam = subcategories.join(',');
+          
+          // Llamamos al endpoint por_categoria con las categorías de esta sección
+          const response = await api.get('noticias/por_categoria/', {
+            params: {
+              categoria: categoriaParam,
+              estado: 3, // Solo noticias publicadas
+              limit: 7 // Limitamos a 7 noticias por sección
+            }
+          });
+          
+          await fetchAuthorsAndEditors(response.data);
+          const processedNews = processNewsWithImages(response.data);
+          newSectionNews[mainSection] = processedNews;
+        } catch (error) {
+          console.error(`Failed to fetch ${mainSection} news:`, error);
+          newSectionNews[mainSection] = []; // Aseguramos un array vacío en caso de error
+        }
+      }
+
+      setSectionNews(newSectionNews);
+    } catch (error) {
+      console.error('Failed to fetch section news:', error);
+    }
+  };
+
+  const fetchRecentNews = async () => {
+    try {
+      // Usamos el endpoint específico para noticias recientes
+      const response = await api.get('noticias/recientes/', {
+        params: { limit: 5 }
+      });
+      
+      await fetchAuthorsAndEditors(response.data);
+      const processedNews = processNewsWithImages(response.data);
+      setRecentNews(processedNews);
+    } catch (error) {
+      console.error('Failed to fetch recent news:', error);
+    }
+  };
+  
+  const fetchMostViewedNews = async () => {
+    try {
+      // Usamos el endpoint específico para noticias más vistas
+      const response = await api.get('noticias/mas_vistas/', {
+        params: { limit: 5 }
+      });
+      
+      await fetchAuthorsAndEditors(response.data);
+      const processedNews = processNewsWithImages(response.data);
+      setMostViewedNews(processedNews);
+    } catch (error) {
+      console.error('Failed to fetch most viewed news:', error);
+    }
+  };
+
+  const fetchAuthorsAndEditors = async (newsList) => {
+    for (const newsItem of newsList) {
+      if (newsItem.autor) {
+        try {
+          const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
+          newsItem.autorData = authorResponse.data;
+        } catch (error) {
+          console.error('Error fetching author data:', error);
+        }
+      }
+      if (newsItem.editor_en_jefe) {
+        try {
+          const editorResponse = await api.get(`trabajadores/${newsItem.editor_en_jefe}/`);
+          newsItem.editorData = editorResponse.data;
+        } catch (error) {
+          console.error('Error fetching editor data:', error);
+        }
+      }
+    }
+  };
 
   // Efecto para controlar el carrusel automático
   useEffect(() => {
-    if (!isPaused) {
+    if (!isPaused && !isLoading) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
       }, 5000); // Cambiar cada 5 segundos
@@ -213,7 +233,7 @@ const HomePage = () => {
         clearInterval(carouselInterval.current);
       }
     };
-  }, [isPaused]);
+  }, [isPaused, isLoading]);
 
   const handlePauseToggle = () => {
     setIsPaused(!isPaused);
@@ -242,7 +262,7 @@ const HomePage = () => {
       clearInterval(carouselInterval.current);
     }
     
-    if (!isPaused) {
+    if (!isPaused && !isLoading) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
       }, 5000);
@@ -465,9 +485,42 @@ const HomePage = () => {
     );
   };
 
+  // Definimos la pantalla de carga
+  const renderLoadingScreen = () => (
+    <div className="loading-screen" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: '#ffffff',
+      zIndex: 1000,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <div className="loading-spinner" style={{
+        width: '50px',
+        height: '50px',
+        borderRadius: '50%',
+        border: '5px solid #f3f3f3',
+        borderTop: '5px solid #3498db',
+        animation: 'spin 1s linear infinite'
+      }}></div>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+
   return (
     <div className="container">
-      <main>
+      {isLoading && renderLoadingScreen()}
+      
+      <main style={{ visibility: isLoading ? 'hidden' : 'visible' }}>
         <div className="featured-article">
           {renderFeaturedCarousel()}
         </div>
