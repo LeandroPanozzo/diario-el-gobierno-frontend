@@ -817,6 +817,10 @@ transform: scale(1.1);
     flex-direction: column;
     height: auto;
     position: relative;
+    /* Eliminamos transform y transition para evitar animaciones en móvil */
+    transform: none !important;
+    transition: none !important;
+    opacity: 1 !important;
   }
   
   .featured-left {
