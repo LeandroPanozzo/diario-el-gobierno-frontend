@@ -57,7 +57,7 @@ const HomePage = () => {
       case 'default':
         return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
       case 'main':
-        return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
+        return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
       case 'secondary':
         return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
       case 'recent':
@@ -86,14 +86,15 @@ const HomePage = () => {
   useEffect(() => {
     const fetchFeaturedNews = async () => {
       try {
-        const response = await api.get('noticias/mas_vistas/');
+        // Cambiado: Ahora usamos 'noticias' en lugar de 'noticias/mas_vistas/' para obtener las más recientes
+        const response = await api.get('noticias');
         const filteredNews = response.data
           .filter(newsItem => newsItem.estado === 3)
-          .sort((a, b) => b.contador_visitas - a.contador_visitas);
+          .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion)); // Ordenar por fecha, más recientes primero
         
         await fetchAuthorsAndEditors(filteredNews);
         const processedNews = processNewsWithImages(filteredNews);
-        setFeaturedNews(processedNews.slice(0, 12)); // Tomamos las 12 más vistas para el carrusel
+        setFeaturedNews(processedNews.slice(0, 12)); // Tomamos las 12 más recientes para el carrusel
       } catch (error) {
         console.error('Failed to fetch featured news:', error);
       }
