@@ -57,7 +57,7 @@ const HomePage = () => {
       case 'default':
         return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
       case 'main':
-        return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
+        return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
       case 'secondary':
         return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
       case 'recent':
