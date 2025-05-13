@@ -622,7 +622,7 @@ transform: scale(1.1);
 }
 
 
-/* Estilos para el carrusel mejorado y responsivo con modificaciones para móvil */
+/* Estilos para el carrusel mejorado y responsivo */
 
 /* Carrusel principal */
 .carousel-wrapper {
@@ -817,10 +817,6 @@ transform: scale(1.1);
     flex-direction: column;
     height: auto;
     position: relative;
-    /* Eliminamos transform y transition para evitar animaciones en móvil */
-    transform: none !important;
-    transition: none !important;
-    opacity: 1 !important;
   }
   
   .featured-left {
@@ -842,6 +838,34 @@ transform: scale(1.1);
   
   .carousel-item {
     height: 150px;
+  }
+  
+  .carousel-arrow {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+  
+  .carousel-dots {
+    bottom: 10px;
+  }
+  
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .carousel-pause-indicator {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+  
+  .featured-left .overlay {
+    padding: 10px;
+  }
+  
+  .featured-left h1 {
+    font-size: 18px;
   }
 }
 
