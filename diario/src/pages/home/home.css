@@ -154,32 +154,31 @@ transform: scale(1.1);
  .article-descp{
   display: flex;
 }
-
 /* Estilos para los artículos secundarios */
 .secondary-articles {
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 400px;
-  padding-bottom:10px ;
+  padding-bottom: 10px;
 }
 
 .secondary-article-content {
   flex: 1;
-
-  
 }
 
-.secondary-article-content .author{
+.secondary-article-content .author {
   text-transform: none;
 }
-.secondary-article-content h4{
+
+.secondary-article-content h4 {
   font-size: 2rem;
   text-transform: none;
 }
+
 .secondary-article {
   display: grid;
-  grid-template-columns: 1fr 3fr;
+  grid-template-columns: 100px 1fr; /* Ancho fijo para la columna de la imagen */
   gap: 15px;
   align-items: flex-start;
   border-bottom: 1px solid #ddd;
@@ -187,15 +186,18 @@ transform: scale(1.1);
   cursor: pointer;
   height: auto;
   width: 100%;
-
 }
-.secondary-article-img{
-  height: 100%;
-  width: 100%;
+
+.secondary-article-img {
+  width: 100%; /* Ancho fijo */
+  height: 100%; /* Alto fijo - cuadrado exacto */
+  position: relative;
   overflow: hidden;
+  border-radius: 4px; /* Bordes ligeramente redondeados */
+  
 }
 
-.secondary-article-img:hover img{
+.secondary-article-img:hover img {
   transform: scale(1.1);
 }
 
@@ -203,7 +205,9 @@ transform: scale(1.1);
   width: 100%;
   height: 100%;
   transition: transform 0.3s ease;
-  aspect-ratio:1;
+  object-fit: cover; /* Volvemos a usar 'cover' pero con una solución diferente */
+  object-position: center; /* Centramos el contenido de la imagen */
+  background-color: #f8f8f8;
 }
 
 .secondary-article h4 {
@@ -211,11 +215,13 @@ transform: scale(1.1);
   margin: 0 0 8px 0;
   color: #333;
 }
+
 .secondary-article .date {
   font-size: 12px;
   color: #666;
 }
-.secondary-article .author{
+
+.secondary-article .author {
   color: #555;
 }
 
@@ -226,7 +232,6 @@ transform: scale(1.1);
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 /* Estilos del carrusel */
 .featured-article {
   display: flex;
