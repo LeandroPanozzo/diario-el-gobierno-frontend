@@ -58,7 +58,15 @@ h1{
   display: inline-block; /* Ensures background only covers the text */
 }
 
-
+.section-titleNR {
+  font-size: 11px;
+  color: white;
+  padding: 5px 15px;
+  background-color: #156AA2; /* Solid blue background instead of white */
+  border-left: 5px solid #156AA2;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+}
 .news-grid {
   display: grid;
   gap: 20px;
@@ -361,11 +369,11 @@ transform: scale(1.1);
   background-color: #ffffff;
   padding: 15px;
   border-radius: 20px;
-  width: 200px; /* Asegura que use todo el ancho disponible */
+  width: 220px; /* Asegura que use todo el ancho disponible */
   transition: 0.3s;
 }
 
-.recent-news-section .section-title {
+.recent-news-section .section-title .section-titleNR {
   font-weight: 700;
   font-size: 11px;
   color: white;
@@ -387,6 +395,8 @@ transform: scale(1.1);
   height: 100%;
   width: 100%;
   transition: 0.3s ease;
+  object-fit: cover; /* Volvemos a usar 'cover' pero con una solución diferente */
+
 }
 .recent-news-item:hover img{
   transform: scale(1.1);
@@ -577,6 +587,11 @@ transform: scale(1.1);
 
   /* Ajustes para los títulos de sección */
   .section-title {
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  .section-titleNR {
     width: 100%;
     margin-bottom: 15px;
     font-size: 14px;
@@ -902,7 +917,17 @@ transform: scale(1.1);
   cursor: pointer;
   display: inline-block; /* Ensures background only covers the text */
 }
-
+.section-titleNR {
+  font-weight: 600;
+  font-size: 11px;
+  color: white;
+  padding: 5px 15px;
+  background-color: #156AA2; /* Solid blue background instead of white */
+  border-left: 5px solid #156AA2;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  display: inline-block; /* Ensures background only covers the text */
+}
 }
 
 /* Ajustes adicionales para pantallas muy pequeñas */

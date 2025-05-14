@@ -463,7 +463,7 @@ const HomePage = () => {
     
     return (
       <div className="recent-news-section">
-        <h2 className="section-title">NOTICIAS RECIENTES</h2>
+        <h2 className="section-titleNR">NOTICIAS RECIENTES</h2>
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
@@ -503,7 +503,7 @@ const HomePage = () => {
     
     return (
       <div className="recent-news-section">
-        <h2 className="section-title">MÁS LEÍDAS</h2>
+        <h2 className="section-titleNR">MÁS LEÍDAS</h2>
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
