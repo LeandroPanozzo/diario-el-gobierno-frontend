@@ -543,6 +543,15 @@ const HomePage = () => {
   const renderFeaturedCarousel = () => {
     const isLoading = loadingStates.featured;
     
+    // Función para formatear fechas en formato dd/mm/yyyy
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+    
     if (isLoading) {
       return (
         <div className="carousel-wrapper">
@@ -629,7 +638,7 @@ const HomePage = () => {
                   />
                   <div className="overlay">
                     <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
-                    <p style={{ color: '#ffff' }}>{new Date(slideNews[0]?.fecha_publicacion).toLocaleDateString()}</p>
+                    <p style={{ color: '#ffff' }}>{formatDate(slideNews[0]?.fecha_publicacion)}</p>
                     {slideNews[0]?.autorData && (
                       <p className="author" style={{ marginTop: '-5px', color: '#ffff' }}>
                         por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
@@ -653,7 +662,7 @@ const HomePage = () => {
                       />
                       <div className="carousel-caption">
                         <h3>{newsItem.nombre_noticia}</h3>
-                        <p>{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+                        <p>{formatDate(newsItem.fecha_publicacion)}</p>
                         {newsItem.autorData && (
                           <p className="author">
                             por {newsItem.autorData.nombre} {newsItem.autorData.apellido}

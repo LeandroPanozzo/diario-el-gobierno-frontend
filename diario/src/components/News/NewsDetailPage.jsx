@@ -430,7 +430,7 @@ const renderNewsContent = () => {
           <div className="author-info">
             {authorData && (
               <>
-                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Por:</h3>
+                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Redactor/es:</h3>
                 <img 
                   src={authorData.foto_perfil || DEFAULT_AVATAR} 
                   alt={`${authorData.nombre} ${authorData.apellido}`} 
@@ -451,7 +451,7 @@ const renderNewsContent = () => {
           </div>
           {editorsData.length > 0 && (
             <div className="editor-info">
-              <h3 className="editors-title" style={{ fontSize: '16px', margin: '10px 0' }}>Editores:</h3>
+              <h3 className="editors-title" style={{ fontSize: '16px', margin: '10px 0' }}>Editor/es:</h3>
               <div className="editors-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {editorsData.map((editor, index) => (
                   <div key={index} className="editor-item" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
