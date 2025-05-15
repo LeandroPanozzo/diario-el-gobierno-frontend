@@ -1,6 +1,5 @@
-import  { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
 import { useUser } from '../../pages/context/UserContext';
 import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
@@ -48,7 +47,8 @@ const processNewsWithImages = (newsItems) => {
 };
 
 const NewsDetail = () => {
-  const { id } = useParams();
+  // Capturar todos los parámetros de la URL
+  const params = useParams();
   const [newsData, setNewsData] = useState(null);
   const [authorData, setAuthorData] = useState(null);
   const [editorsData, setEditorsData] = useState([]);
@@ -64,6 +64,23 @@ const NewsDetail = () => {
   const totalTextLengthRef = useRef(0);
   const speechStartTimeRef = useRef(null);
 
+  // Extraemos el ID real de los parámetros de URL
+  // Este es el punto clave: Extraer correctamente el ID incluso si viene con un slug
+  const getNewsId = () => {
+    if (!params.id) return null;
+    
+    // Si la URL es del tipo /noticia/8-prueba, extraemos solo el 8
+    if (params.id.includes('-')) {
+      return params.id.split('-')[0];
+    }
+    
+    // Si es tipo /noticia/8, usamos el ID completo
+    return params.id;
+  };
+
+  // Obtenemos el ID para usar en las solicitudes API
+  const newsId = getNewsId();
+  
   // Utility function to strip HTML tags
   const stripHtmlPalabras_clave = (html) => {
     const tmp = document.createElement('DIV');
@@ -72,63 +89,65 @@ const NewsDetail = () => {
   };
 
   // Añade este useEffect para cargar el script de Twitter
-useEffect(() => {
-  // Cargar el script de Twitter solo si no está ya cargado
-  if (!window.twttr) {
-    const script = document.createElement('script');
-    script.src = 'https://platform.twitter.com/widgets.js';
-    script.async = true;
-    script.charset = 'utf-8';
-    document.body.appendChild(script);
-    
-    return () => {
-      // Limpieza opcional cuando el componente se desmonta
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }
-}, []);
-// Función para envolver videos de YouTube en contenedores centrados
-const processContent = (htmlContent) => {
-  if (!htmlContent) return '';
-  
-  // Crear un elemento DOM temporal para modificar el contenido
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
-  
-  // Procesar videos de YouTube como ya tenías
-  const wrappedYoutubeContent = htmlContent.replace(
-    /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
-    '<div class="video-container">$1</div>'
-  );
-  
-  // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
-  const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
-  const markedContent = wrappedYoutubeContent.replace(
-    tweetRegex,
-    '<!-- TWITTER_EMBED:$1 -->'
-  );
-  
-  return markedContent;
-};
-const renderNewsContent = () => {
-  if (!contenido) return null;
-  
-  const processedContent = processContent(contenido);
-  
-  // Dividir el contenido por los marcadores de Twitter
-  const parts = processedContent.split(/<!-- TWITTER_EMBED:(.*?) -->/);
-  
-  return parts.map((part, index) => {
-    // Los índices pares son contenido HTML normal
-    if (index % 2 === 0) {
-      return <div key={`content-${index}`} dangerouslySetInnerHTML={{ __html: part }} />;
+  useEffect(() => {
+    // Cargar el script de Twitter solo si no está ya cargado
+    if (!window.twttr) {
+      const script = document.createElement('script');
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      script.charset = 'utf-8';
+      document.body.appendChild(script);
+      
+      return () => {
+        // Limpieza opcional cuando el componente se desmonta
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
     }
-    // Los índices impares son URLs de Twitter
-    return <TwitterEmbed key={`tweet-${index}`} tweetUrl={part} />;
-  });
-};
+  }, []);
+  
+  // Función para envolver videos de YouTube en contenedores centrados
+  const processContent = (htmlContent) => {
+    if (!htmlContent) return '';
+    
+    // Crear un elemento DOM temporal para modificar el contenido
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Procesar videos de YouTube como ya tenías
+    const wrappedYoutubeContent = htmlContent.replace(
+      /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
+      '<div class="video-container">$1</div>'
+    );
+    
+    // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
+    const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
+    const markedContent = wrappedYoutubeContent.replace(
+      tweetRegex,
+      '<!-- TWITTER_EMBED:$1 -->'
+    );
+    
+    return markedContent;
+  };
+  
+  const renderNewsContent = () => {
+    if (!contenido) return null;
+    
+    const processedContent = processContent(contenido);
+    
+    // Dividir el contenido por los marcadores de Twitter
+    const parts = processedContent.split(/<!-- TWITTER_EMBED:(.*?) -->/);
+    
+    return parts.map((part, index) => {
+      // Los índices pares son contenido HTML normal
+      if (index % 2 === 0) {
+        return <div key={`content-${index}`} dangerouslySetInnerHTML={{ __html: part }} />;
+      }
+      // Los índices impares son URLs de Twitter
+      return <TwitterEmbed key={`tweet-${index}`} tweetUrl={part} />;
+    });
+  };
 
   const readContentAloud = () => {
     if (newsData && newsData.contenido) {
@@ -213,7 +232,6 @@ const renderNewsContent = () => {
     }
   };
   
-
   // Calculate speech progress with more precision
   const calculateSpeechProgress = (utterance) => {
     if (!utterance || !audioTextRef.current) return 0;
@@ -233,7 +251,6 @@ const renderNewsContent = () => {
     return Math.min(100, Math.max(0, (totalSpokenLength / totalLength) * 100));
   };
   
-
   // YouTube-like progress bar seek
   const handleProgressBarClick = (e) => {
     if (!speechUtteranceRef.current || speechState !== 'speaking' || !progressBarRef.current) return;
@@ -278,8 +295,23 @@ const renderNewsContent = () => {
 
   useEffect(() => {
     const fetchNewsData = async () => {
+      if (!newsId) return;
+      
       try {
-        const response = await api.get(`noticias/${id}/`);
+        // CORRECCIÓN AQUÍ: Usar el endpoint correcto
+        // Si hay un guión en la URL, usamos el formato con slug completo
+        const isSlugUrl = params.id.includes('-');
+        let response;
+        
+        if (isSlugUrl) {
+          // Extraer el ID y el slug
+          const fullId = params.id;
+          response = await api.get(`noticias/${fullId}/`);
+        } else {
+          // URL antigua con solo ID
+          response = await api.get(`noticias/${newsId}/`);
+        }
+        
         const news = response.data;
         setNewsData(news);
     
@@ -327,7 +359,7 @@ const renderNewsContent = () => {
         // Esta URL debe apuntar a tu endpoint que devuelve las noticias más leídas
         const response = await api.get('noticias/mas_vistas/');
         // Filtramos para no mostrar la noticia actual entre las más leídas
-        const filteredNews = response.data.filter(news => news.id.toString() !== id);
+        const filteredNews = response.data.filter(news => news.id.toString() !== newsId);
         // Tomamos solo las primeras 4 y procesamos las imágenes
         const processedNews = processNewsWithImages(filteredNews.slice(0, 4));
         setTopNews(processedNews);
@@ -343,7 +375,7 @@ const renderNewsContent = () => {
       window.speechSynthesis.cancel();
       clearInterval(speechInterval.current);
     };
-  }, [id]);
+  }, [newsId, params.id]); // Dependencia actualizada a newsId y params.id
 
   const handleDeleteComment = async (commentId) => {
     try {
@@ -554,17 +586,16 @@ const renderNewsContent = () => {
         </div>
       </div>
 
-      
       <div 
-  className="news-content" 
-  style={{
-    maxWidth: '800px',
-    margin: '0 auto',
-    overflowWrap: 'break-word'
-  }}
->
-  {renderNewsContent()}
-</div>
+        className="news-content" 
+        style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          overflowWrap: 'break-word'
+        }}
+      >
+        {renderNewsContent()}
+      </div>
 
       <div className="tags-section" style={{ marginBottom: '30px' }}>
         <h3 className="tags-title">Palabras clave </h3>
@@ -578,42 +609,42 @@ const renderNewsContent = () => {
       </div>
 
       <div className="reactions-section" style={{ 
-  marginBottom: '30px',
-  clear: 'both',
-  width: '100%',
-  maxWidth: '800px',
-  margin: '0 auto'
-}}>
-  <div style={{ 
-    display: 'flex', 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', // Distribuye los elementos
-    flexWrap: 'wrap', // Permite que los elementos se envuelvan en pantallas pequeñas
-    gap: '10px' // Espacio entre elementos
-  }}>
-    <h3 className="tags-title" style={{ 
-      margin: 0,
-      marginRight: 'auto' // Empuja el título a la izquierda
-    }}>Reacciones</h3>
-    
-    <div style={{
-      display: 'flex',
-      justifyContent: 'right', // Centra las reacciones
-      flexGrow: 1 // Permite que ocupe el espacio disponible
-    }}>
-      <NewsReactions noticiaId={id} />
-    </div>
-  </div>
-</div>
+        marginBottom: '30px',
+        clear: 'both',
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between', // Distribuye los elementos
+          flexWrap: 'wrap', // Permite que los elementos se envuelvan en pantallas pequeñas
+          gap: '10px' // Espacio entre elementos
+        }}>
+          <h3 className="tags-title" style={{ 
+            margin: 0,
+            marginRight: 'auto' // Empuja el título a la izquierda
+          }}>Reacciones</h3>
+          
+          <div style={{
+            display: 'flex',
+            justifyContent: 'right', // Centra las reacciones
+            flexGrow: 1 // Permite que ocupe el espacio disponible
+          }}>
+            <NewsReactions noticiaId={newsId} />
+          </div>
+        </div>
+      </div>
 
-<h3 className="comments-title">Comentarios</h3>
-<FacebookComments 
-  url={`${api.defaults.baseURL}noticias/${id}/`} 
-  numPosts={5}
-  canDeleteComments={user && user.es_trabajador}
-  onDeleteComment={handleDeleteComment}
-/>
+      <h3 className="comments-title">Comentarios</h3>
+      <FacebookComments 
+        url={`${api.defaults.baseURL}noticias/${newsId}/`} 
+        numPosts={5}
+        canDeleteComments={user && user.es_trabajador}
+        onDeleteComment={handleDeleteComment}
+      />
 
       {/* Sección de noticias más leídas - Actualizada para usar contentImage */}
       <div className="most-read-section" style={{ 
@@ -643,7 +674,7 @@ const renderNewsContent = () => {
           {topNews.map((news) => (
             <Link 
               key={news.id} 
-              to={`/noticia/${news.id}`} 
+              to={`/noticia/${news.id}${news.slug ? `-${news.slug}` : ''}`}
               className="most-read-news-item"
               style={{
                 textDecoration: 'none',

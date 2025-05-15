@@ -46,6 +46,16 @@ const TrabajadorNoticias = () => {
     });
   };
 
+  // Función para generar la URL con slug para las noticias
+  const generateNewsUrl = (newsItem) => {
+    // Si existe un slug en el objeto de noticia, usarlo
+    if (newsItem.slug) {
+      return `/noticia/${newsItem.id}-${newsItem.slug}`;
+    }
+    // Si no hay slug, usamos solo el ID como fallback
+    return `/noticia/${newsItem.id}`;
+  };
+
   useEffect(() => {
     const fetchTrabajador = async () => {
       try {
@@ -128,7 +138,7 @@ const TrabajadorNoticias = () => {
       <div className="news-grid">
         {noticias.length > 0 ? (
           noticias.map((noticia) => (
-            <Link to={`/noticia/${noticia.id}`} key={noticia.id} className="news-item">
+            <Link to={generateNewsUrl(noticia)} key={noticia.id} className="news-item">
               <div className="news-img-container">
                 <img src={noticia.contentImage} alt={noticia.nombre_noticia} className="news-img" />
               </div>

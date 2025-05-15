@@ -14,6 +14,16 @@ const extractFirstImageFromContent = (htmlContent) => {
   return match ? match[1] : null;
 };
 
+// Función para generar la URL con slug para las noticias
+const generateNewsUrl = (newsItem) => {
+  // Si existe un slug en el objeto de noticia, usarlo
+  if (newsItem.slug) {
+    return `/noticia/${newsItem.id}-${newsItem.slug}`;
+  }
+  // Si no hay slug, usamos solo el ID como fallback
+  return `/noticia/${newsItem.id}`;
+};
+
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
   const [sectionNews, setSectionNews] = useState({});
@@ -400,7 +410,7 @@ const HomePage = () => {
             </>
           ) : newsArray && newsArray.length > 0 ? (
             <>
-              <div className="main-article" onClick={() => navigate(`/noticia/${newsArray[0].id}`)}>
+              <div className="main-article" onClick={() => navigate(generateNewsUrl(newsArray[0]))}>
                 <div className='recent-new'>
                   <img 
                     src={newsArray[0].contentImage} 
@@ -428,7 +438,7 @@ const HomePage = () => {
                   <div
                     key={newsItem.id}
                     className="secondary-article"
-                    onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                    onClick={() => navigate(generateNewsUrl(newsItem))}
                   >
                     <div className='secondary-article-img'>
                       <img 
@@ -474,7 +484,7 @@ const HomePage = () => {
               <div
                 key={newsItem.id}
                 className="recent-news-item"
-                onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                onClick={() => navigate(generateNewsUrl(newsItem))}
               >
                 <div className='recent-new'>
                   <img 
@@ -514,7 +524,7 @@ const HomePage = () => {
               <div
                 key={newsItem.id}
                 className="recent-news-item"
-                onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                onClick={() => navigate(generateNewsUrl(newsItem))}
               >
                 <div className='recent-new'>
                   <img 
@@ -629,7 +639,7 @@ const HomePage = () => {
               >
                 <div 
                   className="featured-left" 
-                  onClick={() => navigate(`/noticia/${slideNews[0]?.id}`)}
+                  onClick={() => navigate(generateNewsUrl(slideNews[0]))}
                 >
                   <img 
                     src={slideNews[0]?.contentImage} 
@@ -652,7 +662,7 @@ const HomePage = () => {
                     <div
                       key={newsItem.id}
                       className="carousel-item"
-                      onClick={() => navigate(`/noticia/${newsItem.id}`)}
+                      onClick={() => navigate(generateNewsUrl(newsItem))}
                     >
                       <img 
                         src={newsItem.contentImage} 

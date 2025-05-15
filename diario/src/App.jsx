@@ -1,5 +1,4 @@
-import '@fontsource/roboto-slab';  // Importa la fuente
-import 'remixicon/fonts/remixicon.css'
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
@@ -25,6 +24,9 @@ import TrabajadorNoticias from './components/Trabajador/TrabajadorNoticias';
 import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
 import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
 
+import '@fontsource/roboto-slab';  // Importa la fuente
+import 'remixicon/fonts/remixicon.css'
+
 function App() {
   return (
     <UserProvider>
@@ -41,9 +43,10 @@ function App() {
           <Route path="/rol" element={<Rol />} />
           <Route path="/ed" element={<NewsArticleEditor />} />
           <Route path="/edit-content/:id" element={<EditNewsContent />} />
+          {/* Rutas para detalles de noticias - con y sin slug */}
           <Route path="/noticia/:id" element={<NewsDetailPage />} />
           <Route path="/seccion/:sectionName" element={<SectionPage />} />
-          <Route path="/subcategoria/:subcategory" element={<SubcategoryPage />} /> {/* Nueva ruta */}
+          <Route path="/subcategoria/:subcategory" element={<SubcategoryPage />} />
           <Route path="/tag/:tagName" element={<TagPage />} />
           <Route path="/comments/:id" element={<CommentsPage />} />
           <Route path="/usuario/profile" element={<UserProfile />} />

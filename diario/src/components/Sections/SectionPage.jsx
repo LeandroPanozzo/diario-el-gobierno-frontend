@@ -62,6 +62,16 @@ const SectionPage = () => {
     return doc.body.textContent || '';
   };
 
+  // Función para generar la URL con slug para las noticias
+  const generateNewsUrl = (newsItem) => {
+    // Si existe un slug en el objeto de noticia, usarlo
+    if (newsItem.slug) {
+      return `/noticia/${newsItem.id}-${newsItem.slug}`;
+    }
+    // Si no hay slug, usamos solo el ID como fallback
+    return `/noticia/${newsItem.id}`;
+  };
+
   useEffect(() => {
     const fetchSectionNews = async () => {
       setLoading(true);
@@ -156,7 +166,7 @@ const SectionPage = () => {
         <>
           <div className="news-grid">
             {currentNews.map((newsItem) => (
-              <Link to={`/noticia/${newsItem.id}`} key={newsItem.id} className="news-item">
+              <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
                 <div className="news-img-container">
                   <img 
                     src={newsItem.contentImage} 
