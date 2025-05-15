@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
+import { Helmet } from 'react-helmet'; // Añadimos React Helmet
 import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
@@ -28,6 +29,13 @@ const extractFirstImageFromContent = (htmlContent) => {
   
   // No se encontró ninguna imagen
   return null;
+};
+
+// Función para limpiar HTML para descripciones
+const stripHtml = (html) => {
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
 };
 
 // Procesar los datos de noticias para extraer imágenes del contenido
@@ -63,6 +71,7 @@ const NewsDetail = () => {
   const audioTextRef = useRef('');
   const totalTextLengthRef = useRef(0);
   const speechStartTimeRef = useRef(null);
+  const [metaDescription, setMetaDescription] = useState('');
 
   // Extraemos el ID real de los parámetros de URL
   // Este es el punto clave: Extraer correctamente el ID incluso si viene con un slug
@@ -149,6 +158,14 @@ const NewsDetail = () => {
     });
   };
 
+  // Preparar descripción para metadatos
+  const prepareMetaDescription = (content) => {
+    if (!content) return '';
+    const plainText = stripHtml(content);
+    // Limitar a 160 caracteres para metadata
+    return plainText.substring(0, 160) + (plainText.length > 160 ? '...' : '');
+  };
+  
   const readContentAloud = () => {
     if (newsData && newsData.contenido) {
       const plainText = stripHtmlPalabras_clave(newsData.contenido);
@@ -314,6 +331,12 @@ const NewsDetail = () => {
         
         const news = response.data;
         setNewsData(news);
+        
+        // Preparar descripción para meta tags
+        if (news.contenido) {
+          const metaDesc = prepareMetaDescription(news.contenido);
+          setMetaDescription(metaDesc);
+        }
     
         if (news.Palabras_clave) {
           setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
@@ -399,6 +422,14 @@ const NewsDetail = () => {
   // Convertir las categorías de string a array si es necesario
   const subcategories = Array.isArray(categorias) ? categorias : (categorias || '').split(',').filter(Boolean);
 
+  // Preparar URL canónica
+  const canonicalUrl = `${window.location.origin}/noticia/${params.id}`;
+  
+  // Preparar imagen para compartir
+  const shareImage = imagen_cabecera || extractFirstImageFromContent(contenido) || '';
+  
+  // Preparar autor para metadatos
+  const authorName = authorData ? `${authorData.nombre} ${authorData.apellido}` : '';
   return (
     <div className="news-detail-container">
       <div className="news-header">
