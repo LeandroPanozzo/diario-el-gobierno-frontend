@@ -101,12 +101,12 @@ const NewsDetail = () => {
   const contentImage = extractFirstImageFromContent(newsData.contenido);
   
   // Si no hay imagen en el contenido, usamos imagen_1 o imagen_cabecera
-  const imagePath = contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
+  let imagePath = contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
   
-  // Convertir a URL absoluta si es una ruta relativa
+  // Asegurarnos de que sea una URL absoluta
   if (imagePath && !imagePath.startsWith('http')) {
-  return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-}
+    return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  }
   
   return imagePath;
 };
@@ -344,7 +344,8 @@ const NewsDetail = () => {
         // Establecer la imagen principal para metadatos
         const bestImage = getBestImageForMetadata(news);
         setMainImage(bestImage);
-
+        console.log("Imagen para Open Graph:", bestImage);
+        setMainImage(bestImage);
     
         if (news.Palabras_clave) {
           setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
@@ -445,6 +446,9 @@ const NewsDetail = () => {
         <title>{nombre_noticia}</title>
         <meta name="description" content={truncatedDescription} />
         <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:image" content={mainImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         
         {/* Metadatos Open Graph (Facebook, WhatsApp, etc.) */}
         <meta property="og:title" content={nombre_noticia} />
