@@ -95,14 +95,21 @@ const NewsDetail = () => {
 
   // Función para determinar la mejor imagen para los metadatos
   const getBestImageForMetadata = (newsData) => {
-    if (!newsData) return DEFAULT_NEWS_IMAGE;
-    
-    // Primero intentamos con la imagen del contenido
-    const contentImage = extractFirstImageFromContent(newsData.contenido);
-    
-    // Si no hay imagen en el contenido, usamos imagen_1 o imagen_cabecera
-    return contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
-  };
+  if (!newsData) return DEFAULT_NEWS_IMAGE;
+  
+  // Primero intentamos con la imagen del contenido
+  const contentImage = extractFirstImageFromContent(newsData.contenido);
+  
+  // Si no hay imagen en el contenido, usamos imagen_1 o imagen_cabecera
+  const imagePath = contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
+  
+  // Convertir a URL absoluta si es una ruta relativa
+  if (imagePath && !imagePath.startsWith('http')) {
+    return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+  }
+  
+  return imagePath;
+};
 
   // Añade este useEffect para cargar el script de Twitter
   useEffect(() => {
@@ -337,6 +344,7 @@ const NewsDetail = () => {
         // Establecer la imagen principal para metadatos
         const bestImage = getBestImageForMetadata(news);
         setMainImage(bestImage);
+
     
         if (news.Palabras_clave) {
           setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
