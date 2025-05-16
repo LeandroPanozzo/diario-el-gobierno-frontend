@@ -242,147 +242,167 @@ export const EditNewsContent = () => {
             'hr | blockquote | removeformat | help | fullscreen ',
           
           content_style: `
-            /* Common styles for all devices */
-            body {
-              font-family: Arial, sans-serif;
-              position: relative;
-            }
-            
-            p {
-              font-family: 'Linotype Devanagari';
-              font-size: 13pt;
-              margin: 0;
-              white-space: normal;
-              word-break: break-word;
-              position: relative;
-              z-index: 1;
-            }
-            
-            .news-detail-container {
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-            }
-            
-            h1 {
-              font-family: 'Pentay Bold';
-              font-size: 18pt;
-              font-weight: bold;
-              position: relative;
-              z-index: 1;
-            }
-            
-            h2 {
-              font-family: 'Pentay Bold';
-              font-size: 17pt;
-              font-weight: bold;
-              font-style: italic;
-              position: relative;
-              z-index: 1;
-            }
-            
-            h6 {
-              font-family: 'MVB Dovetail Light Italic';
-              font-size: 13.5pt;
-              color: black;
-              background-color: #f0f0f0;
-              text-indent: 0.2in;
-              position: relative;
-              z-index: 1;
-            }
-            
-            pre {
-              font-family: 'Times New Roman';
-              font-size: 9pt;
-              color: gray;
-              text-align: center;
-              margin-top: 0px;
-              margin-bottom: 20px;
-              position: relative;
-              z-index: 1;
-            }
-            
-            blockquote {
-              font-family: 'MVB Dovetail Light Italic';
-              font-size: 13.5pt;
-              color: black;
-              background-color: #f0f0f0;
-              position: relative;
-              z-index: 1;
-            }
-            
-            img {
-              width: 100%;
-              height: 400px;
-              margin-bottom: 0px;
-              object-fit: cover;
-              position: relative;
-              z-index: 1;
-            }
+  /* Common styles for all devices */
+  body {
+    font-family: Arial, sans-serif;
+    position: relative;
+  }
+  
+  p {
+    font-family: 'Linotype Devanagari';
+    font-size: 13pt;
+    margin: 0;
+    white-space: normal;
+    word-break: break-word;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .news-detail-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  h1 {
+    font-family: 'Pentay Bold';
+    font-size: 18pt;
+    font-weight: bold;
+    position: relative;
+    z-index: 1;
+  }
+  
+  h2 {
+    font-family: 'Pentay Bold';
+    font-size: 17pt;
+    font-weight: bold;
+    font-style: italic;
+    position: relative;
+    z-index: 1;
+  }
+  
+  h6 {
+    font-family: 'MVB Dovetail Light Italic';
+    font-size: 13.5pt;
+    color: black;
+    background-color: #f0f0f0;
+    text-indent: 0.2in;
+    position: relative;
+    z-index: 1;
+  }
+  
+  pre {
+    font-family: 'Times New Roman';
+    font-size: 9pt;
+    color: gray;
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+    /* Make it behave like h1 in terms of text flow */
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    max-width: 100%;
+    display: block;
+  }
+  
+  blockquote {
+    font-family: 'MVB Dovetail Light Italic';
+    font-size: 13.5pt;
+    color: black;
+    background-color: #f0f0f0;
+    position: relative;
+    z-index: 1;
+  }
+  
+  img {
+    width: 100%;
+    height: 400px;
+    margin-bottom: 0px;
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+  }
 
-            /* Desktop-specific styles with margin lines */
-              @media screen and (min-width: 769px) {
-                body {
-                  margin-left: 240px;
-                  margin-right: 240px;
-                  background-image: 
-                    linear-gradient(to right, transparent 199px,rgb(32, 32, 32) 199px,rgb(32, 32, 32) 200px, transparent 200px),
-                    linear-gradient(to right, transparent calc(100% - 201px), rgb(32, 32, 32) calc(100% - 201px), rgb(32, 32, 32) calc(100% - 200px), transparent calc(100% - 200px));
-                  background-repeat: repeat-y;
-                  min-height: 100vh;
-                }
-                
-                /* Remove the pseudo-element approach */
-                body:before, body:after {
-                  display: none;
-                }
-              }
-                            
-                            /* Left margin vertical line */
-              body:before {
-                content: '';
-                position: fixed; // Change from absolute to fixed
-                top: 0;
-                bottom: 0;
-                left: 200px;
-                width: 1px;
-                height: 100%; // Add explicit height
-                background-color:rgb(78, 78, 78);
-                z-index: 0;
-              }
+  /* Desktop-specific styles with margin lines */
+  @media screen and (min-width: 769px) {
+    body {
+      margin-left: 240px;
+      margin-right: 240px;
+      background-image: 
+        linear-gradient(to right, transparent 199px,rgb(32, 32, 32) 199px,rgb(32, 32, 32) 200px, transparent 200px),
+        linear-gradient(to right, transparent calc(100% - 201px), rgb(32, 32, 32) calc(100% - 201px), rgb(32, 32, 32) calc(100% - 200px), transparent calc(100% - 200px));
+      background-repeat: repeat-y;
+      min-height: 100vh;
+    }
+    
+    /* Remove the pseudo-element approach */
+    body:before, body:after {
+      display: none;
+    }
 
-              /* Right margin vertical line */
-              body:after {
-                content: '';
-                position: fixed; // Change from absolute to fixed
-                top: 0;
-                bottom: 0;
-                right: 200px;
-                width: 1px;
-                height: 100%; // Add explicit height
-                background-color: rgb(78, 78, 78);
-                z-index: 0;
-              }
-            }
+    /* Set max-width for pre elements to ensure they don't overflow */
+    pre {
+      /* Reset the special handling and make it behave like h1 */
+      max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+  
+  /* Left margin vertical line */
+  body:before {
+    content: '';
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 200px;
+    width: 1px;
+    height: 100%;
+    background-color:rgb(78, 78, 78);
+    z-index: 0;
+  }
 
-            /* Mobile-specific styles with no margin lines */
-            @media screen and (max-width: 768px) {
-              body {
-                max-width: 100%;
-                width: 100%;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-                writing-mode: horizontal-tb;
-                text-orientation: mixed;
-                direction: ltr;
-              }
-              
-              /* No margin lines for mobile */
-              body:before, body:after {
-                display: none;
-              }
-            }
-          `,
+  /* Right margin vertical line */
+  body:after {
+    content: '';
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 200px;
+    width: 1px;
+    height: 100%;
+    background-color: rgb(78, 78, 78);
+    z-index: 0;
+  }
+
+  /* Mobile-specific styles with no margin lines */
+  @media screen and (max-width: 768px) {
+    body {
+      max-width: 100%;
+      width: 100%;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      writing-mode: horizontal-tb;
+      text-orientation: mixed;
+      direction: ltr;
+    }
+    
+    /* No margin lines for mobile */
+    body:before, body:after {
+      display: none;
+    }
+    
+    /* Ensure pre elements are properly contained on mobile */
+    pre {
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+`,
           font_formats:
             "Arial=arial,helvetica,sans-serif;" +
             "Georgia=georgia,palatino;" +
