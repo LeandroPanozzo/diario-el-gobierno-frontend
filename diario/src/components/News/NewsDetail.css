@@ -6,6 +6,24 @@
   padding: 20px;
 
 }
+/* Estilo para videos que no son de YouTube */
+.news-content video {
+  width: 100%;
+  height: auto;
+  max-width: 800px;
+  margin: 20px auto;
+  display: block;
+}
+.news-content figure {
+  width: 100%;
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+.news-content figure video {
+  width: 100%;
+  height: auto;
+}
 
 .news-header {
   margin-bottom: 20px;
