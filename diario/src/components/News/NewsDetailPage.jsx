@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
-import { Helmet } from 'react-helmet'; // Añadimos React Helmet
+import { Helmet } from 'react-helmet'; // Necesitas instalar esta dependencia
 import FacebookComments from '../FacebookComments/FacebookComments';
 import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
@@ -10,6 +10,8 @@ import TwitterEmbed from './TwitterEmbed';
 
 // Imagen por defecto para usuarios sin foto de perfil
 const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+// Imagen por defecto para cuando no hay imagen en la noticia
+const DEFAULT_NEWS_IMAGE = "https://tusitio.com/ruta-a-una-imagen-por-defecto.jpg"; // Reemplaza con una imagen por defecto real
 
 // Función para extraer la primera imagen del contenido HTML
 const extractFirstImageFromContent = (htmlContent) => {
@@ -31,13 +33,6 @@ const extractFirstImageFromContent = (htmlContent) => {
   return null;
 };
 
-// Función para limpiar HTML para descripciones
-const stripHtml = (html) => {
-  const tmp = document.createElement('DIV');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-};
-
 // Procesar los datos de noticias para extraer imágenes del contenido
 const processNewsWithImages = (newsItems) => {
   return newsItems.map(newsItem => {
@@ -45,7 +40,7 @@ const processNewsWithImages = (newsItems) => {
     const contentImage = extractFirstImageFromContent(newsItem.contenido);
     
     // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
-    const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+    const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera || DEFAULT_NEWS_IMAGE;
     
     return {
       ...newsItem,
@@ -65,13 +60,14 @@ const NewsDetail = () => {
   const [speechState, setSpeechState] = useState('stopped');
   const [speechProgress, setSpeechProgress] = useState(0);
   const [topNews, setTopNews] = useState([]);
+  const [mainImage, setMainImage] = useState(null); // Para almacenar la imagen principal
   const speechUtteranceRef = useRef(null);
   const speechInterval = useRef(null);
   const progressBarRef = useRef(null);
   const audioTextRef = useRef('');
   const totalTextLengthRef = useRef(0);
   const speechStartTimeRef = useRef(null);
-  const [metaDescription, setMetaDescription] = useState('');
+  const siteUrl = window.location.origin; // URL base del sitio
 
   // Extraemos el ID real de los parámetros de URL
   // Este es el punto clave: Extraer correctamente el ID incluso si viene con un slug
@@ -95,6 +91,17 @@ const NewsDetail = () => {
     const tmp = document.createElement('DIV');
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
+  };
+
+  // Función para determinar la mejor imagen para los metadatos
+  const getBestImageForMetadata = (newsData) => {
+    if (!newsData) return DEFAULT_NEWS_IMAGE;
+    
+    // Primero intentamos con la imagen del contenido
+    const contentImage = extractFirstImageFromContent(newsData.contenido);
+    
+    // Si no hay imagen en el contenido, usamos imagen_1 o imagen_cabecera
+    return contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
   };
 
   // Añade este useEffect para cargar el script de Twitter
@@ -158,15 +165,8 @@ const NewsDetail = () => {
     });
   };
 
-  // Preparar descripción para metadatos
-  const prepareMetaDescription = (content) => {
-    if (!content) return '';
-    const plainText = stripHtml(content);
-    // Limitar a 160 caracteres para metadata
-    return plainText.substring(0, 160) + (plainText.length > 160 ? '...' : '');
-  };
-  
   const readContentAloud = () => {
+    // ... el código existente para la función readContentAloud ...
     if (newsData && newsData.contenido) {
       const plainText = stripHtmlPalabras_clave(newsData.contenido);
       const truncatedText = plainText.substring(0, 3000);
@@ -251,6 +251,7 @@ const NewsDetail = () => {
   
   // Calculate speech progress with more precision
   const calculateSpeechProgress = (utterance) => {
+    // ... el código existente para la función calculateSpeechProgress ...
     if (!utterance || !audioTextRef.current) return 0;
 
     const totalLength = totalTextLengthRef.current;
@@ -270,6 +271,7 @@ const NewsDetail = () => {
   
   // YouTube-like progress bar seek
   const handleProgressBarClick = (e) => {
+    // ... el código existente para la función handleProgressBarClick ...
     if (!speechUtteranceRef.current || speechState !== 'speaking' || !progressBarRef.current) return;
 
     const progressBar = progressBarRef.current;
@@ -332,11 +334,9 @@ const NewsDetail = () => {
         const news = response.data;
         setNewsData(news);
         
-        // Preparar descripción para meta tags
-        if (news.contenido) {
-          const metaDesc = prepareMetaDescription(news.contenido);
-          setMetaDescription(metaDesc);
-        }
+        // Establecer la imagen principal para metadatos
+        const bestImage = getBestImageForMetadata(news);
+        setMainImage(bestImage);
     
         if (news.Palabras_clave) {
           setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
@@ -422,16 +422,46 @@ const NewsDetail = () => {
   // Convertir las categorías de string a array si es necesario
   const subcategories = Array.isArray(categorias) ? categorias : (categorias || '').split(',').filter(Boolean);
 
-  // Preparar URL canónica
-  const canonicalUrl = `${window.location.origin}/noticia/${params.id}`;
+  // Preparar descripción para metadatos - eliminar HTML y acortar
+  const plainTextContent = stripHtmlPalabras_clave(contenido);
+  const truncatedDescription = plainTextContent.substring(0, 150) + '...';
   
-  // Preparar imagen para compartir
-  const shareImage = imagen_cabecera || extractFirstImageFromContent(contenido) || '';
-  
-  // Preparar autor para metadatos
-  const authorName = authorData ? `${authorData.nombre} ${authorData.apellido}` : '';
+  // URL canónica para la noticia
+  const canonicalUrl = `${siteUrl}/noticia/${newsId}${newsData.slug ? `-${newsData.slug}` : ''}`;
+
   return (
     <div className="news-detail-container">
+      {/* Metadatos para compartir en redes sociales */}
+      <Helmet>
+        {/* Metadatos básicos */}
+        <title>{nombre_noticia}</title>
+        <meta name="description" content={truncatedDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+        
+        {/* Metadatos Open Graph (Facebook, WhatsApp, etc.) */}
+        <meta property="og:title" content={nombre_noticia} />
+        <meta property="og:description" content={truncatedDescription} />
+        <meta property="og:image" content={mainImage} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:site_name" content="Tu Medio Digital" /> {/* Reemplaza con el nombre real de tu sitio */}
+        
+        {/* Metadatos Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={nombre_noticia} />
+        <meta name="twitter:description" content={truncatedDescription} />
+        <meta name="twitter:image" content={mainImage} />
+        
+        {/* Metadatos adicionales de artículo */}
+        <meta property="article:published_time" content={fecha_publicacion} />
+        {Palabras_clave.map((tag, index) => (
+          <meta key={index} property="article:tag" content={tag} />
+        ))}
+        {authorData && (
+          <meta property="article:author" content={`${authorData.nombre} ${authorData.apellido}`} />
+        )}
+      </Helmet>
+
       <div className="news-header">
         {/* Categories section first */}
         <div className="categories-container" style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
