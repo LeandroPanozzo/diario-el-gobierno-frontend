@@ -94,7 +94,8 @@ const NewsDetail = () => {
   };
 
   // Función para determinar la mejor imagen para los metadatos
-  const getBestImageForMetadata = (newsData) => {
+  // Modifica esta función
+const getBestImageForMetadata = (newsData) => {
   if (!newsData) return DEFAULT_NEWS_IMAGE;
   
   // Primero intentamos con la imagen del contenido
@@ -102,6 +103,12 @@ const NewsDetail = () => {
   
   // Si no hay imagen en el contenido, usamos imagen_1 o imagen_cabecera
   let imagePath = contentImage || newsData.imagen_1 || newsData.imagen_cabecera || DEFAULT_NEWS_IMAGE;
+  
+  // Importante: No combinar URLs con data:image
+  if (imagePath && imagePath.startsWith('data:')) {
+    // Si es una imagen en base64, no le añadas el origen
+    return imagePath;
+  }
   
   // Asegurarnos de que sea una URL absoluta
   if (imagePath && !imagePath.startsWith('http')) {
