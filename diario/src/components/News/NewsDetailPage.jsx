@@ -105,8 +105,8 @@ const NewsDetail = () => {
   
   // Convertir a URL absoluta si es una ruta relativa
   if (imagePath && !imagePath.startsWith('http')) {
-    return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
-  }
+  return `${window.location.origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+}
   
   return imagePath;
 };
@@ -453,6 +453,8 @@ const NewsDetail = () => {
         <meta property="og:url" content={canonicalUrl} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Tu Medio Digital" /> {/* Reemplaza con el nombre real de tu sitio */}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         
         {/* Metadatos Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
