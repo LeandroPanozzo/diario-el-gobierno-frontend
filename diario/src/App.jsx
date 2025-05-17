@@ -23,6 +23,7 @@ import UserProfile from './components/User/UserProfile';
 import TrabajadorNoticias from './components/Trabajador/TrabajadorNoticias';
 import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
 import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
+import ScrollToTop from './ScrollToTop'; // Importar el componente ScrollToTop
 
 import '@fontsource/roboto-slab';  // Importa la fuente
 import 'remixicon/fonts/remixicon.css'
@@ -31,6 +32,7 @@ function App() {
   return (
     <UserProvider>
       <BrowserRouter>
+        <ScrollToTop /> {/* Añadir el componente aquí */}
         <Header />
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
