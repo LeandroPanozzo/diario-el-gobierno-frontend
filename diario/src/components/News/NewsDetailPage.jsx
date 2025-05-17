@@ -403,7 +403,7 @@ const NewsDetail = () => {
     <div className="news-detail-container">
       <div className="news-header">
         {/* Categories section first */}
-        <div className="categories-container" style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+        <div className="categories-container">
           {subcategories.map((category, index) => (
             <Link 
               key={index} 
