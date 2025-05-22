@@ -109,42 +109,27 @@ const NewsDetail = () => {
   
   // Función para envolver videos de YouTube en contenedores centrados
   const processContent = (htmlContent) => {
-  if (!htmlContent) return '';
-  
-  // Crear un elemento DOM temporal para modificar el contenido
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
-  
-  // Procesar tablas para agregar contenedor responsive si es necesario
-  const tables = tempDiv.querySelectorAll('table');
-  tables.forEach(table => {
-    // Solo envolver en contenedor si la tabla no está ya en uno
-    if (!table.parentElement.classList.contains('table-container')) {
-      const container = document.createElement('div');
-      container.className = 'table-container';
-      table.parentNode.insertBefore(container, table);
-      container.appendChild(table);
-    }
+    if (!htmlContent) return '';
     
-    // Asegurar que la tabla tenga la clase correcta
-    table.classList.add('responsive-table');
-  });
-  
-  // Procesar videos de YouTube como ya tenías
-  const wrappedYoutubeContent = tempDiv.innerHTML.replace(
-    /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
-    '<div class="video-container">$1</div>'
-  );
-  
-  // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
-  const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
-  const markedContent = wrappedYoutubeContent.replace(
-    tweetRegex,
-    '<!-- TWITTER_EMBED:$1 -->'
-  );
-  
-  return markedContent;
-};
+    // Crear un elemento DOM temporal para modificar el contenido
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Procesar videos de YouTube como ya tenías
+    const wrappedYoutubeContent = htmlContent.replace(
+      /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
+      '<div class="video-container">$1</div>'
+    );
+    
+    // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
+    const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
+    const markedContent = wrappedYoutubeContent.replace(
+      tweetRegex,
+      '<!-- TWITTER_EMBED:$1 -->'
+    );
+    
+    return markedContent;
+  };
   
   const renderNewsContent = () => {
     if (!contenido) return null;
@@ -744,5 +729,4 @@ const NewsDetail = () => {
     </div>
   );
 };
-
-export default NewsDetail;
+export default NewsPreview;

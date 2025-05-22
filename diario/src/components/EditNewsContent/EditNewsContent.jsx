@@ -227,14 +227,103 @@ export const EditNewsContent = () => {
           images_upload_credentials: true,
           convert_urls: false,
           
+          // CONFIGURACIÓN PARA MANEJO DE PEGADO
+          paste_data_images: true,
+          paste_as_text: false,
+          paste_word_valid_elements: "b,strong,i,em,u,s,a[href],p,br,img[src|alt|width|height]",
+          paste_retain_style_properties: "none",
+          paste_remove_styles: true,
+          paste_remove_styles_if_webkit: true,
+          paste_strip_class_attributes: "all",
+          
+          // Filtros de contenido para limpiar el pegado
+          paste_preprocess: function(plugin, args) {
+            console.log('Contenido antes de procesar:', args.content);
+            
+            // Limpiar estilos inline
+            args.content = args.content.replace(/style="[^"]*"/gi, '');
+            args.content = args.content.replace(/class="[^"]*"/gi, '');
+            args.content = args.content.replace(/font-family:[^;]*;?/gi, '');
+            args.content = args.content.replace(/font-size:[^;]*;?/gi, '');
+            args.content = args.content.replace(/color:[^;]*;?/gi, '');
+            args.content = args.content.replace(/background-color:[^;]*;?/gi, '');
+            
+            // Convertir todos los headings no permitidos a párrafos
+            args.content = args.content.replace(/<h[3-5][^>]*>/gi, '<p>');
+            args.content = args.content.replace(/<\/h[3-5]>/gi, '</p>');
+            
+            // Mantener solo los elementos que queremos
+            args.content = args.content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
+            args.content = args.content.replace(/<\/(div|span|section|article)>/gi, '</p>');
+            
+            console.log('Contenido después de procesar:', args.content);
+          },
+          
+          paste_postprocess: function(plugin, args) {
+            // Procesar después del pegado para aplicar estilos por defecto
+            const doc = args.node.ownerDocument;
+            const paragraphs = args.node.querySelectorAll('p');
+            
+            paragraphs.forEach(p => {
+              p.style.fontFamily = 'Linotype Devanagari';
+              p.style.fontSize = '13pt';
+              p.style.margin = '0';
+              p.style.padding = '0';
+            });
+            
+            // Procesar otros elementos para aplicar estilos correctos
+            const h1Elements = args.node.querySelectorAll('h1');
+            h1Elements.forEach(h1 => {
+              h1.style.fontFamily = 'Pentay Bold';
+              h1.style.fontSize = '18pt';
+              h1.style.fontWeight = 'bold';
+            });
+            
+            const h2Elements = args.node.querySelectorAll('h2');
+            h2Elements.forEach(h2 => {
+              h2.style.fontFamily = 'Pentay Bold';
+              h2.style.fontSize = '17pt';
+              h2.style.fontWeight = 'bold';
+              h2.style.fontStyle = 'italic';
+            });
+            
+            const h6Elements = args.node.querySelectorAll('h6');
+            h6Elements.forEach(h6 => {
+              h6.style.fontFamily = 'MVB Dovetail Light Italic';
+              h6.style.fontSize = '13.5pt';
+              h6.style.color = 'black';
+              h6.style.backgroundColor = '#f0f0f0';
+              h6.style.textIndent = '0.2in';
+            });
+            
+            const preElements = args.node.querySelectorAll('pre');
+            preElements.forEach(pre => {
+              pre.style.fontFamily = 'Times New Roman';
+              pre.style.fontSize = '9pt';
+              pre.style.color = 'gray';
+              pre.style.textAlign = 'center';
+              pre.style.whiteSpace = 'normal';
+              pre.style.wordBreak = 'break-word';
+            });
+            
+            const blockquoteElements = args.node.querySelectorAll('blockquote');
+            blockquoteElements.forEach(blockquote => {
+              blockquote.style.fontFamily = 'MVB Dovetail Light Italic';
+              blockquote.style.fontSize = '13.5pt';
+              blockquote.style.color = 'black';
+              blockquote.style.backgroundColor = '#f0f0f0';
+            });
+          },
+
           block_formats: 'Párrafo=p; Heading 1=h1; Heading 2=h2; Citas=h6; Información Adicional=pre',
 
           plugins: [
             'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
             'searchreplace', 'visualblocks', 'code', 'fullscreen',
             'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-            'image'
+            'image', 'paste'
           ],
+          
           toolbar:
             'undo redo | styleselect | formatselect | bold italic underline | blocks | forecolor backcolor | ' +
             'alignleft aligncenter alignright alignjustify | outdent indent | ' +
@@ -242,167 +331,161 @@ export const EditNewsContent = () => {
             'hr | blockquote | removeformat | help | fullscreen ',
           
           content_style: `
-  /* Common styles for all devices */
-  body {
-    font-family: Arial, sans-serif;
-    position: relative;
-  }
-  
-  p {
-    font-family: 'Linotype Devanagari';
-    font-size: 13pt;
-    margin: 0;
-    white-space: normal;
-    word-break: break-word;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .news-detail-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  h1 {
-    font-family: 'Pentay Bold';
-    font-size: 18pt;
-    font-weight: bold;
-    position: relative;
-    z-index: 1;
-  }
-  
-  h2 {
-    font-family: 'Pentay Bold';
-    font-size: 17pt;
-    font-weight: bold;
-    font-style: italic;
-    position: relative;
-    z-index: 1;
-  }
-  
-  h6 {
-    font-family: 'MVB Dovetail Light Italic';
-    font-size: 13.5pt;
-    color: black;
-    background-color: #f0f0f0;
-    text-indent: 0.2in;
-    position: relative;
-    z-index: 1;
-  }
-  
-  pre {
-    font-family: 'Times New Roman';
-    font-size: 9pt;
-    color: gray;
-    text-align: center;
-    margin-top: 0px;
-    margin-bottom: 20px;
-    position: relative;
-    z-index: 1;
-    /* Make it behave like h1 in terms of text flow */
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    box-sizing: border-box;
-    max-width: 100%;
-    display: block;
-  }
-  
-  blockquote {
-    font-family: 'MVB Dovetail Light Italic';
-    font-size: 13.5pt;
-    color: black;
-    background-color: #f0f0f0;
-    position: relative;
-    z-index: 1;
-  }
-  
-  img {
-    width: 100%;
-    height: 400px;
-    margin-bottom: 0px;
-    object-fit: cover;
-    position: relative;
-    z-index: 1;
-  }
+      /* Common styles for all devices */
+      body {
+        font-family: Arial, sans-serif;
+        position: relative;
+      }
 
-  /* Desktop-specific styles with margin lines */
-  @media screen and (min-width: 769px) {
-    body {
-      margin-left: 240px;
-      margin-right: 240px;
-      background-image: 
-        linear-gradient(to right, transparent 199px,rgb(32, 32, 32) 199px,rgb(32, 32, 32) 200px, transparent 200px),
-        linear-gradient(to right, transparent calc(100% - 201px), rgb(32, 32, 32) calc(100% - 201px), rgb(32, 32, 32) calc(100% - 200px), transparent calc(100% - 200px));
-      background-repeat: repeat-y;
-      min-height: 100vh;
-    }
-    
-    /* Remove the pseudo-element approach */
-    body:before, body:after {
-      display: none;
-    }
+      p {
+        font-family: 'Linotype Devanagari';
+        font-size: 13pt;
+        margin: 0;
+        white-space: normal;
+        word-break: break-word;
+        position: relative;
+        z-index: 1;
+      }
 
-    /* Set max-width for pre elements to ensure they don't overflow */
-    pre {
-      /* Reset the special handling and make it behave like h1 */
-      max-width: 100%;
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
-  
-  /* Left margin vertical line */
-  body:before {
-    content: '';
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 200px;
-    width: 1px;
-    height: 100%;
-    background-color:rgb(78, 78, 78);
-    z-index: 0;
-  }
+      .news-detail-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
 
-  /* Right margin vertical line */
-  body:after {
-    content: '';
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    right: 200px;
-    width: 1px;
-    height: 100%;
-    background-color: rgb(78, 78, 78);
-    z-index: 0;
-  }
+      h1 {
+        font-family: 'Pentay Bold';
+        font-size: 18pt;
+        font-weight: bold;
+        position: relative;
+        z-index: 1;
+      }
 
-  /* Mobile-specific styles with no margin lines */
-  @media screen and (max-width: 768px) {
-    body {
-      max-width: 100%;
-      width: 100%;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      writing-mode: horizontal-tb;
-      text-orientation: mixed;
-      direction: ltr;
-    }
-    
-    /* No margin lines for mobile */
-    body:before, body:after {
-      display: none;
-    }
-    
-    /* Ensure pre elements are properly contained on mobile */
-    pre {
-      width: 100%;
-      box-sizing: border-box;
-    }
-  }
-`,
+      h2 {
+        font-family: 'Pentay Bold';
+        font-size: 17pt;
+        font-weight: bold;
+        font-style: italic;
+        position: relative;
+        z-index: 1;
+      }
+
+      h6 {
+        font-family: 'MVB Dovetail Light Italic';
+        font-size: 13.5pt;
+        color: black;
+        background-color: #f0f0f0;
+        text-indent: 0.2in;
+        position: relative;
+        z-index: 1;
+      }
+
+      pre {
+        font-family: 'Times New Roman';
+        font-size: 9pt;
+        color: gray;
+        text-align: center;
+        margin-top: 0px;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        box-sizing: border-box;
+        max-width: 100%;
+        display: block;
+      }
+
+      blockquote {
+        font-family: 'MVB Dovetail Light Italic';
+        font-size: 13.5pt;
+        color: black;
+        background-color: #f0f0f0;
+        position: relative;
+        z-index: 1;
+      }
+
+      img {
+        width: 100%;
+        height: 400px;
+        margin-bottom: 0px;
+        object-fit: cover;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Desktop-specific styles with margin lines */
+      @media screen and (min-width: 769px) {
+        body {
+          margin-left: 240px;
+          margin-right: 240px;
+          background-image: 
+            linear-gradient(to right, transparent 199px,rgb(32, 32, 32) 199px,rgb(32, 32, 32) 200px, transparent 200px),
+            linear-gradient(to right, transparent calc(100% - 201px), rgb(32, 32, 32) calc(100% - 201px), rgb(32, 32, 32) calc(100% - 200px), transparent calc(100% - 200px));
+          background-repeat: repeat-y;
+          min-height: 100vh;
+        }
+        
+        body:before, body:after {
+          display: none;
+        }
+
+        pre {
+          max-width: 100%;
+          margin-left: 0;
+          margin-right: 0;
+        }
+      }
+
+      /* Left margin vertical line */
+      body:before {
+        content: '';
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 200px;
+        width: 1px;
+        height: 100%;
+        background-color:rgb(78, 78, 78);
+        z-index: 0;
+      }
+
+      /* Right margin vertical line */
+      body:after {
+        content: '';
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 200px;
+        width: 1px;
+        height: 100%;
+        background-color: rgb(78, 78, 78);
+        z-index: 0;
+      }
+
+      /* Mobile-specific styles with no margin lines */
+      @media screen and (max-width: 768px) {
+        body {
+          max-width: 100%;
+          width: 100%;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          writing-mode: horizontal-tb;
+          text-orientation: mixed;
+          direction: ltr;
+        }
+        
+        body:before, body:after {
+          display: none;
+        }
+        
+        pre {
+          width: 100%;
+          box-sizing: border-box;
+        }
+      }
+      `,
           font_formats:
             "Arial=arial,helvetica,sans-serif;" +
             "Georgia=georgia,palatino;" +
@@ -436,6 +519,53 @@ export const EditNewsContent = () => {
             }
           ],
           setup: function (editor) {
+            // Evento personalizado para manejar el pegado
+            editor.on('PastePreProcess', function(e) {
+              console.log('Paste detected - cleaning content');
+              
+              // Limpiar todo el contenido pegado de estilos externos
+              let content = e.content;
+              
+              // Remover todos los atributos de estilo
+              content = content.replace(/style="[^"]*"/gi, '');
+              content = content.replace(/class="[^"]*"/gi, '');
+              content = content.replace(/font-[^=]*="[^"]*"/gi, '');
+              
+              // Convertir elementos no deseados a párrafos
+              content = content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
+              content = content.replace(/<\/(div|span|section|article)>/gi, '</p>');
+              
+              // Limpiar párrafos vacíos duplicados
+              content = content.replace(/<p><\/p>/gi, '');
+              content = content.replace(/<p>\s*<\/p>/gi, '');
+              
+              e.content = content;
+            });
+            
+            // Evento después del pegado para aplicar formato correcto
+            editor.on('PastePostProcess', function(e) {
+              setTimeout(() => {
+                // Aplicar formato de párrafo por defecto a todo el contenido pegado
+                const pastedContent = e.node;
+                
+                // Si no hay formato específico, aplicar párrafo
+                const allElements = pastedContent.querySelectorAll('*');
+                allElements.forEach(el => {
+                  if (!['H1', 'H2', 'H6', 'PRE', 'BLOCKQUOTE', 'IMG', 'A', 'STRONG', 'EM', 'U', 'BR'].includes(el.tagName)) {
+                    if (el.tagName === 'P' || el.innerHTML.trim()) {
+                      el.style.fontFamily = 'Linotype Devanagari';
+                      el.style.fontSize = '13pt';
+                      el.style.margin = '0';
+                      el.style.padding = '0';
+                    }
+                  }
+                });
+                
+                // Forzar actualización del editor
+                editor.fire('change');
+              }, 100);
+            });
+
             editor.ui.registry.addButton('formatselect', {
               text: 'Párrafo',
               tooltip: 'Formato',
@@ -443,6 +573,7 @@ export const EditNewsContent = () => {
                 editor.execCommand('mceToggleFormat');
               }
             });
+            
             // Add a custom handler for the clear formatting command
             editor.on('BeforeExecCommand', function(e) {
               if (e.command === 'RemoveFormat') {
@@ -522,6 +653,7 @@ export const EditNewsContent = () => {
                 editor.focus();
               }
             });
+            
             editor.on('BeforeSetContent', function (e) {
               if (e.format === 'html') {
                 e.content = e.content.replace(/<h1>/g, '<h1 style="font-family: Pentay Bold; font-size: 18pt; font-weight: bold;">');
@@ -628,7 +760,6 @@ export const EditNewsContent = () => {
             return combinedImages.filter(url => url !== headerImage);
           });
         }}
-        
       />
 
 

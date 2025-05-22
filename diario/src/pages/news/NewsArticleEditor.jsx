@@ -13,7 +13,7 @@ import {
   Grid,
   message
 } from 'antd';
-import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -334,6 +334,23 @@ const NewsManagement = () => {
     console.log('Navigating to comments for news ID:', id);
   };
 
+  // Nueva función para generar la URL de vista previa (similar a TagPage)
+  const generateNewsUrl = (newsItem) => {
+    // Si existe un slug en el objeto de noticia, usarlo
+    if (newsItem.slug) {
+      return `/noticia/${newsItem.id}-${newsItem.slug}`;
+    }
+    // Si no hay slug, usamos solo el ID como fallback
+    return `/noticia/${newsItem.id}`;
+  };
+
+  // Nueva función para manejar la vista previa
+  const handlePreview = (record) => {
+    const previewUrl = generateNewsUrl(record);
+    navigate(previewUrl);
+    console.log('Navigating to preview for news ID:', record.id);
+  };
+
   const filteredNews = news.filter(record => 
     record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -467,6 +484,14 @@ const NewsManagement = () => {
                 size="small"
               >
                 Contenido
+              </Button>
+              <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => handlePreview(record)} 
+                size="small"
+                type="default"
+              >
+                Vista Previa
               </Button>
               <Popconfirm
                 title="¿Eliminar esta noticia?"
