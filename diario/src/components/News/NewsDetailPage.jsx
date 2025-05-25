@@ -634,46 +634,22 @@ const NewsDetail = () => {
           display: 'flex', 
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '10px'
+          justifyContent: 'space-between', // Distribuye los elementos
+          flexWrap: 'wrap', // Permite que los elementos se envuelvan en pantallas pequeñas
+          gap: '10px' // Espacio entre elementos
         }}>
           <h3 className="tags-title" style={{ 
             margin: 0,
-            marginRight: 'auto'
+            marginRight: 'auto' // Empuja el título a la izquierda
           }}>Reacciones</h3>
           
           <div style={{
             display: 'flex',
-            justifyContent: 'right',
-            flexGrow: 1
+            justifyContent: 'right', // Centra las reacciones
+            flexGrow: 1 // Permite que ocupe el espacio disponible
           }}>
             <NewsReactions noticiaId={newsId} />
           </div>
-        </div>
-        
-        {/* Nueva sección de visitas */}
-        <div className="visits-section" style={{
-          marginTop: '15px',
-          padding: '10px 0',
-          borderTop: '1px solid #e0e0e0',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <h3 className="tags-title" style={{
-            margin: 0,
-            fontSize: '22px'
-          }}>
-            Cantidad de visitas:
-          </h3>
-          <span style={{
-            fontSize: '20px',
-            color: '#000000',
-            fontWeight: 'bold'
-          }}>
-            {newsData.contador_visitas_total || newsData.contador_visitas || 'Cargando...'}
-          </span>
         </div>
       </div>
 
