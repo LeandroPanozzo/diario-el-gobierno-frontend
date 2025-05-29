@@ -95,13 +95,13 @@ const TrabajadorNoticias = () => {
     
     switch (type) {
       case 'default':
-          return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
+          return plainText ? (plainText.length > 140 ? plainText.slice(0, 140) + '...' : plainText) : '';
       case 'main':
           return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
       case 'secondary':
-          return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
+          return plainText ? (plainText.length > 140 ? plainText.slice(0, 140) + '...' : plainText) : '';
       case 'recent':
-          return plainText ? (plainText.length > 40 ? plainText.slice(0, 40) + '...' : plainText) : '';
+          return plainText ? (plainText.length > 140 ? plainText.slice(0, 140) + '...' : plainText) : '';
       default:
           return plainText; // Sin truncado por defecto
     }

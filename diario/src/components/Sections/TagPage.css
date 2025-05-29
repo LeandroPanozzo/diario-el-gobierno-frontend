@@ -1,99 +1,333 @@
-
-
 .tag-page {
-  padding: 20px; /* Espacio interno alrededor del contenedor */
-  max-width: 1200px; /* Ancho máximo para el contenedor */
-  margin: 0 auto; 
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  /* Resetear cualquier herencia problemática */
+  text-align: left;
+  direction: ltr;
 }
 
-.news-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Tres columnas como en el diseño proporcionado */
-  gap: 15px; /* Espacio entre las tarjetas */
+/* TÍTULO DE LA PÁGINA TAG */
+.tag-page h1 {
+  font-size: 2em;
+  color: #333;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #156AA2;
 }
 
-.news-item {
-  border-bottom: 1px solid #eaeaea; /* Línea inferior sutil */
-  padding-bottom: 12px;
-  text-align: left; /* Alineación del contenido a la izquierda */
- 
+/* FORZAR GRID LAYOUT - Más específico */
+.tag-page .news-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  margin-bottom: 30px;
+  /* Resetear posibles problemas de layout */
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  align-items: stretch !important; /* CAMBIO: stretch para igualar alturas */
+  justify-items: stretch !important;
 }
 
-
-.news-img-container {
-  width: 100%;
-  height: 160px; /* Altura fija para las imágenes */
-  overflow: hidden; /* Ocultar el exceso de imagen */
-  margin-bottom: 8px; /* Espacio entre imagen y contenido */
+/* FORZAR ANCHO COMPLETO Y RESETEAR POSICIONAMIENTO */
+.tag-page .news-item {
+  border: 1px solid #eaeaea !important;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: white;
+  display: flex !important; /* CAMBIO: usar flexbox */
+  flex-direction: column !important; /* CAMBIO: columna para controlar altura */
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  height: 100% !important; /* CAMBIO: altura completa del contenedor grid */
+  /* RESETEAR POSICIONAMIENTO */
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  float: none !important;
+  transform: none !important;
 }
 
-.news-img {
-  width: 100%; /* Asegura que la imagen ocupe todo el ancho */
-  height: 100%; /* Asegura que la imagen ocupe todo el alto */
+.tag-page .news-item:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-decoration: none;
+  color: inherit;
 }
 
-.news-content {
-  padding: 0 10px; /* Espacio lateral dentro de cada tarjeta */
+.tag-page .news-img-container {
+  width: 100% !important;
+  height: 200px; /* CAMBIO: altura fija para todas las imágenes */
+  flex-shrink: 0 !important; /* CAMBIO: no permitir que se encoja */
+  overflow: hidden;
+  position: relative;
+  /* Resetear cualquier problema de posicionamiento */
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  float: none !important;
 }
 
-.news-title {
-  font-weight: bold;
+.tag-page .news-img {
+  width: 100% !important;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease;
+  /* Resetear posicionamiento de imagen */
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  float: none !important;
+}
+
+.tag-page .news-item:hover .news-img {
+  transform: scale(1.05);
+}
+
+.tag-page .news-content {
+  padding: 15px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  flex: 1 !important; /* CAMBIO: ocupar el espacio restante */
+  display: flex !important; /* CAMBIO: flexbox para controlar contenido */
+  flex-direction: column !important; /* CAMBIO: columna */
+  /* RESETEAR TEXTO Y POSICIONAMIENTO */
+  text-align: left !important;
+  direction: ltr !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  float: none !important;
+}
+
+/* FORZAR TEXTO NORMAL Y RESETEAR POSICIONAMIENTO */
+.tag-page .news-title {
+  font-weight: bold !important;
+  font-size: 1.1em !important;
+  margin: 0 0 10px 0 !important;
+  padding: 0 !important;
+  line-height: 1.3 !important;
+  color: #333 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  display: block !important;
+  width: 100% !important;
+  flex-shrink: 0 !important; /* CAMBIO: no permitir que se encoja */
+  /* RESETEAR POSICIONAMIENTO DE TEXTO */
+  text-align: left !important;
+  direction: ltr !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  float: none !important;
+  transform: none !important;
+}
+
+.tag-page .news-description {
+  color: #666 !important;
+  font-size: 0.9em !important;
+  margin: 10px 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  display: block !important;
+  width: 100% !important;
+  flex: 1 !important; /* CAMBIO: ocupar espacio disponible */
+  /* RESETEAR POSICIONAMIENTO DE TEXTO */
+  text-align: left !important;
+  direction: ltr !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  float: none !important;
+  transform: none !important;
+}
+
+.tag-page .news-meta {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  width: 100% !important;
+  flex-shrink: 0 !important; /* CAMBIO: no permitir que se encoja */
+  margin-top: auto !important; /* CAMBIO: empujar hacia abajo */
+  /* Resetear posicionamiento */
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  float: none !important;
+  text-align: left !important;
+}
+
+.tag-page .news-date {
+  font-size: 0.8em !important;
+  color: #999 !important;
+  margin: 0 0 5px 0 !important;
+  padding: 0 !important;
+  white-space: normal !important;
+  text-align: left !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  float: none !important;
+}
+
+.tag-page .news-author {
+  font-size: 0.9em !important;
+  color: #156AA2 !important;
+  font-weight: bold !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: normal !important;
+  text-align: left !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  float: none !important;
+}
+
+/* Loading and error states */
+.tag-page .loading, 
+.tag-page .error {
+  text-align: center;
+  padding: 40px;
   font-size: 1.1em;
+  width: 100%;
   margin: 0;
 }
 
-.news-description {
-  color: #555; /* Color de texto más suave */
-  font-size: 0.9em; /* Reduced from 1em */
-  margin: 4px 0; /* Reduced from 5px */
+.tag-page .error {
+  color: #d32f2f;
 }
 
-.news-date {
-  font-size: 0.8em; /* Reduced from 0.9em *
-  color: #999; /* Color gris para la fecha */
+.tag-page .no-news {
+  text-align: center;
+  color: #666;
+  font-size: 1.1em;
+  padding: 40px;
+  width: 100%;
+  margin: 0;
 }
 
-.news-author {
-  font-size: 0.8em; /* Reduced from 0.9em *
-  color: #007bff; /* Color azul para el autor */
+/* Pagination */
+.tag-page .pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 30px 0;
+  gap: 5px;
+  width: 100%;
+  position: relative;
+  left: auto;
+  right: auto;
+  float: none;
+}
+
+.tag-page .page-button {
+  border: 1px solid #156AA2;
+  background-color: white;
+  color: #156AA2;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  font-size: 0.9em;
+  min-width: 40px;
+  text-align: center;
+  position: relative;
+  left: auto;
+  right: auto;
+  float: none;
+  margin: 0;
+}
+
+.tag-page .page-button:hover {
+  background-color: #156AA2;
+  color: white;
+}
+
+.tag-page .page-button.active {
+  background-color: #156AA2;
+  color: white;
   font-weight: bold;
 }
 
-/* Estilo adicional para asegurar un buen espacio en la página */
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 1024px) {
+  .tag-page .news-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 @media (max-width: 768px) {
-  .news-grid {
-    grid-template-columns: repeat(2, 1fr); /* Dos columnas en pantallas más pequeñas */
+  .tag-page .news-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+  
+  .tag-page {
+    padding: 15px;
+  }
+  
+  .tag-page h1 {
+    font-size: 1.6em;
+    margin-bottom: 20px;
+  }
+  
+  .tag-page .news-img-container {
+    height: 180px;
+  }
+  
+  .tag-page .news-content {
+    padding: 12px !important;
+  }
+  
+  .tag-page .pagination {
+    gap: 3px;
+  }
+  
+  .tag-page .page-button {
+    padding: 6px 10px;
+    font-size: 0.8em;
+    min-width: 35px;
   }
 }
 
 @media (max-width: 480px) {
-  .news-grid {
-    grid-template-columns: 1fr; /* Una columna en pantallas muy pequeñas */
+  .tag-page h1 {
+    font-size: 1.4em;
+  }
+  
+  .tag-page .news-img-container {
+    height: 160px;
   }
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
+/* RESET GLOBAL PARA EVITAR INTERFERENCIAS */
+.tag-page * {
+  box-sizing: border-box;
 }
 
-.page-button {
-  border: 1px solid #156AA2;
-  background-color: white;
-  color: #156AA2;
-  padding: 6px 10px; /* Reduced from 8px 12px */
-  margin: 0 4px; /* Reduced from 0 5px */
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+/* ASEGURAR QUE NO HAY TRANSFORMS O POSICIONAMIENTOS GLOBALES */
+.tag-page *:not(.news-item:hover):not(.news-img) {
+  transform: none !important;
 }
 
-.page-button:hover {
-  background-color: #007bff;
-  color: white;
-}
-
-.page-button.active {
-  background-color: #156AA2;
-  color: white;
+/* SI HAY ESTILOS RTL GLOBALES, FORZAR LTR */
+.tag-page, 
+.tag-page * {
+  direction: ltr !important;
+  text-align: left !important;
 }
