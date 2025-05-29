@@ -68,7 +68,7 @@ const TrabajadorNoticias = () => {
 
     const fetchNoticias = async () => {
       try {
-        const response = await api.get(`noticias/?autor=${trabajadorId}`);
+        const response = await api.get(`noticias/?autor=${trabajadorId}&estado=3`);
         
         // Procesar las noticias para extraer imágenes del contenido
         const processedNews = processNewsWithImages(response.data);
