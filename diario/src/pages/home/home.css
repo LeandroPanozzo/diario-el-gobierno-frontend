@@ -128,13 +128,6 @@ transform: scale(1.1);
   font-size: 12px;
   color: #555;
 }
-.main-article:hover h3,
-.secondary-article:hover h4,
-.featured-left:hover h1,
-.carousel-caption:hover h3 {
-
-
-}
 
 .main-article-content div{
   display: flex;

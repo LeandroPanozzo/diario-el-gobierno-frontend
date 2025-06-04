@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
@@ -27,7 +27,7 @@ import ScrollToTop from './ScrollToTop'; // Importar el componente ScrollToTop
 
 import '@fontsource/roboto-slab';  // Importa la fuente
 import 'remixicon/fonts/remixicon.css'
-
+import './index.css'
 function App() {
   return (
     <UserProvider>
