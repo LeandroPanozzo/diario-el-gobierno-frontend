@@ -13,7 +13,7 @@ import {
   Grid,
   message
 } from 'antd';
-import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined, EyeOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined, EyeOutlined, ClearOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +43,120 @@ const NewsManagement = () => {
   useEffect(() => {
     setIsMobile(screens.xs && !screens.sm);
   }, [screens]);
+
+  // Función para borrar todo el caché del navegador
+  const clearAllCache = async () => {
+    try {
+      // Mostrar confirmación
+      Modal.confirm({
+        title: '¿Borrar todo el caché?',
+        content: 'Esta acción borrará todo el caché del navegador, cookies, localStorage, sessionStorage y datos almacenados. La página se recargará automáticamente.',
+        okText: 'Sí, borrar todo',
+        cancelText: 'Cancelar',
+        onOk: async () => {
+          try {
+            // Borrar localStorage
+            localStorage.clear();
+            
+            // Borrar sessionStorage
+            sessionStorage.clear();
+            
+            // Borrar cookies (todas las del dominio actual)
+            document.cookie.split(";").forEach(function(c) { 
+              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Borrar IndexedDB si está disponible
+            if ('indexedDB' in window) {
+              try {
+                // Obtener todas las bases de datos y borrarlas
+                if (indexedDB.databases) {
+                  const databases = await indexedDB.databases();
+                  await Promise.all(
+                    databases.map(db => {
+                      return new Promise((resolve, reject) => {
+                        const deleteReq = indexedDB.deleteDatabase(db.name);
+                        deleteReq.onsuccess = () => resolve();
+                        deleteReq.onerror = () => reject(deleteReq.error);
+                      });
+                    })
+                  );
+                }
+              } catch (error) {
+                console.log('Error al borrar IndexedDB:', error);
+              }
+            }
+            
+            // Borrar WebSQL si está disponible (obsoleto pero por compatibilidad)
+            if ('webkitStorageInfo' in window) {
+              try {
+                webkitStorageInfo.requestQuota(
+                  webkitStorageInfo.TEMPORARY, 
+                  0, 
+                  function() {}, 
+                  function() {}
+                );
+              } catch (error) {
+                console.log('Error al borrar WebSQL:', error);
+              }
+            }
+            
+            // Borrar Application Cache si está disponible (obsoleto)
+            if ('applicationCache' in window) {
+              try {
+                window.applicationCache.update();
+              } catch (error) {
+                console.log('Error al actualizar Application Cache:', error);
+              }
+            }
+            
+            // Borrar Service Workers si están disponibles
+            if ('serviceWorker' in navigator) {
+              try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(
+                  registrations.map(registration => registration.unregister())
+                );
+              } catch (error) {
+                console.log('Error al borrar Service Workers:', error);
+              }
+            }
+            
+            // Borrar Cache API si está disponible
+            if ('caches' in window) {
+              try {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                  cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+              } catch (error) {
+                console.log('Error al borrar Cache API:', error);
+              }
+            }
+            
+            message.success('Caché borrado exitosamente. Recargando página...');
+            
+            // Recargar la página después de un breve delay
+            setTimeout(() => {
+              window.location.reload(true); // true fuerza la recarga desde el servidor
+            }, 1000);
+            
+          } catch (error) {
+            console.error('Error al borrar el caché:', error);
+            message.error('Error al borrar el caché completo, pero se borró lo que fue posible');
+            
+            // Intentar recargar de todas formas
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 1000);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error en clearAllCache:', error);
+      message.error('Error al intentar borrar el caché');
+    }
+  };
   
   const CATEGORIAS = [
     ['Politica', [
@@ -567,18 +681,38 @@ const NewsManagement = () => {
                 marginBottom: isMobile ? '16px' : 0 
               }} 
             />
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => showModal()} 
-              block={isMobile}
-              style={{ 
-                width: isMobile ? '100%' : 'auto',
-                marginBottom: isMobile ? '16px' : 0
-              }}
-            >
-              Añadir Noticia
-            </Button>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexDirection: isMobile ? 'column' : 'row',
+              width: isMobile ? '100%' : 'auto'
+            }}>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => showModal()} 
+                block={isMobile}
+                style={{ 
+                  width: isMobile ? '100%' : 'auto',
+                  marginBottom: isMobile ? '8px' : 0
+                }}
+              >
+                Añadir Noticia
+              </Button>
+              <Button 
+                type="default" 
+                icon={<ClearOutlined />} 
+                onClick={clearAllCache}
+                danger
+                block={isMobile}
+                style={{ 
+                  width: isMobile ? '100%' : 'auto',
+                  marginBottom: isMobile ? '8px' : 0
+                }}
+              >
+                Borrar Caché
+              </Button>
+            </div>
           </div>
         </Layout.Header>
         
