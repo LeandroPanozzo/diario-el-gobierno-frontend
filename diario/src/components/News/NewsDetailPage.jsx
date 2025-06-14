@@ -601,10 +601,7 @@ const NewsDetail = () => {
           </div>
         </div>
       </div>
-      {/* ANUNCIO DESPUÉS DEL HEADER */}
-      <div className="ad-section" style={{ margin: '20px 0', textAlign: 'center' }}>
-        <AdSenseAd />
-      </div>
+      
       <div 
         className="news-content" 
         style={{
@@ -750,6 +747,10 @@ const NewsDetail = () => {
             </Link>
           ))}
         </div>
+      </div>
+      {/* ANUNCIO DESPUÉS DEL HEADER */}
+      <div className="ad-section" style={{ margin: '20px 0', textAlign: 'center' }}>
+        <AdSenseAd />
       </div>
     </div>
   );
