@@ -3,6 +3,108 @@ import { useNavigate } from 'react-router-dom';
 import './home.css';
 import api from '../context/axiosConfig';
 
+// Componente de Publicidad - Versión corregida
+const AdComponent = ({ id = "default" }) => {
+  const adRef = useRef(null);
+  const [adLoaded, setAdLoaded] = useState(false);
+  const [adError, setAdError] = useState(false);
+
+  useEffect(() => {
+    const loadAd = () => {
+      try {
+        const adElement = adRef.current;
+        if (!adElement || adLoaded || adError) return;
+
+        // Verificar que el contenedor tenga el ancho mínimo
+        const containerWidth = adElement.parentElement?.offsetWidth || 0;
+        if (containerWidth < 250) {
+          console.warn('Ad container width is less than 250px:', containerWidth);
+          // Esperar un poco más para que el layout se estabilice
+          setTimeout(loadAd, 500);
+          return;
+        }
+
+        if (typeof window !== 'undefined' && window.adsbygoogle) {
+          const hasAd = adElement.getAttribute('data-adsbygoogle-status');
+          
+          if (!hasAd) {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            setAdLoaded(true);
+          }
+        } else {
+          setTimeout(loadAd, 1000);
+        }
+      } catch (error) {
+        console.error('Error loading ad:', error);
+        setAdError(true);
+      }
+    };
+
+    // Esperar más tiempo para que el layout se estabilice
+    const timeoutId = setTimeout(loadAd, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [adLoaded, adError]);
+
+  useEffect(() => {
+    return () => {
+      setAdLoaded(false);
+      setAdError(false);
+    };
+  }, []);
+
+  if (adError) {
+    return (
+      <div className="ad-container" style={{ 
+        margin: '30px 0', 
+        textAlign: 'center',
+        minHeight: '250px',
+        minWidth: '250px', // Asegurar ancho mínimo
+        width: '100%',
+        maxWidth: '728px', // Ancho máximo razonable
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f9f9f9',
+        border: '1px solid #e0e0e0',
+        borderRadius: '8px'
+      }}>
+        <p style={{ color: '#666', fontSize: '14px' }}>Espacio publicitario</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ad-container" style={{ 
+      margin: '30px 0', 
+      textAlign: 'center',
+      minHeight: '250px',
+      minWidth: '250px', // Asegurar ancho mínimo
+      width: '100%',
+      maxWidth: '728px', // Ancho máximo razonable
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <ins 
+        ref={adRef}
+        className="adsbygoogle"
+        style={{
+          display: 'block',
+          width: '100%',
+          minWidth: '250px' // Asegurar ancho mínimo en el ins también
+        }}
+        data-ad-format="fluid"
+        data-ad-layout-key="-6s+du+2u-o-3z"
+        data-ad-client="ca-pub-5718334909043793"
+        data-ad-slot="4474322190"
+        key={`ad-${id}-${Date.now()}`}
+      />
+    </div>
+  );
+};
 // Función para extraer la primera imagen del contenido HTML
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
@@ -392,10 +494,12 @@ const HomePage = () => {
     </div>
   );
 
-  const renderNewsSection = (newsArray, sectionTitle) => {
+  const renderNewsSection = (newsArray, sectionTitle, index = 0) => {
     const isLoading = loadingStates.sections;
     
     return (
+      <>
+      {index > 0 && <AdComponent id={`section-${index}`} />}
       <div className="news-section" key={sectionTitle}>
         <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
         <div className="news-grid">
@@ -465,6 +569,7 @@ const HomePage = () => {
           )}
         </div>
       </div>
+      </>
     );
   };
 
@@ -736,6 +841,13 @@ const HomePage = () => {
         height: 80px;
       }
       
+      .ad-container {
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      
       @keyframes pulse {
         0% {
           opacity: 0.6;
@@ -761,8 +873,8 @@ const HomePage = () => {
 
         <div className="sections-and-recent-news">
           <div className="news-sections">
-            {Object.entries(sectionNews).map(([sectionTitle, newsArray]) =>
-              renderNewsSection(newsArray, sectionTitle)
+            {Object.entries(sectionNews).map(([sectionTitle, newsArray], index) =>
+              renderNewsSection(newsArray, sectionTitle, index)
             )}
           </div>
 
