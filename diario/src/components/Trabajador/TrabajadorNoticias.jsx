@@ -120,16 +120,18 @@ const TrabajadorNoticias = () => {
       <div className="trabajador-header">
         {trabajador && (
           <div className="trabajador-info">
+            {/* IMAGEN ELIMINADA - era esta línea:
             <img
               src={trabajador.foto_perfil}
               alt={`${trabajador.nombre} ${trabajador.apellido}`}
               className="trabajador-profile-image"
             />
+            */}
             <div>
               <h1 className="trabajador-name">
                 Noticias de {trabajador.nombre} {trabajador.apellido}
               </h1>
-              <p className="trabajador-description">Sobre {trabajador.nombre}: {trabajador.descripcion_usuario}</p> {/* Mostrar la descripción */}
+              <p className="trabajador-description">Sobre {trabajador.nombre}: {trabajador.descripcion_usuario}</p>
             </div>
           </div>
         )}

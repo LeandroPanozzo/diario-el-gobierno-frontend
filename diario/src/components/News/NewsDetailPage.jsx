@@ -474,11 +474,13 @@ const NewsDetail = () => {
           </div>
         </div>
 
+
         <div className="author-editor-info">
           <div className="author-info">
             {authorData && (
               <>
-                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Redactor/es:</h3>
+                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Redactor/es: </h3>
+                {/* IMAGEN ELIMINADA - era esta línea:
                 <img 
                   src={authorData.foto_perfil || DEFAULT_AVATAR} 
                   alt={`${authorData.nombre} ${authorData.apellido}`} 
@@ -489,6 +491,7 @@ const NewsDetail = () => {
                     e.target.src = DEFAULT_AVATAR;
                   }}
                 />
+                */}
                 <div className="author-details">
                   <Link to={`/trabajador/${authorData.id}/noticias`}>
                     <span className="author-name">{authorData.nombre} {authorData.apellido}</span>
@@ -503,6 +506,7 @@ const NewsDetail = () => {
               <div className="editors-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {editorsData.map((editor, index) => (
                   <div key={index} className="editor-item" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
+                    {/* IMAGEN ELIMINADA - era esta línea:
                     <img 
                       src={editor.foto_perfil || DEFAULT_AVATAR} 
                       alt={`${editor.nombre} ${editor.apellido}`} 
@@ -513,6 +517,7 @@ const NewsDetail = () => {
                         e.target.src = DEFAULT_AVATAR;
                       }}
                     />
+                    */}
                     <div className="editor-details">
                       <Link to={`/trabajador/${editor.id}/noticias`}>
                         <span className="editor-name">{editor.nombre} {editor.apellido}</span>
