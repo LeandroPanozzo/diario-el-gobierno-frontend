@@ -6,7 +6,8 @@ import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
 import TwitterEmbed from './TwitterEmbed';
-import AdSenseAd from './AdSenseAd'; // Importar el componente AdSense
+import AdSenseAd, { ResponsiveAdSenseAd } from './AdSenseAd';
+
 
 // Imagen por defecto para usuarios sin foto de perfil
 const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -614,7 +615,7 @@ const NewsDetail = () => {
       </div>
       {/* ANUNCIO DESPUÉS DEL CONTENIDO */}
       <div className="ad-section" style={{ margin: '30px 0', textAlign: 'center' }}>
-        <AdSenseAd />
+        <ResponsiveAdSenseAd type="banner" />
       </div>
       <div className="tags-section" style={{ marginBottom: '30px' }}>
         <h3 className="tags-title">Palabras clave </h3>
@@ -666,7 +667,7 @@ const NewsDetail = () => {
       />
       {/* ANUNCIO ANTES DE COMENTARIOS */}
       <div className="ad-section" style={{ margin: '30px 0', textAlign: 'center' }}>
-        <AdSenseAd />
+        <ResponsiveAdSenseAd type="leaderboard" />
       </div>
       {/* Sección de noticias más leídas - Actualizada para usar contentImage */}
       <div className="most-read-section" style={{ 
@@ -750,7 +751,7 @@ const NewsDetail = () => {
       </div>
       {/* ANUNCIO DESPUÉS DEL HEADER */}
       <div className="ad-section" style={{ margin: '20px 0', textAlign: 'center' }}>
-        <AdSenseAd />
+        <ResponsiveAdSenseAd type="rectangle" />
       </div>
     </div>
   );
