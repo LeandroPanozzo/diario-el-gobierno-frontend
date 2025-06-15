@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './TrabajadorNoticias.css'; // Asegúrate de tener estilos aquí
 import api from '../../pages/context/axiosConfig';
+import AdSenseAd from '../News/AdSenseAd'; // Importar el componente de anuncios
 
 const TrabajadorNoticias = () => {
   const { trabajadorId } = useParams();
@@ -54,6 +55,83 @@ const TrabajadorNoticias = () => {
     }
     // Si no hay slug, usamos solo el ID como fallback
     return `/noticia/${newsItem.id}`;
+  };
+
+  // Componente para renderizar un anuncio como noticia
+  const AdAsNews = ({ adConfig, index }) => {
+    return (
+      <div key={`ad-${index}`} className="news-item ad-news-item">
+        <div className="news-img-container">
+          <div className="ad-placeholder">
+            <AdSenseAd {...adConfig} />
+          </div>
+        </div>
+        <div className="news-content">
+          <div className="ad-label">Publicidad</div>
+        </div>
+      </div>
+    );
+  };
+
+  // Función para mezclar noticias con anuncios
+  const mixNewsWithAds = (newsItems) => {
+    const items = [];
+    const adConfigs = [
+      {
+        slot: "9072042757",
+        format: "fluid",
+        layoutKey: "-6t+ed+2i-1n-4w",
+        style: { display: 'block', width: '100%', height: '200px' }
+      },
+      {
+        slot: "1234567890", // Cambia por tu slot ID
+        format: "fluid",
+        layoutKey: "-6t+ed+2i-1n-4w",
+        style: { display: 'block', width: '100%', height: '200px' }
+      },
+      {
+        slot: "0987654321", // Cambia por tu slot ID
+        format: "fluid",
+        layoutKey: "-6t+ed+2i-1n-4w",
+        style: { display: 'block', width: '100%', height: '200px' }
+      }
+    ];
+
+    let adIndex = 0;
+
+    newsItems.forEach((newsItem, index) => {
+      // Agregar noticia
+      items.push(
+        <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
+          <div className="news-img-container">
+            <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="news-img" />
+          </div>
+          <div className="news-content">
+            <h3 className="news-title">{newsItem.nombre_noticia}</h3>
+            <p className="news-description">
+              {newsItem.subtitulo === 'default content' 
+                ? truncateContent(newsItem.contenido, 'default') 
+                : truncateContent(newsItem.contenido, 'main')}
+            </p>
+            <p className="news-date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
+          </div>
+        </Link>
+      );
+
+      // Insertar anuncio después de cada 6 noticias, pero no al final
+      if ((index + 1) % 6 === 0 && index < newsItems.length - 1 && adIndex < adConfigs.length) {
+        items.push(
+          <AdAsNews 
+            key={`ad-${adIndex}`} 
+            adConfig={adConfigs[adIndex]} 
+            index={adIndex}
+          />
+        );
+        adIndex++;
+      }
+    });
+
+    return items;
   };
 
   useEffect(() => {
@@ -139,22 +217,7 @@ const TrabajadorNoticias = () => {
 
       <div className="news-grid">
         {noticias.length > 0 ? (
-          noticias.map((noticia) => (
-            <Link to={generateNewsUrl(noticia)} key={noticia.id} className="news-item">
-              <div className="news-img-container">
-                <img src={noticia.contentImage} alt={noticia.nombre_noticia} className="news-img" />
-              </div>
-              <div className="news-content">
-                <h3 className="news-title">{noticia.nombre_noticia}</h3>
-                <p className="news-description">
-                  {noticia.subtitulo === 'default content' 
-                    ? truncateContent(noticia.contenido, 'default') 
-                    : truncateContent(noticia.contenido, 'main')}
-                </p>
-                <p className="news-date">{new Date(noticia.fecha_publicacion).toLocaleDateString()}</p>
-              </div>
-            </Link>
-          ))
+          mixNewsWithAds(noticias)
         ) : (
           <p>No hay noticias para mostrar.</p>
         )}

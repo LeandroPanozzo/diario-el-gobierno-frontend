@@ -3,6 +3,60 @@ import { useParams, Link } from 'react-router-dom';
 import './SubcategoryPage.css';
 import api from '../../pages/context/axiosConfig';
 
+// Componente AdSense reutilizable
+const AdSenseAd = ({ 
+  client = "ca-pub-5718334909043793",
+  slot = "9072042757",
+  format = "fluid",
+  layoutKey = "-6t+ed+2i-1n-4w",
+  style = { display: 'block' }
+}) => {
+  useEffect(() => {
+    // Cargar el script de AdSense si no está cargado
+    if (!window.adsbygoogle) {
+      const script = document.createElement('script');
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+    }
+
+    // Inicializar el anuncio después de que el componente se monte
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (err) {
+      console.error('AdSense error:', err);
+    }
+  }, [client]);
+
+  return (
+    <div className="adsense-container">
+      <ins
+        className="adsbygoogle"
+        style={style}
+        data-ad-format={format}
+        data-ad-layout-key={layoutKey}
+        data-ad-client={client}
+        data-ad-slot={slot}
+      />
+    </div>
+  );
+};
+
+// Componente para mostrar un anuncio como una "noticia"
+const AdNewsItem = ({ adConfig }) => {
+  return (
+    <div className="news-item ad-news-item">
+      <div className="news-img-container ad-container">
+        <AdSenseAd {...adConfig} />
+      </div>
+      <div className="news-content ad-content">
+        <div className="ad-label">Publicidad</div>
+      </div>
+    </div>
+  );
+};
+
 const SubcategoryPage = () => {
   const { subcategory } = useParams();
   const [news, setNews] = useState([]);
@@ -11,33 +65,66 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
 
+  // Configuraciones de anuncios (puedes personalizarlas)
+  const adConfigs = [
+    {
+      client: "ca-pub-5718334909043793",
+      slot: "9072042757",
+      format: "fluid",
+      layoutKey: "-6t+ed+2i-1n-4w"
+    },
+    {
+      client: "ca-pub-5718334909043793",
+      slot: "9072042757", // Cambia por otro slot si tienes más
+      format: "fluid",
+      layoutKey: "-6t+ed+2i-1n-4w"
+    }
+  ];
+
+  // Función para insertar anuncios entre las noticias
+  const insertAdsIntoNews = (newsArray, adsConfigs) => {
+    if (newsArray.length === 0) return [];
+    
+    const result = [];
+    const adFrequency = 6; // Mostrar un anuncio cada 6 noticias
+    let adIndex = 0;
+    
+    newsArray.forEach((newsItem, index) => {
+      result.push(newsItem);
+      
+      // Insertar anuncio después de cada 'adFrequency' noticias
+      if ((index + 1) % adFrequency === 0 && adIndex < adsConfigs.length) {
+        result.push({
+          id: `ad-${adIndex}`,
+          isAd: true,
+          adConfig: adsConfigs[adIndex % adsConfigs.length]
+        });
+        adIndex++;
+      }
+    });
+    
+    return result;
+  };
+
   // Función para extraer la primera imagen del contenido HTML
   const extractFirstImageFromContent = (htmlContent) => {
     if (!htmlContent) return null;
     
-    // Crear un elemento DOM temporal para buscar imágenes
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
-    
-    // Buscar la primera imagen en el contenido
     const firstImage = tempDiv.querySelector('img');
     
-    // Si encontramos una imagen, devolver su URL
     if (firstImage && firstImage.src) {
       return firstImage.src;
     }
     
-    // No se encontró ninguna imagen
     return null;
   };
 
   // Procesar los datos de noticias para extraer imágenes del contenido
   const processNewsWithImages = (newsItems) => {
     return newsItems.map(newsItem => {
-      // Extraer la primera imagen del contenido
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
-      
-      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
       const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
       
       return {
@@ -108,7 +195,6 @@ const SubcategoryPage = () => {
           .filter(newsItem => {
             if (newsItem.estado !== 3) return false;
             
-            // CORRECCIÓN: Asegurarnos de que categorias sea un array
             const categoriesArray = Array.isArray(newsItem.categorias) 
               ? newsItem.categorias 
               : (typeof newsItem.categorias === 'string' && newsItem.categorias 
@@ -121,9 +207,11 @@ const SubcategoryPage = () => {
 
         await fetchAuthors(filteredNews);
         
-        // Procesar las noticias para extraer imágenes del contenido
         const processedNews = processNewsWithImages(filteredNews);
-        setNews(processedNews);
+        
+        // Insertar anuncios entre las noticias
+        const newsWithAds = insertAdsIntoNews(processedNews, adConfigs);
+        setNews(newsWithAds);
 
       } catch (error) {
         setError(error.message);
@@ -161,13 +249,10 @@ const SubcategoryPage = () => {
       plainText;
   };
 
-  // Función para generar la URL con slug para las noticias
   const generateNewsUrl = (newsItem) => {
-    // Si existe un slug en el objeto de noticia, usarlo
     if (newsItem.slug) {
       return `/noticia/${newsItem.id}-${newsItem.slug}`;
     }
-    // Si no hay slug, usamos solo el ID como fallback
     return `/noticia/${newsItem.id}`;
   };
 
@@ -200,31 +285,39 @@ const SubcategoryPage = () => {
       ) : (
         <>
           <div className="news-grid">
-            {currentNews.map((newsItem) => (
-              <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
-                <div className="news-img-container">
-                  <img 
-                    src={newsItem.contentImage} 
-                    alt={newsItem.nombre_noticia}
-                    className="news-img"
-                  />
-                </div>
-                <div className="news-content">
-                  <h3 className="news-title">{newsItem.nombre_noticia}</h3>
-                  <p className="news-excerpt">{truncateContent(newsItem.contenido)}</p>
-                  <div className="news-meta">
-                    <p className="news-date">
-                      {new Date(newsItem.fecha_publicacion).toLocaleDateString()}
-                    </p>
-                    {newsItem.autorData && (
-                      <p className="news-author">
-                        Por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                      </p>
-                    )}
+            {currentNews.map((item) => {
+              // Si es un anuncio, renderizar el componente de anuncio
+              if (item.isAd) {
+                return <AdNewsItem key={item.id} adConfig={item.adConfig} />;
+              }
+              
+              // Si es una noticia normal, renderizar como antes
+              return (
+                <Link to={generateNewsUrl(item)} key={item.id} className="news-item">
+                  <div className="news-img-container">
+                    <img 
+                      src={item.contentImage} 
+                      alt={item.nombre_noticia}
+                      className="news-img"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="news-content">
+                    <h3 className="news-title">{item.nombre_noticia}</h3>
+                    <p className="news-excerpt">{truncateContent(item.contenido)}</p>
+                    <div className="news-meta">
+                      <p className="news-date">
+                        {new Date(item.fecha_publicacion).toLocaleDateString()}
+                      </p>
+                      {item.autorData && (
+                        <p className="news-author">
+                          Por {item.autorData.nombre} {item.autorData.apellido}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
   
           {totalPages > 1 && (

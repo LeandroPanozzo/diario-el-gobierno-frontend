@@ -16,6 +16,75 @@
   border-bottom: 2px solid #156AA2;
 }
 
+/* ESTILOS PARA ANUNCIOS ADSENSE */
+.adsense-container {
+  width: 100%;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
+}
+
+.adsense-container.top-banner-ad {
+  margin: 0 0 30px 0;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.adsense-container.bottom-banner-ad {
+  margin: 30px 0 0 0;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.adsense-container.pre-pagination-ad {
+  margin: 30px 0;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.ad-slot-inline {
+  grid-column: 1 / -1; /* Ocupar todo el ancho del grid */
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+}
+
+.adsense-container.inline-ad {
+  margin: 0;
+  width: 100%;
+}
+
+/* Texto de identificación de anuncios (opcional) */
+.adsense-container::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.adsense-container {
+  position: relative;
+}
+
 /* FORZAR GRID LAYOUT - Más específico */
 .tag-page .news-grid {
   display: grid !important;
@@ -269,6 +338,12 @@
   .tag-page .news-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+  
+  .ad-slot-inline {
+    grid-column: 1 / -1;
+    margin: 15px 0;
+    min-height: 200px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -303,6 +378,17 @@
     font-size: 0.8em;
     min-width: 35px;
   }
+  
+  .ad-slot-inline {
+    margin: 10px 0;
+    min-height: 150px;
+    padding: 10px;
+  }
+  
+  .adsense-container {
+    margin: 15px 0;
+    min-height: 80px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -312,6 +398,11 @@
   
   .tag-page .news-img-container {
     height: 160px;
+  }
+  
+  .ad-slot-inline {
+    min-height: 120px;
+    padding: 8px;
   }
 }
 

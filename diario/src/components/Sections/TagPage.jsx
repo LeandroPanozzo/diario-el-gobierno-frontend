@@ -3,6 +3,47 @@ import { useParams, Link } from 'react-router-dom';
 import './TagPage.css';
 import api from '../../pages/context/axiosConfig';
 
+// Componente AdSense reutilizable
+const AdSenseAd = ({ 
+  client = "ca-pub-5718334909043793",
+  slot = "9072042757",
+  format = "fluid",
+  layoutKey = "-6t+ed+2i-1n-4w",
+  style = { display: 'block' },
+  className = ""
+}) => {
+  useEffect(() => {
+    // Cargar el script de AdSense si no está cargado
+    if (!window.adsbygoogle) {
+      const script = document.createElement('script');
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+    }
+
+    // Inicializar el anuncio después de que el componente se monte
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (err) {
+      console.error('AdSense error:', err);
+    }
+  }, [client]);
+
+  return (
+    <div className={`adsense-container ${className}`}>
+      <ins
+        className="adsbygoogle"
+        style={style}
+        data-ad-format={format}
+        data-ad-layout-key={layoutKey}
+        data-ad-client={client}
+        data-ad-slot={slot}
+      />
+    </div>
+  );
+};
+
 const TagPage = () => {
   const { tagName } = useParams();
   const [news, setNews] = useState([]);
@@ -123,6 +164,26 @@ const TagPage = () => {
   const currentNews = news.slice(indexOfFirstNews, indexOfLastNews);
   const totalPages = Math.ceil(news.length / newsPerPage);
 
+  // Función para insertar anuncios entre las noticias
+  const insertAdsIntoNews = (newsArray) => {
+    const result = [];
+    
+    newsArray.forEach((newsItem, index) => {
+      result.push(newsItem);
+      
+      // Insertar anuncio después de cada 6 noticias
+      if ((index + 1) % 6 === 0 && index < newsArray.length - 1) {
+        result.push({
+          isAd: true,
+          id: `ad-${index}`,
+          adType: 'inline'
+        });
+      }
+    });
+    
+    return result;
+  };
+
   if (loading) {
     return <div>Cargando noticias...</div>;
   }
@@ -131,32 +192,71 @@ const TagPage = () => {
     return <div>Error: {error}</div>;
   }
 
+  const newsWithAds = insertAdsIntoNews(currentNews);
+
   return (
     <div className="tag-page">
       <h1>Noticias con la etiqueta: {tagName}</h1>
+      
+      {/* Anuncio superior - Banner horizontal */}
+      <AdSenseAd 
+        slot="9072042757"
+        format="auto"
+        style={{ display: 'block', marginBottom: '30px' }}
+        className="top-banner-ad"
+      />
+      
       <div className="news-grid">
-        {currentNews.length > 0 ? (
-          currentNews.map((newsItem) => (
-            <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
-              <div className="news-img-container">
-                <img src={newsItem.contentImage} alt={newsItem.nombre_noticia} className="news-img" />
-              </div>
-              <div className="news-content">
-                <h3 className="news-title">{newsItem.nombre_noticia}</h3>
-                <p className="news-description">
-                  {truncateContent(newsItem.contenido)}
-                </p>
-                <p className="news-date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
-                {newsItem.autorData && (
-                  <p className="news-author">Por {newsItem.autorData.nombre} {newsItem.autorData.apellido} · {newsItem.categoria}</p>
-                )}
-              </div>
-            </Link>
-          ))
+        {newsWithAds.length > 0 ? (
+          newsWithAds.map((item) => {
+            // Si es un anuncio
+            if (item.isAd) {
+              return (
+                <div key={item.id} className="ad-slot-inline">
+                  <AdSenseAd 
+                    slot="1234567890" // Cambia por tu slot específico para anuncios inline
+                    format="fluid"
+                    layoutKey="-6t+ed+2i-1n-4w"
+                    style={{ display: 'block' }}
+                    className="inline-ad"
+                  />
+                </div>
+              );
+            }
+            
+            // Si es una noticia
+            return (
+              <Link to={generateNewsUrl(item)} key={item.id} className="news-item">
+                <div className="news-img-container">
+                  <img src={item.contentImage} alt={item.nombre_noticia} className="news-img" />
+                </div>
+                <div className="news-content">
+                  <h3 className="news-title">{item.nombre_noticia}</h3>
+                  <p className="news-description">
+                    {truncateContent(item.contenido)}
+                  </p>
+                  <p className="news-date">{new Date(item.fecha_publicacion).toLocaleDateString()}</p>
+                  {item.autorData && (
+                    <p className="news-author">Por {item.autorData.nombre} {item.autorData.apellido} · {item.categoria}</p>
+                  )}
+                </div>
+              </Link>
+            );
+          })
         ) : (
           <p>No hay noticias disponibles con esta etiqueta.</p>
         )}
       </div>
+
+      {/* Anuncio antes de la paginación */}
+      {totalPages > 1 && (
+        <AdSenseAd 
+          slot="2345678901" // Cambia por tu slot específico
+          format="auto"
+          style={{ display: 'block', margin: '30px 0' }}
+          className="pre-pagination-ad"
+        />
+      )}
 
       {totalPages > 1 && (
         <div className="pagination">
@@ -189,6 +289,14 @@ const TagPage = () => {
           )}
         </div>
       )}
+
+      {/* Anuncio inferior */}
+      <AdSenseAd 
+        slot="3456789012" // Cambia por tu slot específico
+        format="auto"
+        style={{ display: 'block', marginTop: '30px' }}
+        className="bottom-banner-ad"
+      />
     </div>
   );
 };

@@ -376,3 +376,111 @@
   direction: ltr !important;
   text-align: left !important;
 }
+.ad-news-item {
+  border: 1px solid #eaeaea !important;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  cursor: default !important; /* No mostrar cursor de enlace */
+}
+
+.ad-news-item:hover {
+  transform: none !important; /* No hacer hover effect en anuncios */
+  box-shadow: none !important;
+}
+
+/* Contenedor del anuncio AdSense */
+.ad-container {
+  width: 100% !important;
+  height: 200px !important; /* Misma altura que las imágenes de noticias */
+  flex-shrink: 0 !important;
+  overflow: hidden;
+  position: relative;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Contenedor del AdSense */
+.adsense-container {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.adsense-container .adsbygoogle {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
+
+/* Contenido del anuncio (donde va la etiqueta "Publicidad") */
+.ad-content {
+  padding: 15px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 60px;
+}
+
+/* Etiqueta "Publicidad" */
+.ad-label {
+  font-size: 0.9em !important;
+  color: #666 !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  background: #e9ecef !important;
+  border-radius: 15px !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+/* Asegurar que los anuncios respondan correctamente */
+@media (max-width: 768px) {
+  .ad-container {
+    height: 180px !important; /* Mismo tamaño que las imágenes en móvil */
+  }
+  
+  .ad-content {
+    padding: 12px !important;
+    min-height: 50px;
+  }
+  
+  .ad-label {
+    font-size: 0.8em !important;
+    padding: 6px 12px !important;
+  }
+}
+
+/* Opcional: Si quieres que los anuncios se destaquen un poco más */
+.ad-news-item {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+/* Opcional: Agregar un pequeño icono o indicador de anuncio */
+.ad-news-item::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  background: #28a745;
+  border-radius: 50%;
+  z-index: 1;
+}
