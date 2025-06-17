@@ -332,6 +332,18 @@ const NewsManagement = () => {
     });
   };
 
+  // Función para ordenar editores con el ID 6 primero
+  const getSortedEditors = () => {
+    return [...editors].sort((a, b) => {
+      // Si 'a' tiene ID 6, va primero
+      if (a.id === 6) return -1;
+      // Si 'b' tiene ID 6, va primero
+      if (b.id === 6) return 1;
+      // Para el resto, mantener orden alfabético por nombre
+      return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
+    });
+  };
+
   const showModal = (record = null) => {
     if (record) {
       // Convertir editores_en_jefe a array si no lo es
@@ -339,13 +351,16 @@ const NewsManagement = () => {
         ? record.editores_en_jefe 
         : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
       
+      // Asegurar que el ID 6 esté incluido si no está presente
+      const editoresConId6 = editoresEnJefe.includes(6) ? editoresEnJefe : [6, ...editoresEnJefe];
+      
       form.setFieldsValue({
         ...record,
         fecha_publicacion: moment(record.fecha_publicacion),
         solo_para_subscriptores: record.solo_para_subscriptores || false,
         Palabras_clave: record.Palabras_clave || '',
         categorias: record.categorias || [],
-        editores_en_jefe: editoresEnJefe, // Configurar como array
+        editores_en_jefe: editoresConId6, // Configurar con ID 6 incluido
         estado: record.estado ? parseInt(record.estado, 10) : undefined,
       });
       setEditingId(record.id);
@@ -362,9 +377,10 @@ const NewsManagement = () => {
     } else {
       form.resetFields();
       // Si es una nueva noticia, establecer el autor como el trabajador actual
+      // y agregar automáticamente el ID 6 como editor
       form.setFieldsValue({
         autor: trabajadorId,
-        editores_en_jefe: [] // Inicializar como array vacío
+        editores_en_jefe: [6] // Inicializar con el ID 6 automáticamente
       });
       setEditingId(null);
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
@@ -383,13 +399,18 @@ const NewsManagement = () => {
         values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
       }
       
+      // Asegurar que el ID 6 esté siempre incluido en los editores
+      if (!values.editores_en_jefe.includes(6)) {
+        values.editores_en_jefe = [6, ...values.editores_en_jefe];
+      }
+      
       const noticiaEditada = {
         nombre_noticia: values.nombre_noticia,
         fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
         Palabras_clave: values.Palabras_clave || '',
         autor: parseInt(values.autor, 10),
-        editores_en_jefe: values.editores_en_jefe, // Enviar como array
+        editores_en_jefe: values.editores_en_jefe, // Enviar como array (ya incluye ID 6)
         estado: parseInt(values.estado, 10),
         solo_para_subscriptores: values.solo_para_subscriptores || false,
         subtitulo: values.subtitulo || 'default content',
@@ -762,7 +783,7 @@ const NewsManagement = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              {editors.map(editor => (
+              {getSortedEditors().map(editor => (
                 <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
@@ -781,7 +802,7 @@ const NewsManagement = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              {editors.map(editor => (
+              {getSortedEditors().map(editor => (
                 <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
