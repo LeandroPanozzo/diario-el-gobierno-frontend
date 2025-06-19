@@ -351,8 +351,7 @@ const NewsManagement = () => {
         ? record.editores_en_jefe 
         : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
       
-      // Asegurar que el ID 6 esté incluido si no está presente
-      const editoresConId6 = editoresEnJefe.includes(6) ? editoresEnJefe : [6, ...editoresEnJefe];
+      
       
       form.setFieldsValue({
         ...record,
@@ -360,7 +359,7 @@ const NewsManagement = () => {
         solo_para_subscriptores: record.solo_para_subscriptores || false,
         Palabras_clave: record.Palabras_clave || '',
         categorias: record.categorias || [],
-        editores_en_jefe: editoresConId6, // Configurar con ID 6 incluido
+        editores_en_jefe: editoresEnJefe, // Usar los editores tal como están // Configurar con ID 6 incluido
         estado: record.estado ? parseInt(record.estado, 10) : undefined,
       });
       setEditingId(record.id);
@@ -399,10 +398,7 @@ const NewsManagement = () => {
         values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
       }
       
-      // Asegurar que el ID 6 esté siempre incluido en los editores
-      if (!values.editores_en_jefe.includes(6)) {
-        values.editores_en_jefe = [6, ...values.editores_en_jefe];
-      }
+      
       
       const noticiaEditada = {
         nombre_noticia: values.nombre_noticia,
