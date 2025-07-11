@@ -334,58 +334,60 @@ const NewsManagement = () => {
 
   // Función para ordenar editores con el ID 6 primero
   const getSortedEditors = () => {
-    return [...editors].sort((a, b) => {
-      // Si 'a' tiene ID 6, va primero
-      if (a.id === 6) return -1;
-      // Si 'b' tiene ID 6, va primero
-      if (b.id === 6) return 1;
-      // Para el resto, mantener orden alfabético por nombre
-      return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
-    });
-  };
+  return [...editors].sort((a, b) => {
+    // Si 'a' tiene ID 6, va primero
+    if (a.id === 6) return -1;
+    // Si 'b' tiene ID 6, va primero
+    if (b.id === 6) return 1;
+    // Si 'a' tiene ID 4, va segundo (después del 6)
+    if (a.id === 4) return -1;
+    // Si 'b' tiene ID 4, va segundo (después del 6)
+    if (b.id === 4) return 1;
+    // Para el resto, mantener orden alfabético por nombre
+    return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
+  });
+};
 
   const showModal = (record = null) => {
-    if (record) {
-      // Convertir editores_en_jefe a array si no lo es
-      const editoresEnJefe = Array.isArray(record.editores_en_jefe) 
-        ? record.editores_en_jefe 
-        : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
-      
-      
-      
-      form.setFieldsValue({
-        ...record,
-        fecha_publicacion: moment(record.fecha_publicacion),
-        solo_para_subscriptores: record.solo_para_subscriptores || false,
-        Palabras_clave: record.Palabras_clave || '',
-        categorias: record.categorias || [],
-        editores_en_jefe: editoresEnJefe, // Usar los editores tal como están // Configurar con ID 6 incluido
-        estado: record.estado ? parseInt(record.estado, 10) : undefined,
-      });
-      setEditingId(record.id);
+  if (record) {
+    // Convertir editores_en_jefe a array si no lo es
+    const editoresEnJefe = Array.isArray(record.editores_en_jefe) 
+      ? record.editores_en_jefe 
+      : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
+    
+    form.setFieldsValue({
+      ...record,
+      fecha_publicacion: moment(record.fecha_publicacion),
+      solo_para_subscriptores: record.solo_para_subscriptores || false,
+      Palabras_clave: record.Palabras_clave || '',
+      categorias: record.categorias || [],
+      editores_en_jefe: editoresEnJefe,
+      estado: record.estado ? parseInt(record.estado, 10) : undefined,
+    });
+    setEditingId(record.id);
 
-      // Actualiza la condición para verificar si el usuario actual está entre los editores
-      if (
-        trabajadorId === record.autor || 
-        (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId))
-      ) {
-        setFilteredPublicationStates(publicationStates);
-      } else {
-        setFilteredPublicationStates([]);
-      }
+    // Actualiza la condición para verificar si el usuario actual está entre los editores
+    if (
+      trabajadorId === record.autor || 
+      (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId))
+    ) {
+      setFilteredPublicationStates(publicationStates);
     } else {
-      form.resetFields();
-      // Si es una nueva noticia, establecer el autor como el trabajador actual
-      // y agregar automáticamente el ID 6 como editor
-      form.setFieldsValue({
-        autor: trabajadorId,
-        editores_en_jefe: [6] // Inicializar con el ID 6 automáticamente
-      });
-      setEditingId(null);
-      setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
+      setFilteredPublicationStates([]);
     }
-    setIsModalVisible(true);
-  };
+  } else {
+    form.resetFields();
+    // Si es una nueva noticia, establecer el autor como el trabajador actual
+    // y agregar automáticamente el ID 6 e ID 4 como editores
+    form.setFieldsValue({
+      autor: trabajadorId,
+      editores_en_jefe: [6, 4] // Inicializar con los IDs 6 y 4 automáticamente
+    });
+    setEditingId(null);
+    setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
+  }
+  setIsModalVisible(true);
+};
 
   const handleOk = () => {
     form.validateFields().then(values => {
