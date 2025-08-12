@@ -1,28 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 import api from '../context/axiosConfig';
 
-// Función para extraer la primera imagen del contenido HTML
+// Funciones utilitarias memoizadas y optimizadas
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
-  
-  // Usar expresión regular para encontrar la primera imagen más rápido que DOM
   const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
   const match = htmlContent.match(imgRegex);
-  
   return match ? match[1] : null;
 };
 
-// Función para generar la URL con slug para las noticias
 const generateNewsUrl = (newsItem) => {
-  // Si existe un slug en el objeto de noticia, usarlo
-  if (newsItem.slug) {
-    return `/noticia/${newsItem.id}-${newsItem.slug}`;
-  }
-  // Si no hay slug, usamos solo el ID como fallback
-  return `/noticia/${newsItem.id}`;
+  return newsItem.slug ? `/noticia/${newsItem.id}-${newsItem.slug}` : `/noticia/${newsItem.id}`;
 };
+
+// Cache para autores y editores
+const authorCache = new Map();
+const editorCache = new Map();
 
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -36,52 +31,47 @@ const HomePage = () => {
     recent: true,
     mostViewed: true
   });
+  
   const totalSlides = 4;
   const navigate = useNavigate();
   const carouselInterval = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
   const abortController = useRef(new AbortController());
 
-  // Content processing functions - Optimized
-  const stripHtml = (html) => {
+  // Funciones de procesamiento de contenido memoizadas
+  const stripHtml = useCallback((html) => {
     if (!html) return "";
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  };
+  }, []);
 
-  const getFirstParagraphContent = (content) => {
+  const getFirstParagraphContent = useCallback((content) => {
     const plainText = stripHtml(content);
     const words = plainText.split(/\s+/);
     return words.slice(0, 13).join(' ') + (words.length > 13 ? '...' : '');
-  };
+  }, [stripHtml]);
 
-  const truncateTitle = (title, maxLength) => {
+  const truncateTitle = useCallback((title, maxLength) => {
     return title?.length > maxLength ? title.slice(0, maxLength) + '...' : title;
-  };
+  }, []);
 
-  const truncateContent = (content, type) => {
+  const truncateContent = useCallback((content, type) => {
     const plainText = stripHtml(content);
-    
-    switch (type) {
-      case 'default':
-        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
-      case 'main':
-        return plainText ? (plainText.length > 150 ? plainText.slice(0, 150) + '...' : plainText) : '';
-      case 'secondary':
-        return plainText ? (plainText.length > 10 ? plainText.slice(0, 10) + '...' : plainText) : '';
-      case 'recent':
-        return plainText ? (plainText.length > 20 ? plainText.slice(0, 20) + '...' : plainText) : '';
-      default:
-        return plainText;
-    }
-  };
+    const limits = {
+      'default': 20,
+      'main': 150,
+      'secondary': 10,
+      'recent': 20
+    };
+    const limit = limits[type] || plainText.length;
+    return plainText ? (plainText.length > limit ? plainText.slice(0, limit) + '...' : plainText) : '';
+  }, [stripHtml]);
 
-  // Procesar los datos de noticias para extraer imágenes del contenido - Optimizado
-  const processNewsWithImages = (newsItems) => {
+  // Procesamiento optimizado de noticias con imágenes
+  const processNewsWithImages = useCallback((newsItems) => {
+    if (!Array.isArray(newsItems)) return [];
+    
     return newsItems.map(newsItem => {
-      // Extraer la primera imagen del contenido
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
-      
-      // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
       const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera || '/path/to/placeholder.jpg';
       
       return {
@@ -89,12 +79,60 @@ const HomePage = () => {
         contentImage: finalImage
       };
     });
-  };
+  }, []);
 
-  // Limpieza al desmontar el componente
+  // Fetch optimizado de autores con cache y batch requests
+  const fetchAuthorsAndEditors = useCallback(async (newsList) => {
+    if (!newsList || newsList.length === 0) return;
+    
+    const uniqueAuthorIds = new Set();
+    const uniqueEditorIds = new Set();
+    
+    newsList.forEach(newsItem => {
+      if (newsItem.autor && !authorCache.has(newsItem.autor)) {
+        uniqueAuthorIds.add(newsItem.autor);
+      }
+      if (newsItem.editor_en_jefe && !editorCache.has(newsItem.editor_en_jefe)) {
+        uniqueEditorIds.add(newsItem.editor_en_jefe);
+      }
+    });
+    
+    // Batch requests para autores y editores
+    const fetchBatch = async (ids, cache, endpoint = 'trabajadores') => {
+      if (ids.size === 0) return;
+      
+      const promises = Array.from(ids).map(async id => {
+        try {
+          const response = await api.get(`${endpoint}/${id}/`);
+          cache.set(id, response.data);
+        } catch (error) {
+          console.error(`Error fetching ${endpoint} ${id}:`, error);
+        }
+      });
+      
+      await Promise.allSettled(promises);
+    };
+    
+    // Ejecutar requests en paralelo
+    await Promise.all([
+      fetchBatch(uniqueAuthorIds, authorCache),
+      fetchBatch(uniqueEditorIds, editorCache)
+    ]);
+    
+    // Aplicar datos de cache a las noticias
+    newsList.forEach(newsItem => {
+      if (newsItem.autor && authorCache.has(newsItem.autor)) {
+        newsItem.autorData = authorCache.get(newsItem.autor);
+      }
+      if (newsItem.editor_en_jefe && editorCache.has(newsItem.editor_en_jefe)) {
+        newsItem.editorData = editorCache.get(newsItem.editor_en_jefe);
+      }
+    });
+  }, []);
+
+  // Limpieza optimizada
   useEffect(() => {
     return () => {
-      // Cancelar todas las solicitudes pendientes cuando el componente se desmonte
       abortController.current.abort();
       if (carouselInterval.current) {
         clearInterval(carouselInterval.current);
@@ -102,20 +140,17 @@ const HomePage = () => {
     };
   }, []);
 
-  // Cargar datos de forma incremental
-  useEffect(() => {
-    // Creamos un nuevo controlador para cada set de solicitudes
-    abortController.current = new AbortController();
-    const signal = abortController.current.signal;
+  // Configuración de secciones memoizada
+  const mainSections = useMemo(() => ({
+    'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
+    'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
+    'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
+    'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
+    'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
+  }), []);
 
-    // Cargar datos de forma paralela pero independiente
-    fetchFeaturedNews(signal);
-    fetchSectionNews(signal);
-    fetchRecentNews(signal);
-    fetchMostViewedNews(signal);
-  }, []);
-
-  const fetchFeaturedNews = async (signal) => {
+  // Fetch functions optimizadas
+  const fetchFeaturedNews = useCallback(async (signal) => {
     try {
       const response = await api.get('noticias/destacadas/', {
         params: { limit: 12 },
@@ -123,14 +158,15 @@ const HomePage = () => {
       });
       
       const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-      // Procesar noticias antes de buscar autores para mostrar UI más rápido
       const newsWithImages = processNewsWithImages(filteredNews);
+      
+      // Actualizar estado inmediatamente
       setFeaturedNews(newsWithImages);
       setLoadingStates(prev => ({ ...prev, featured: false }));
       
-      // Buscar datos de autores después - mejora progresiva
+      // Buscar autores en background
       fetchAuthorsAndEditors(filteredNews).then(() => {
-        setFeaturedNews([...processNewsWithImages(filteredNews)]);
+        setFeaturedNews(processNewsWithImages(filteredNews));
       });
     } catch (error) {
       if (!signal.aborted) {
@@ -138,89 +174,76 @@ const HomePage = () => {
         setLoadingStates(prev => ({ ...prev, featured: false }));
       }
     }
-  };
+  }, [processNewsWithImages, fetchAuthorsAndEditors]);
 
-  const fetchSectionNews = async (signal) => {
-    const mainSections = {
-      'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
-      'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
-      'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
-      'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
-      'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
-    };
-
+  const fetchSectionNews = useCallback(async (signal) => {
     try {
-      const newSectionNews = {};
-      const sectionPromises = [];
-      
-      // Crear todas las promesas primero
-      for (const [mainSection, subcategories] of Object.entries(mainSections)) {
+      // Crear todas las promesas de una vez
+      const sectionPromises = Object.entries(mainSections).map(async ([mainSection, subcategories]) => {
         const categoriaParam = subcategories.join(',');
         
-        const promise = api.get('noticias/por_categoria/', {
-          params: {
-            categoria: categoriaParam,
-            estado: 3,
-            limit: 7
-          },
-          signal
-        })
-        .then(response => {
-          // Procesar imágenes inmediatamente para mostrar noticias
+        try {
+          const response = await api.get('noticias/por_categoria/', {
+            params: {
+              categoria: categoriaParam,
+              estado: 3,
+              limit: 7
+            },
+            signal
+          });
+          
           const processedNews = processNewsWithImages(response.data);
-          newSectionNews[mainSection] = processedNews;
-          // Actualizar el estado inmediatamente con lo que tengamos
+          
+          // Actualizar estado inmediatamente para esta sección
           setSectionNews(prevState => ({
             ...prevState,
             [mainSection]: processedNews
           }));
           
-          // Buscar autores en segundo plano
-          return fetchAuthorsAndEditors(response.data).then(() => {
-            // Actualizar con autores cuando estén listos
+          // Buscar autores en background
+          fetchAuthorsAndEditors(response.data).then(() => {
             setSectionNews(prevState => ({
               ...prevState,
-              [mainSection]: [...processNewsWithImages(response.data)]
+              [mainSection]: processNewsWithImages(response.data)
             }));
           });
-        })
-        .catch(error => {
+          
+        } catch (error) {
           if (!signal.aborted) {
             console.error(`Failed to fetch ${mainSection} news:`, error);
-            newSectionNews[mainSection] = [];
+            setSectionNews(prevState => ({
+              ...prevState,
+              [mainSection]: []
+            }));
           }
-        });
-        
-        sectionPromises.push(promise);
-      }
-      
-      // Esperar a que se completen todas las promesas pero ya mostramos UI
-      Promise.all(sectionPromises).finally(() => {
-        setLoadingStates(prev => ({ ...prev, sections: false }));
+        }
       });
+      
+      // Esperar a que terminen todas las secciones
+      await Promise.allSettled(sectionPromises);
+      setLoadingStates(prev => ({ ...prev, sections: false }));
+      
     } catch (error) {
       if (!signal.aborted) {
         console.error('Failed to fetch section news:', error);
         setLoadingStates(prev => ({ ...prev, sections: false }));
       }
     }
-  };
+  }, [mainSections, processNewsWithImages, fetchAuthorsAndEditors]);
 
-  const fetchRecentNews = async (signal) => {
+  const fetchRecentNews = useCallback(async (signal) => {
     try {
       const response = await api.get('noticias/recientes/', {
         params: { limit: 5 },
         signal
       });
       
-      // Procesar imágenes inmediatamente para mostrar UI
       const newsWithImages = processNewsWithImages(response.data);
       setRecentNews(newsWithImages);
       setLoadingStates(prev => ({ ...prev, recent: false }));
       
-      // Buscar autores después - mejora progresiva
       fetchAuthorsAndEditors(response.data).then(() => {
-        setRecentNews([...processNewsWithImages(response.data)]);
+        setRecentNews(processNewsWithImages(response.data));
       });
     } catch (error) {
       if (!signal.aborted) {
@@ -228,23 +251,21 @@ const HomePage = () => {
         setLoadingStates(prev => ({ ...prev, recent: false }));
       }
     }
-  };
+  }, [processNewsWithImages, fetchAuthorsAndEditors]);
   
-  const fetchMostViewedNews = async (signal) => {
+  const fetchMostViewedNews = useCallback(async (signal) => {
     try {
       const response = await api.get('noticias/mas_vistas/', {
         params: { limit: 5 },
         signal
       });
       
-      // Procesar imágenes inmediatamente para mostrar UI
       const newsWithImages = processNewsWithImages(response.data);
       setMostViewedNews(newsWithImages);
       setLoadingStates(prev => ({ ...prev, mostViewed: false }));
       
-      // Buscar autores después - mejora progresiva
       fetchAuthorsAndEditors(response.data).then(() => {
-        setMostViewedNews([...processNewsWithImages(response.data)]);
+        setMostViewedNews(processNewsWithImages(response.data));
       });
     } catch (error) {
       if (!signal.aborted) {
@@ -252,59 +273,43 @@ const HomePage = () => {
         setLoadingStates(prev => ({ ...prev, mostViewed: false }));
       }
     }
-  };
+  }, [processNewsWithImages, fetchAuthorsAndEditors]);
 
-  // Optimizado para usar lotes y caché
-  const fetchAuthorsAndEditors = async (newsList) => {
-    if (!newsList || newsList.length === 0) return;
-    
-    // Crear un conjunto para evitar solicitudes duplicadas
-    const uniqueAuthorIds = new Set();
-    const uniqueEditorIds = new Set();
-    
-    // Recopilar IDs únicos
-    newsList.forEach(newsItem => {
-      if (newsItem.autor) uniqueAuthorIds.add(newsItem.autor);
-      if (newsItem.editor_en_jefe) uniqueEditorIds.add(newsItem.editor_en_jefe);
-    });
-    
-    // Cache para almacenar respuestas
-    const authorCache = {};
-    const editorCache = {};
-    
-    // Función para procesar lotes de solicitudes
-    const processBatch = async (ids, endpoint, cache) => {
-      const promises = Array.from(ids).map(id => 
-        api.get(`trabajadores/${id}/`)
-          .then(response => {
-            cache[id] = response.data;
-          })
-          .catch(error => {
-            console.error(`Error fetching data for ID ${id}:`, error);
-          })
-      );
-      
-      await Promise.allSettled(promises);
-    };
-    
-    // Procesar autores y editores en paralelo
-    await Promise.all([
-      processBatch(uniqueAuthorIds, 'trabajadores', authorCache),
-      processBatch(uniqueEditorIds, 'trabajadores', editorCache)
+  // Effect principal optimizado - fetch en paralelo real
+  useEffect(() => {
+    abortController.current = new AbortController();
+    const signal = abortController.current.signal;
+
+    // Ejecutar TODAS las peticiones en paralelo desde el inicio
+    Promise.all([
+      fetchFeaturedNews(signal),
+      fetchSectionNews(signal),
+      fetchRecentNews(signal),
+      fetchMostViewedNews(signal)
     ]);
-    
-    // Aplicar datos de caché a las noticias
-    newsList.forEach(newsItem => {
-      if (newsItem.autor && authorCache[newsItem.autor]) {
-        newsItem.autorData = authorCache[newsItem.autor];
-      }
-      if (newsItem.editor_en_jefe && editorCache[newsItem.editor_en_jefe]) {
-        newsItem.editorData = editorCache[newsItem.editor_en_jefe];
-      }
-    });
-  };
+  }, [fetchFeaturedNews, fetchSectionNews, fetchRecentNews, fetchMostViewedNews]);
 
-  // Efecto para controlar el carrusel automático
+  // Carousel handlers optimizados
+  const handlePauseToggle = useCallback(() => {
+    setIsPaused(!isPaused);
+    if (carouselInterval.current) {
+      clearInterval(carouselInterval.current);
+    }
+  }, [isPaused]);
+
+  const handleNextSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  }, []);
+
+  const handlePrevSlide = useCallback(() => {
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+  }, []);
+
+  const handleDotClick = useCallback((index) => {
+    setCurrentSlide(index);
+  }, []);
+
+  // Efecto de carrusel optimizado
   useEffect(() => {
     const isAnyLoading = Object.values(loadingStates).some(state => state);
     
@@ -321,44 +326,8 @@ const HomePage = () => {
     };
   }, [isPaused, loadingStates]);
 
-  const handlePauseToggle = () => {
-    setIsPaused(!isPaused);
-    if (carouselInterval.current) {
-      clearInterval(carouselInterval.current);
-    }
-  };
-
-  const handleNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    resetCarouselTimer();
-  };
-
-  const handlePrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
-    resetCarouselTimer();
-  };
-
-  const handleDotClick = (index) => {
-    setCurrentSlide(index);
-    resetCarouselTimer();
-  };
-
-  const resetCarouselTimer = () => {
-    if (carouselInterval.current) {
-      clearInterval(carouselInterval.current);
-    }
-    
-    const isAnyLoading = Object.values(loadingStates).some(state => state);
-    
-    if (!isPaused && !isAnyLoading) {
-      carouselInterval.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % totalSlides);
-      }, 5000);
-    }
-  };
-
-  // Componente de esqueleto para artículos principales
-  const MainArticleSkeleton = () => (
+  // Componentes de skeleton memoizados
+  const MainArticleSkeleton = useMemo(() => (
     <div className="main-article skeleton">
       <div className="recent-new skeleton-img"></div>
       <div className="main-article-content">
@@ -368,10 +337,9 @@ const HomePage = () => {
         <div className="skeleton-line"></div>
       </div>
     </div>
-  );
+  ), []);
 
-  // Componente de esqueleto para artículos secundarios
-  const SecondaryArticleSkeleton = () => (
+  const SecondaryArticleSkeleton = useMemo(() => (
     <div className="secondary-article skeleton">
       <div className="secondary-article-img skeleton-img"></div>
       <div className="secondary-article-content">
@@ -379,10 +347,9 @@ const HomePage = () => {
         <div className="skeleton-line meta"></div>
       </div>
     </div>
-  );
+  ), []);
 
-  // Componente de esqueleto para noticias recientes
-  const RecentNewsSkeleton = () => (
+  const RecentNewsSkeleton = useMemo(() => (
     <div className="recent-news-item skeleton">
       <div className="recent-new skeleton-img"></div>
       <div className="recent-news-content">
@@ -390,9 +357,10 @@ const HomePage = () => {
         <div className="skeleton-line meta"></div>
       </div>
     </div>
-  );
+  ), []);
 
-  const renderNewsSection = (newsArray, sectionTitle) => {
+  // Funciones de renderizado memoizadas
+  const renderNewsSection = useCallback((newsArray, sectionTitle) => {
     const isLoading = loadingStates.sections;
     
     return (
@@ -401,10 +369,10 @@ const HomePage = () => {
         <div className="news-grid">
           {isLoading ? (
             <>
-              <MainArticleSkeleton />
+              {MainArticleSkeleton}
               <div className="secondary-articles">
                 {[...Array(4)].map((_, idx) => (
-                  <SecondaryArticleSkeleton key={idx} />
+                  <div key={idx}>{SecondaryArticleSkeleton}</div>
                 ))}
               </div>
             </>
@@ -466,9 +434,9 @@ const HomePage = () => {
         </div>
       </div>
     );
-  };
+  }, [loadingStates.sections, navigate, truncateTitle, getFirstParagraphContent, MainArticleSkeleton, SecondaryArticleSkeleton]);
 
-  const renderRecentNews = (recentNewsArray) => {
+  const renderRecentNews = useCallback((recentNewsArray) => {
     const isLoading = loadingStates.recent;
     
     return (
@@ -477,7 +445,7 @@ const HomePage = () => {
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
-              <RecentNewsSkeleton key={idx} />
+              <div key={idx}>{RecentNewsSkeleton}</div>
             ))
           ) : recentNewsArray && recentNewsArray.length > 0 ? (
             recentNewsArray.map(newsItem => (
@@ -506,9 +474,9 @@ const HomePage = () => {
         </div>
       </div>
     );
-  };
+  }, [loadingStates.recent, navigate, RecentNewsSkeleton]);
 
-  const renderMostViewedNews = (mostViewedNewsArray) => {
+  const renderMostViewedNews = useCallback((mostViewedNewsArray) => {
     const isLoading = loadingStates.mostViewed;
     
     return (
@@ -517,7 +485,7 @@ const HomePage = () => {
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
-              <RecentNewsSkeleton key={idx} />
+              <div key={idx}>{RecentNewsSkeleton}</div>
             ))
           ) : mostViewedNewsArray && mostViewedNewsArray.length > 0 ? (
             mostViewedNewsArray.map(newsItem => (
@@ -548,19 +516,19 @@ const HomePage = () => {
         </div>
       </div>
     );
-  };
+  }, [loadingStates.mostViewed, navigate, RecentNewsSkeleton]);
 
-  const renderFeaturedCarousel = () => {
+  // Formatear fecha memoizada
+  const formatDate = useCallback((dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }, []);
+
+  const renderFeaturedCarousel = useCallback(() => {
     const isLoading = loadingStates.featured;
-    
-    // Función para formatear fechas en formato dd/mm/yyyy
-    const formatDate = (dateString) => {
-      const date = new Date(dateString);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
     
     if (isLoading) {
       return (
@@ -699,10 +667,10 @@ const HomePage = () => {
         </div>
       </div>
     );
-  };
+  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, handlePauseToggle, isPaused, navigate, formatDate, handleDotClick]);
 
-  // Reglas CSS para los esqueletos de carga
-  const SkeletonStyles = () => (
+  // Estilos de skeleton memoizados
+  const SkeletonStyles = useMemo(() => (
     <style>{`
       .skeleton {
         animation: pulse 1.5s infinite alternate;
@@ -745,14 +713,11 @@ const HomePage = () => {
         }
       }
     `}</style>
-  );
-
-  // Determinar si debe mostrar la pantalla de carga completa
-  const isFullyLoading = Object.values(loadingStates).every(state => state);
+  ), []);
 
   return (
     <div className="container">
-      <SkeletonStyles />
+      {SkeletonStyles}
       
       <main>
         <div className="featured-article">
