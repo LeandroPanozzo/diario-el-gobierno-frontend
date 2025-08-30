@@ -250,29 +250,25 @@ const getFromCache = (key) => {
   ];
   
   useEffect(() => {
-    fetchEditors();
-    fetchPublicationStates();
-    verifyTrabajador();
-    
-    const handleKeyDown = (event) => {
-      if (event.key === 'F12') {
-        console.log('ID del trabajador:', trabajadorId);
-      }
-    };
+  verifyTrabajador();
+  fetchEditors(); // ✅ Siempre ejecutar estas dos
+  fetchPublicationStates(); // ✅ Siempre ejecutar estas dos
+  
+  const handleKeyDown = (event) => {
+    if (event.key === 'F12') {
+      console.log('ID del trabajador:', trabajadorId);
+    }
+  };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, []); // ✅ Solo ejecutar una vez
   
   // Efecto adicional para cargar noticias cuando tengamos el ID del trabajador
   useEffect(() => {
   if (trabajadorId) {
     setLoading(true);
-    Promise.all([
-      fetchNews(),
-      fetchEditors(),
-      fetchPublicationStates()
-    ]).finally(() => {
+    fetchNews().finally(() => {
       setLoading(false);
     });
   }
@@ -414,19 +410,20 @@ const invalidateNewsCache = () => {
 };
 
   const verifyTrabajador = () => {
-    const accessToken = localStorage.getItem('access');
-    if (!accessToken) {
-      navigate('/home');
-      return;
-    }
-  
-    // Check if we already have a trabajadorId in state or localStorage
-    const storedTrabajadorId = localStorage.getItem('trabajadorId');
-    if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
-      setTrabajadorId(parseInt(storedTrabajadorId));
-      return; // Already verified, no need to continue
-    }
-  
+  const accessToken = localStorage.getItem('access');
+  if (!accessToken) {
+    navigate('/login'); // ✅ CORRECCIÓN: ir a login, no a home
+    return;
+  }
+
+  // Check if we already have a trabajadorId in state or localStorage
+  const storedTrabajadorId = localStorage.getItem('trabajadorId');
+  if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
+    setTrabajadorId(parseInt(storedTrabajadorId));
+    // ✅ CORRECCIÓN: NO hacer return aquí, dejar que continue
+    // para que se ejecuten fetchEditors y fetchPublicationStates
+  } else {
+    // Solo hacer las peticiones si no tenemos el ID guardado
     // Primero obtener el perfil de usuario
     api.get('user-profile/', {
       headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -443,23 +440,28 @@ const invalidateNewsCache = () => {
           
           if (trabajador && trabajador.id > 0) {
             console.log("Trabajador encontrado:", trabajador);
-            setTrabajadorId(trabajador.id); // Usar el ID del trabajador
-            localStorage.setItem('trabajadorId', trabajador.id); // Store for future use
+            setTrabajadorId(trabajador.id);
+            localStorage.setItem('trabajadorId', trabajador.id.toString()); // ✅ CORRECCIÓN: guardar como string
           } else {
             console.error("No se encontró un trabajador válido asociado a este perfil");
             message.error("No tiene permisos para acceder a esta página");
-            navigate('/home');
+            navigate('/login'); // ✅ CORRECCIÓN: ir a login
           }
         })
         .catch(error => {
           console.error("Error al obtener trabajadores:", error);
-          navigate('/home');
+          navigate('/login'); // ✅ CORRECCIÓN: ir a login
         });
     }).catch(error => {
       console.error("Error al verificar el perfil:", error);
-      navigate('/home');
+      if (error.response && error.response.status === 401) {
+        navigate('/login'); // ✅ CORRECCIÓN: ir a login
+      } else {
+        navigate('/login'); // ✅ CORRECCIÓN: ir a login en cualquier error
+      }
     });
-  };
+  }
+};
 
   // Función para ordenar editores con el ID 6 primero
   const getSortedEditors = () => {
