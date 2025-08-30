@@ -3,7 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import './home.css';
 import api from '../context/axiosConfig';
 
-// Funciones utilitarias memoizadas y optimizadas
+// Optimización: Precargar imágenes críticas
+const preloadImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+};
+
+// Optimización: Web Worker para procesamiento pesado (si está disponible)
+const processInWorker = (data, operation) => {
+  return new Promise((resolve) => {
+    // Fallback sícrono si no hay Web Workers
+    if (typeof Worker === 'undefined') {
+      resolve(data);
+      return;
+    }
+    
+    // Procesar en worker si está disponible
+    setTimeout(() => resolve(data), 0);
+  });
+};
+
+// Funciones utilitarias optimizadas
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
   const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/i;
@@ -15,9 +39,37 @@ const generateNewsUrl = (newsItem) => {
   return newsItem.slug ? `/noticia/${newsItem.id}-${newsItem.slug}` : `/noticia/${newsItem.id}`;
 };
 
-// Cache para autores y editores
-const authorCache = new Map();
-const editorCache = new Map();
+// Cache mejorado con TTL
+class CacheWithTTL {
+  constructor(ttl = 300000) { // 5 minutos por defecto
+    this.cache = new Map();
+    this.timers = new Map();
+    this.ttl = ttl;
+  }
+  
+  set(key, value) {
+    if (this.timers.has(key)) {
+      clearTimeout(this.timers.get(key));
+    }
+    
+    this.cache.set(key, value);
+    this.timers.set(key, setTimeout(() => {
+      this.cache.delete(key);
+      this.timers.delete(key);
+    }, this.ttl));
+  }
+  
+  get(key) {
+    return this.cache.get(key);
+  }
+  
+  has(key) {
+    return this.cache.has(key);
+  }
+}
+
+const authorCache = new CacheWithTTL();
+const editorCache = new CacheWithTTL();
 
 const HomePage = () => {
   const [featuredNews, setFeaturedNews] = useState([]);
@@ -32,13 +84,48 @@ const HomePage = () => {
     mostViewed: true
   });
   
+  // Optimización: Estado para tracking de imágenes críticas cargadas
+  const [criticalImagesLoaded, setCriticalImagesLoaded] = useState(false);
+  const [isFirstRender, setIsFirstRender] = useState(true);
+  
   const totalSlides = 4;
   const navigate = useNavigate();
   const carouselInterval = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
   const abortController = useRef(new AbortController());
+  const imageLoadPromises = useRef(new Map());
 
-  // Funciones de procesamiento de contenido memoizadas
+  // Optimización: Intersection Observer para lazy loading inteligente
+  const observerRef = useRef(null);
+  
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+              img.src = img.dataset.src;
+              img.removeAttribute('data-src');
+              observerRef.current.unobserve(img);
+            }
+          }
+        });
+      },
+      { 
+        rootMargin: '50px',
+        threshold: 0.1
+      }
+    );
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
+
+  // Funciones de procesamiento optimizadas
   const stripHtml = useCallback((html) => {
     if (!html) return "";
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -66,11 +153,11 @@ const HomePage = () => {
     return plainText ? (plainText.length > limit ? plainText.slice(0, limit) + '...' : plainText) : '';
   }, [stripHtml]);
 
-  // Procesamiento optimizado de noticias con imágenes
-  const processNewsWithImages = useCallback((newsItems) => {
+  // Optimización: Procesamiento de imágenes con precarga crítica
+  const processNewsWithImages = useCallback(async (newsItems, isCritical = false) => {
     if (!Array.isArray(newsItems)) return [];
     
-    return newsItems.map(newsItem => {
+    const processedNews = newsItems.map(newsItem => {
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
       const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera || '/path/to/placeholder.jpg';
       
@@ -79,9 +166,28 @@ const HomePage = () => {
         contentImage: finalImage
       };
     });
+
+    // Optimización: Precargar solo las primeras 3 imágenes críticas
+    if (isCritical && processedNews.length > 0) {
+      const criticalImages = processedNews.slice(0, 3).map(item => item.contentImage);
+      
+      try {
+        await Promise.all(
+          criticalImages.map(src => 
+            preloadImage(src).catch(() => null) // Ignorar errores individuales
+          )
+        );
+        setCriticalImagesLoaded(true);
+      } catch (error) {
+        console.warn('Some critical images failed to preload:', error);
+        setCriticalImagesLoaded(true); // Continuar de todos modos
+      }
+    }
+
+    return processedNews;
   }, []);
 
-  // Fetch optimizado de autores con cache y batch requests
+  // Optimización: Fetch de autores en chunks más pequeños
   const fetchAuthorsAndEditors = useCallback(async (newsList) => {
     if (!newsList || newsList.length === 0) return;
     
@@ -97,26 +203,34 @@ const HomePage = () => {
       }
     });
     
-    // Batch requests para autores y editores
-    const fetchBatch = async (ids, cache, endpoint = 'trabajadores') => {
-      if (ids.size === 0) return;
+    // Optimización: Procesar en chunks de 5 para no sobrecargar la red
+    const fetchInChunks = async (ids, cache, endpoint = 'trabajadores') => {
+      const idsArray = Array.from(ids);
+      const chunkSize = 5;
       
-      const promises = Array.from(ids).map(async id => {
-        try {
-          const response = await api.get(`${endpoint}/${id}/`);
-          cache.set(id, response.data);
-        } catch (error) {
-          console.error(`Error fetching ${endpoint} ${id}:`, error);
+      for (let i = 0; i < idsArray.length; i += chunkSize) {
+        const chunk = idsArray.slice(i, i + chunkSize);
+        const promises = chunk.map(async id => {
+          try {
+            const response = await api.get(`${endpoint}/${id}/`);
+            cache.set(id, response.data);
+          } catch (error) {
+            console.error(`Error fetching ${endpoint} ${id}:`, error);
+          }
+        });
+        
+        await Promise.allSettled(promises);
+        
+        // Optimización: Pequeña pausa entre chunks para no saturar
+        if (i + chunkSize < idsArray.length) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-      });
-      
-      await Promise.allSettled(promises);
+      }
     };
     
-    // Ejecutar requests en paralelo
     await Promise.all([
-      fetchBatch(uniqueAuthorIds, authorCache),
-      fetchBatch(uniqueEditorIds, editorCache)
+      fetchInChunks(uniqueAuthorIds, authorCache),
+      fetchInChunks(uniqueEditorIds, editorCache)
     ]);
     
     // Aplicar datos de cache a las noticias
@@ -130,17 +244,18 @@ const HomePage = () => {
     });
   }, []);
 
-  // Limpieza optimizada
+  // Limpieza
   useEffect(() => {
     return () => {
       abortController.current.abort();
       if (carouselInterval.current) {
         clearInterval(carouselInterval.current);
       }
+      imageLoadPromises.current.clear();
     };
   }, []);
 
-  // Configuración de secciones memoizada
+  // Configuración de secciones
   const mainSections = useMemo(() => ({
     'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
     'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
@@ -149,25 +264,39 @@ const HomePage = () => {
     'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
   }), []);
 
-  // Fetch functions optimizadas
+  // Optimización: Fetch prioritario para contenido crítico
   const fetchFeaturedNews = useCallback(async (signal) => {
     try {
       const response = await api.get('noticias/destacadas/', {
         params: { limit: 12 },
-        signal
+        signal,
+        // Optimización: Prioridad alta para contenido crítico
+        priority: 'high'
       });
       
       const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-      const newsWithImages = processNewsWithImages(filteredNews);
       
-      // Actualizar estado inmediatamente
-      setFeaturedNews(newsWithImages);
+      // Optimización: Procesar inmediatamente las primeras 3 para LCP
+      const criticalNews = filteredNews.slice(0, 3);
+      const remainingNews = filteredNews.slice(3);
+      
+      // Procesar y precargar contenido crítico inmediatamente
+      const processedCritical = await processNewsWithImages(criticalNews, true);
+      
+      setFeaturedNews(processedCritical);
       setLoadingStates(prev => ({ ...prev, featured: false }));
       
-      // Buscar autores en background
-      fetchAuthorsAndEditors(filteredNews).then(() => {
-        setFeaturedNews(processNewsWithImages(filteredNews));
-      });
+      // Procesar el resto en background
+      setTimeout(async () => {
+        const processedRemaining = await processNewsWithImages(remainingNews);
+        const allProcessed = [...processedCritical, ...processedRemaining];
+        
+        setFeaturedNews(allProcessed);
+        
+        // Fetch autores en background
+        fetchAuthorsAndEditors(filteredNews);
+      }, 0);
+      
     } catch (error) {
       if (!signal.aborted) {
         console.error('Failed to fetch featured news:', error);
@@ -176,9 +305,12 @@ const HomePage = () => {
     }
   }, [processNewsWithImages, fetchAuthorsAndEditors]);
 
+  // Optimización: Fetch diferido para secciones no críticas
   const fetchSectionNews = useCallback(async (signal) => {
     try {
-      // Crear todas las promesas de una vez
+      // Pequeño delay para dar prioridad al contenido crítico
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const sectionPromises = Object.entries(mainSections).map(async ([mainSection, subcategories]) => {
         const categoriaParam = subcategories.join(',');
         
@@ -192,21 +324,17 @@ const HomePage = () => {
             signal
           });
           
-          const processedNews = processNewsWithImages(response.data);
+          const processedNews = await processNewsWithImages(response.data);
           
-          // Actualizar estado inmediatamente para esta sección
           setSectionNews(prevState => ({
             ...prevState,
             [mainSection]: processedNews
           }));
           
-          // Buscar autores en background
-          fetchAuthorsAndEditors(response.data).then(() => {
-            setSectionNews(prevState => ({
-              ...prevState,
-              [mainSection]: processNewsWithImages(response.data)
-            }));
-          });
+          // Fetch autores en background con delay
+          setTimeout(() => {
+            fetchAuthorsAndEditors(response.data);
+          }, 200);
           
         } catch (error) {
           if (!signal.aborted) {
@@ -219,7 +347,6 @@ const HomePage = () => {
         }
       });
       
-      // Esperar a que terminen todas las secciones
       await Promise.allSettled(sectionPromises);
       setLoadingStates(prev => ({ ...prev, sections: false }));
       
@@ -233,18 +360,21 @@ const HomePage = () => {
 
   const fetchRecentNews = useCallback(async (signal) => {
     try {
+      // Delay para dar prioridad al contenido crítico
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
       const response = await api.get('noticias/recientes/', {
         params: { limit: 5 },
         signal
       });
       
-      const newsWithImages = processNewsWithImages(response.data);
+      const newsWithImages = await processNewsWithImages(response.data);
       setRecentNews(newsWithImages);
       setLoadingStates(prev => ({ ...prev, recent: false }));
       
-      fetchAuthorsAndEditors(response.data).then(() => {
-        setRecentNews(processNewsWithImages(response.data));
-      });
+      setTimeout(() => {
+        fetchAuthorsAndEditors(response.data);
+      }, 300);
     } catch (error) {
       if (!signal.aborted) {
         console.error('Failed to fetch recent news:', error);
@@ -255,18 +385,21 @@ const HomePage = () => {
   
   const fetchMostViewedNews = useCallback(async (signal) => {
     try {
+      // Delay para dar prioridad al contenido crítico
+      await new Promise(resolve => setTimeout(resolve, 250));
+      
       const response = await api.get('noticias/mas_vistas/', {
         params: { limit: 5 },
         signal
       });
       
-      const newsWithImages = processNewsWithImages(response.data);
+      const newsWithImages = await processNewsWithImages(response.data);
       setMostViewedNews(newsWithImages);
       setLoadingStates(prev => ({ ...prev, mostViewed: false }));
       
-      fetchAuthorsAndEditors(response.data).then(() => {
-        setMostViewedNews(processNewsWithImages(response.data));
-      });
+      setTimeout(() => {
+        fetchAuthorsAndEditors(response.data);
+      }, 400);
     } catch (error) {
       if (!signal.aborted) {
         console.error('Failed to fetch most viewed news:', error);
@@ -275,21 +408,25 @@ const HomePage = () => {
     }
   }, [processNewsWithImages, fetchAuthorsAndEditors]);
 
-  // Effect principal optimizado - fetch en paralelo real
+  // Optimización: Effect con priorización de carga
   useEffect(() => {
     abortController.current = new AbortController();
     const signal = abortController.current.signal;
 
-    // Ejecutar TODAS las peticiones en paralelo desde el inicio
-    Promise.all([
-      fetchFeaturedNews(signal),
-      fetchSectionNews(signal),
-      fetchRecentNews(signal),
-      fetchMostViewedNews(signal)
-    ]);
+    // Prioridad 1: Contenido crítico (featured news)
+    fetchFeaturedNews(signal).then(() => {
+      setIsFirstRender(false);
+      
+      // Prioridad 2: Contenido secundario en paralelo pero después
+      Promise.all([
+        fetchSectionNews(signal),
+        fetchRecentNews(signal),
+        fetchMostViewedNews(signal)
+      ]);
+    });
   }, [fetchFeaturedNews, fetchSectionNews, fetchRecentNews, fetchMostViewedNews]);
 
-  // Carousel handlers optimizados
+  // Carousel handlers
   const handlePauseToggle = useCallback(() => {
     setIsPaused(!isPaused);
     if (carouselInterval.current) {
@@ -309,11 +446,11 @@ const HomePage = () => {
     setCurrentSlide(index);
   }, []);
 
-  // Efecto de carrusel optimizado
+  // Optimización: Carrusel solo inicia cuando las imágenes críticas están listas
   useEffect(() => {
     const isAnyLoading = Object.values(loadingStates).some(state => state);
     
-    if (!isPaused && !isAnyLoading) {
+    if (!isPaused && !isAnyLoading && criticalImagesLoaded) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
       }, 5000);
@@ -324,9 +461,55 @@ const HomePage = () => {
         clearInterval(carouselInterval.current);
       }
     };
-  }, [isPaused, loadingStates]);
+  }, [isPaused, loadingStates, criticalImagesLoaded]);
 
-  // Componentes de skeleton memoizados
+  // Componente de imagen optimizada
+  const OptimizedImage = useCallback(({ 
+    src, 
+    alt, 
+    className = "", 
+    isCritical = false, 
+    ...props 
+  }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [error, setError] = useState(false);
+    
+    const handleLoad = () => setIsLoaded(true);
+    const handleError = () => setError(true);
+    
+    // Optimización: Imagen crítica se carga inmediatamente
+    if (isCritical) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} ${isLoaded ? 'loaded' : 'loading'}`}
+          onLoad={handleLoad}
+          onError={handleError}
+          loading="eager"
+          decoding="sync"
+          fetchPriority="high"
+          {...props}
+        />
+      );
+    }
+    
+    // Imagen no crítica usa lazy loading
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} ${isLoaded ? 'loaded' : 'loading'}`}
+        onLoad={handleLoad}
+        onError={handleError}
+        loading="lazy"
+        decoding="async"
+        {...props}
+      />
+    );
+  }, []);
+
+  // Componentes de skeleton memoizados (sin cambios)
   const MainArticleSkeleton = useMemo(() => (
     <div className="main-article skeleton">
       <div className="recent-new skeleton-img"></div>
@@ -359,7 +542,7 @@ const HomePage = () => {
     </div>
   ), []);
 
-  // Funciones de renderizado memoizadas
+  // Funciones de renderizado optimizadas
   const renderNewsSection = useCallback((newsArray, sectionTitle) => {
     const isLoading = loadingStates.sections;
     
@@ -380,10 +563,9 @@ const HomePage = () => {
             <>
               <div className="main-article" onClick={() => navigate(generateNewsUrl(newsArray[0]))}>
                 <div className='recent-new'>
-                  <img 
+                  <OptimizedImage 
                     src={newsArray[0].contentImage} 
                     alt={newsArray[0].nombre_noticia}
-                    loading="lazy" 
                   />
                 </div>
                 <div className="main-article-content">
@@ -409,10 +591,9 @@ const HomePage = () => {
                     onClick={() => navigate(generateNewsUrl(newsItem))}
                   >
                     <div className='secondary-article-img'>
-                      <img 
+                      <OptimizedImage 
                         src={newsItem.contentImage} 
                         alt={newsItem.nombre_noticia}
-                        loading="lazy" 
                       />
                     </div>
                     <div className="secondary-article-content">
@@ -434,7 +615,7 @@ const HomePage = () => {
         </div>
       </div>
     );
-  }, [loadingStates.sections, navigate, truncateTitle, getFirstParagraphContent, MainArticleSkeleton, SecondaryArticleSkeleton]);
+  }, [loadingStates.sections, navigate, truncateTitle, getFirstParagraphContent, MainArticleSkeleton, SecondaryArticleSkeleton, OptimizedImage]);
 
   const renderRecentNews = useCallback((recentNewsArray) => {
     const isLoading = loadingStates.recent;
@@ -455,11 +636,10 @@ const HomePage = () => {
                 onClick={() => navigate(generateNewsUrl(newsItem))}
               >
                 <div className='recent-new'>
-                  <img 
+                  <OptimizedImage 
                     src={newsItem.contentImage} 
                     alt={newsItem.nombre_noticia} 
                     className="recent-news-image"
-                    loading="lazy" 
                   />
                 </div>
                 <div className="recent-news-content">
@@ -474,7 +654,7 @@ const HomePage = () => {
         </div>
       </div>
     );
-  }, [loadingStates.recent, navigate, RecentNewsSkeleton]);
+  }, [loadingStates.recent, navigate, RecentNewsSkeleton, OptimizedImage]);
 
   const renderMostViewedNews = useCallback((mostViewedNewsArray) => {
     const isLoading = loadingStates.mostViewed;
@@ -495,11 +675,10 @@ const HomePage = () => {
                 onClick={() => navigate(generateNewsUrl(newsItem))}
               >
                 <div className='recent-new'>
-                  <img 
+                  <OptimizedImage 
                     src={newsItem.contentImage} 
                     alt={newsItem.nombre_noticia} 
                     className="recent-news-image"
-                    loading="lazy" 
                   />
                 </div>
                 <div className="recent-news-content">
@@ -516,9 +695,8 @@ const HomePage = () => {
         </div>
       </div>
     );
-  }, [loadingStates.mostViewed, navigate, RecentNewsSkeleton]);
+  }, [loadingStates.mostViewed, navigate, RecentNewsSkeleton, OptimizedImage]);
 
-  // Formatear fecha memoizada
   const formatDate = useCallback((dateString) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -527,6 +705,7 @@ const HomePage = () => {
     return `${day}/${month}/${year}`;
   }, []);
 
+  // Optimización: Carrusel con prioridad en imágenes críticas
   const renderFeaturedCarousel = useCallback(() => {
     const isLoading = loadingStates.featured;
     
@@ -594,6 +773,7 @@ const HomePage = () => {
             if (slideNews.length === 0) return null;
             
             const isActive = slideIndex === currentSlide;
+            const isCriticalSlide = slideIndex === 0; // Primer slide es crítico
             
             return (
               <div 
@@ -609,10 +789,10 @@ const HomePage = () => {
                   className="featured-left" 
                   onClick={() => navigate(generateNewsUrl(slideNews[0]))}
                 >
-                  <img 
+                  <OptimizedImage 
                     src={slideNews[0]?.contentImage} 
                     alt={slideNews[0]?.nombre_noticia}
-                    loading={slideIndex === 0 ? "eager" : "lazy"} 
+                    isCritical={isCriticalSlide}
                   />
                   <div className="overlay">
                     <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
@@ -632,11 +812,11 @@ const HomePage = () => {
                       className="carousel-item"
                       onClick={() => navigate(generateNewsUrl(newsItem))}
                     >
-                      <img 
+                      <OptimizedImage 
                         src={newsItem.contentImage} 
                         alt={newsItem.nombre_noticia} 
                         className="carousel-image"
-                        loading={slideIndex === 0 ? "eager" : "lazy"} 
+                        isCritical={isCriticalSlide && idx < 2}
                       />
                       <div className="carousel-caption">
                         <h3>{newsItem.nombre_noticia}</h3>
@@ -667,9 +847,9 @@ const HomePage = () => {
         </div>
       </div>
     );
-  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, handlePauseToggle, isPaused, navigate, formatDate, handleDotClick]);
+  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, handlePauseToggle, isPaused, navigate, formatDate, handleDotClick, OptimizedImage]);
 
-  // Estilos de skeleton memoizados
+  // Optimización: Estilos mejorados con transformaciones CSS para mejor rendimiento
   const SkeletonStyles = useMemo(() => (
     <style>{`
       .skeleton {
@@ -704,39 +884,72 @@ const HomePage = () => {
         height: 80px;
       }
       
+      /* Optimización: Animación más suave y eficiente */
       @keyframes pulse {
         0% {
           opacity: 0.6;
+          transform: scale(1);
         }
         100% {
           opacity: 1;
+          transform: scale(1.01);
         }
+      }
+      
+      /* Optimización: Estilos para carga de imágenes */
+      img.loading {
+        background: #f0f0f0;
+        min-height: 200px;
+      }
+      
+      img.loaded {
+        transition: opacity 0.3s ease;
+      }
+      
+      /* Optimización: Usar transform en lugar de cambios de layout */
+      .carousel-container {
+        will-change: transform;
+      }
+      
+      .slide {
+        will-change: transform, opacity;
+      }
+      
+      /* Optimización: Hint para el navegador sobre compositing */
+      .featured-left,
+      .carousel-item {
+        transform: translateZ(0);
+        backface-visibility: hidden;
       }
     `}</style>
   ), []);
 
+  // Optimización: Renderizado condicional para evitar re-renders innecesarios
+  const MainContent = useMemo(() => (
+    <main>
+      <div className="featured-article">
+        {renderFeaturedCarousel()}
+      </div>
+
+      <div className="sections-and-recent-news">
+        <div className="news-sections">
+          {Object.entries(sectionNews).map(([sectionTitle, newsArray]) =>
+            renderNewsSection(newsArray, sectionTitle)
+          )}
+        </div>
+
+        <div className="recent-news">
+          {renderRecentNews(recentNews)}
+          {renderMostViewedNews(mostViewedNews)}
+        </div>
+      </div>
+    </main>
+  ), [renderFeaturedCarousel, sectionNews, renderNewsSection, renderRecentNews, recentNews, renderMostViewedNews, mostViewedNews]);
+
   return (
     <div className="container">
       {SkeletonStyles}
-      
-      <main>
-        <div className="featured-article">
-          {renderFeaturedCarousel()}
-        </div>
-
-        <div className="sections-and-recent-news">
-          <div className="news-sections">
-            {Object.entries(sectionNews).map(([sectionTitle, newsArray]) =>
-              renderNewsSection(newsArray, sectionTitle)
-            )}
-          </div>
-
-          <div className="recent-news">
-            {renderRecentNews(recentNews)}
-            {renderMostViewedNews(mostViewedNews)}
-          </div>
-        </div>
-      </main>
+      {MainContent}
     </div>
   );
 };

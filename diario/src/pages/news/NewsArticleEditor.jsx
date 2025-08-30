@@ -11,15 +11,33 @@ import {
   Popconfirm, 
   Layout,
   Grid,
-  message
+  message,
+  Space,
+  Tag
 } from 'antd';
-import { EditOutlined, PlusOutlined, DeleteOutlined, CommentOutlined, EyeOutlined, ClearOutlined } from '@ant-design/icons';
+import { 
+  EditOutlined, 
+  PlusOutlined, 
+  DeleteOutlined, 
+  CommentOutlined, 
+  EyeOutlined, 
+  ClearOutlined, 
+  FilterOutlined  // ADD THIS LINE
+} from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { useNavigate } from 'react-router-dom';
 import './NewsManagement.css';
 import api from '../context/axiosConfig';
 
+const CACHE_KEYS = {
+  NEWS: 'news_cache',
+  EDITORS: 'editors_cache',
+  PUBLICATION_STATES: 'publication_states_cache',
+  CACHE_TIMESTAMP: 'cache_timestamp'
+};
+
+const CACHE_DURATION = 10 * 60 * 1000; // 5 minutos en milisegundos
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -28,6 +46,7 @@ const { useBreakpoint } = Grid;
 const NewsManagement = () => {
   const [news, setNews] = useState([]);
   const [editors, setEditors] = useState([]);
+  const [selectedStateFilter, setSelectedStateFilter] = useState(null); // AGREGAR ESTA LÍNEA
   const [publicationStates, setPublicationStates] = useState([]);
   const [filteredPublicationStates, setFilteredPublicationStates] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -38,23 +57,59 @@ const NewsManagement = () => {
   const navigate = useNavigate();
   const screens = useBreakpoint();
   const [isMobile, setIsMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Detect mobile screen
   useEffect(() => {
     setIsMobile(screens.xs && !screens.sm);
   }, [screens]);
 
+  // 2. Función para verificar si el caché es válido
+const isCacheValid = (timestamp) => {
+  if (!timestamp) return false;
+  return Date.now() - parseInt(timestamp) < CACHE_DURATION;
+};
+
+// 3. Función para guardar en caché
+const saveToCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
+  } catch (error) {
+    console.warn('Error saving to cache:', error);
+  }
+};
+
+// 4. Función para obtener del caché
+const getFromCache = (key) => {
+  try {
+    const cachedData = localStorage.getItem(key);
+    const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
+    
+    if (cachedData && isCacheValid(timestamp)) {
+      return JSON.parse(cachedData);
+    }
+  } catch (error) {
+    console.warn('Error reading from cache:', error);
+  }
+  return null;
+};
+
   // Función para borrar todo el caché del navegador
   const clearAllCache = async () => {
-    try {
-      // Mostrar confirmación
-      Modal.confirm({
-        title: '¿Borrar todo el caché?',
-        content: 'Esta acción borrará todo el caché del navegador, cookies, localStorage, sessionStorage y datos almacenados. La página se recargará automáticamente.',
-        okText: 'Sí, borrar todo',
-        cancelText: 'Cancelar',
-        onOk: async () => {
-          try {
+  try {
+    Modal.confirm({
+      title: '¿Borrar todo el caché?',
+      content: 'Esta acción borrará todo el caché del navegador, incluyendo noticias, editores y estados. La página se recargará automáticamente.',
+      okText: 'Sí, borrar todo',
+      cancelText: 'Cancelar',
+      onOk: async () => {
+        try {
+          // Borrar nuestro caché específico primero
+          Object.values(CACHE_KEYS).forEach(key => {
+            localStorage.removeItem(key);
+          });
             // Borrar localStorage
             localStorage.clear();
             
@@ -135,28 +190,21 @@ const NewsManagement = () => {
             }
             
             message.success('Caché borrado exitosamente. Recargando página...');
-            
-            // Recargar la página después de un breve delay
-            setTimeout(() => {
-              window.location.reload(true); // true fuerza la recarga desde el servidor
-            }, 1000);
-            
-          } catch (error) {
-            console.error('Error al borrar el caché:', error);
-            message.error('Error al borrar el caché completo, pero se borró lo que fue posible');
-            
-            // Intentar recargar de todas formas
-            setTimeout(() => {
-              window.location.reload(true);
-            }, 1000);
-          }
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 1000);
+          
+        } catch (error) {
+          console.error('Error al borrar el caché:', error);
+          message.error('Error al borrar el caché completo');
         }
-      });
-    } catch (error) {
-      console.error('Error en clearAllCache:', error);
-      message.error('Error al intentar borrar el caché');
-    }
-  };
+      }
+    });
+  } catch (error) {
+    console.error('Error en clearAllCache:', error);
+    message.error('Error al intentar borrar el caché');
+  }
+};
   
   const CATEGORIAS = [
     ['Politica', [
@@ -218,10 +266,17 @@ const NewsManagement = () => {
   
   // Efecto adicional para cargar noticias cuando tengamos el ID del trabajador
   useEffect(() => {
-    if (trabajadorId) {
-      fetchNews();
-    }
-  }, [trabajadorId]);
+  if (trabajadorId) {
+    setLoading(true);
+    Promise.all([
+      fetchNews(),
+      fetchEditors(),
+      fetchPublicationStates()
+    ]).finally(() => {
+      setLoading(false);
+    });
+  }
+}, [trabajadorId]);
 
   const sortNewsByDate = (newsArray) => {
     // Asegurarse de que estamos trabajando con una copia del array para no mutar el original
@@ -235,54 +290,128 @@ const NewsManagement = () => {
     });
   };
 
-  const fetchNews = () => {
-    api.get('noticias/')
-      .then(response => {
-        // Filtra noticias donde el usuario es autor o está en el array de editores_en_jefe
-        const filteredNews = response.data.filter(noticia => 
-          noticia.autor === trabajadorId || 
-          (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
-        );
-        
-        console.log(`Filtrando noticias para trabajador ID: ${trabajadorId}`);
-        filteredNews.forEach(noticia => {
-          console.log(`Noticia: ${noticia.nombre_noticia} - ID Autor: ${noticia.autor}, IDs Editores: ${JSON.stringify(noticia.editores_en_jefe)}, Fecha: ${noticia.fecha_publicacion}`);
-        });
-        
-        // Ordenar las noticias por fecha (más reciente primero)
-        const sortedNews = sortNewsByDate(filteredNews);
-        console.log('Noticias ordenadas:', sortedNews.map(n => ({ 
-          titulo: n.nombre_noticia, 
-          fecha: n.fecha_publicacion 
-        })));
-        
-        setNews(sortedNews);
-      })
-      .catch(error => {
-        console.error("Error al obtener noticias:", error);
+  const fetchNews = (forceRefresh = false) => {
+  // Si ya tenemos datos cargados y no es un refresh forzado, no hacer nada
+  if (dataLoaded && !forceRefresh) {
+    return Promise.resolve();
+  }
+
+  const cachedNews = getFromCache(CACHE_KEYS.NEWS);
+  
+  // Si hay caché válido y no es refresh forzado, usar solo el caché
+  if (cachedNews && Array.isArray(cachedNews) && !forceRefresh) {
+    const filteredNews = cachedNews.filter(noticia => 
+      noticia.autor === trabajadorId || 
+      (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
+    );
+    const sortedNews = sortNewsByDate(filteredNews);
+    setNews(sortedNews);
+    setDataLoaded(true);
+    console.log('Noticias cargadas desde caché');
+    return Promise.resolve();
+  }
+
+  // Solo hacer petición API si no hay caché o es refresh forzado
+  return api.get('noticias/')
+    .then(response => {
+      saveToCache(CACHE_KEYS.NEWS, response.data);
+      
+      const filteredNews = response.data.filter(noticia => 
+        noticia.autor === trabajadorId || 
+        (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
+      );
+      
+      const sortedNews = sortNewsByDate(filteredNews);
+      setNews(sortedNews);
+      setDataLoaded(true);
+      console.log('Noticias actualizadas desde API');
+    })
+    .catch(error => {
+      console.error("Error al obtener noticias:", error);
+      if (!cachedNews) {
         message.error("No se pudieron cargar las noticias");
-      });
+      }
+    });
+};
+  // Nueva función para manejar el filtro por estado
+  const handleStateFilter = (stateId) => {
+    setSelectedStateFilter(stateId);
+    console.log('Filtering by state ID:', stateId);
   };
 
-  const fetchEditors = () => {
-    api.get('trabajadores/')
-      .then(response => {
-        console.log("Todos los editores con IDs:", response.data);
-        setEditors(response.data);
-      })
-      .catch(error => {
-        console.error("Error al obtener editores:", error);
-        message.error("No se pudieron cargar los editores");
-      });
+  // Función para limpiar filtros
+  const clearFilters = () => {
+    setSelectedStateFilter(null);
+    setSearchTerm('');
   };
+  const getStateColor = (stateName) => {
+    const colorMap = {
+      'publicado': 'green',
+      'borrador': 'orange',
+      'en_revision': 'blue',
+      'rechazado': 'red',
+      'programado': 'purple',
+      'archivado': 'gray'
+    };
+    return colorMap[stateName?.toLowerCase()] || 'default';
+  };
+  
+// Función para contar noticias por estado
+const getNewsCountByState = (stateId) => {
+  return news.filter(record => record.estado === stateId).length;
+};
+  const fetchEditors = () => {
+  // Intentar cargar desde caché primero
+  const cachedEditors = getFromCache(CACHE_KEYS.EDITORS);
+  if (cachedEditors && Array.isArray(cachedEditors)) {
+    setEditors(cachedEditors);
+    console.log('Editores cargados desde caché');
+  }
+
+  // Luego hacer la petición para actualizar
+  api.get('trabajadores/')
+    .then(response => {
+      // Guardar en caché
+      saveToCache(CACHE_KEYS.EDITORS, response.data);
+      setEditors(response.data);
+      console.log('Editores actualizados desde API');
+    })
+    .catch(error => {
+      console.error("Error al obtener editores:", error);
+      if (!cachedEditors) {
+        message.error("No se pudieron cargar los editores");
+      }
+    });
+};
 
   const fetchPublicationStates = () => {
-    api.get('estados-publicacion/')
-      .then(response => setPublicationStates(response.data))
-      .catch(error => {
-        console.error("Error al obtener estados de publicación:", error);
-      });
-  };
+  // Intentar cargar desde caché primero
+  const cachedStates = getFromCache(CACHE_KEYS.PUBLICATION_STATES);
+  if (cachedStates && Array.isArray(cachedStates)) {
+    setPublicationStates(cachedStates);
+    console.log('Estados cargados desde caché');
+  }
+
+  // Luego hacer la petición para actualizar
+  api.get('estados-publicacion/')
+    .then(response => {
+      // Guardar en caché
+      saveToCache(CACHE_KEYS.PUBLICATION_STATES, response.data);
+      setPublicationStates(response.data);
+      console.log('Estados actualizados desde API');
+    })
+    .catch(error => {
+      console.error("Error al obtener estados de publicación:", error);
+      if (!cachedStates) {
+        message.error("No se pudieron cargar los estados");
+      }
+    });
+};
+
+const invalidateNewsCache = () => {
+  localStorage.removeItem(CACHE_KEYS.NEWS);
+  console.log('Caché de noticias invalidado');
+};
 
   const verifyTrabajador = () => {
     const accessToken = localStorage.getItem('access');
@@ -390,67 +519,89 @@ const NewsManagement = () => {
 };
 
   const handleOk = () => {
-    form.validateFields().then(values => {
-      if (!Array.isArray(values.categorias)) {
-        values.categorias = values.categorias ? [values.categorias] : [];
-      }
-      
-      // Asegúrate de que los editores_en_jefe sean un array
-      if (!Array.isArray(values.editores_en_jefe)) {
-        values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
-      }
-      
-      
-      
-      const noticiaEditada = {
-        nombre_noticia: values.nombre_noticia,
-        fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
-        categorias: values.categorias.join(','),
-        Palabras_clave: values.Palabras_clave || '',
-        autor: parseInt(values.autor, 10),
-        editores_en_jefe: values.editores_en_jefe, // Enviar como array (ya incluye ID 6)
-        estado: parseInt(values.estado, 10),
-        solo_para_subscriptores: values.solo_para_subscriptores || false,
-        subtitulo: values.subtitulo || 'default content',
-        imagen_cabecera: values.imagen_cabecera || '',
-        imagen_1: values.imagen_1 || '',
-        imagen_2: values.imagen_2 || '',
-        imagen_3: values.imagen_3 || '',
-        imagen_4: values.imagen_4 || '',
-        imagen_5: values.imagen_5 || '',
-        imagen_6: values.imagen_6 || ''
-      };
-  
-      const submitData = () => {
-        const endpoint = editingId 
-          ? `noticias/${editingId}/`
-          : 'noticias/';
-        
-        const method = editingId ? 'put' : 'post';
-      
-        api[method](endpoint, noticiaEditada)
-          .finally(() => {
-            setIsModalVisible(false);
-            setTimeout(() => {
-              window.location = window.location;
-            }, 100);
-          });
-      };
-      submitData();
-    });
-  };
+  form.validateFields().then(values => {
+    if (!Array.isArray(values.categorias)) {
+      values.categorias = values.categorias ? [values.categorias] : [];
+    }
+    
+    if (!Array.isArray(values.editores_en_jefe)) {
+      values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
+    }
+    
+    const noticiaEditada = {
+      nombre_noticia: values.nombre_noticia,
+      fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
+      categorias: values.categorias.join(','),
+      Palabras_clave: values.Palabras_clave || '',
+      autor: parseInt(values.autor, 10),
+      editores_en_jefe: values.editores_en_jefe,
+      estado: parseInt(values.estado, 10),
+      solo_para_subscriptores: values.solo_para_subscriptores || false,
+      subtitulo: values.subtitulo || 'default content',
+      imagen_cabecera: values.imagen_cabecera || '',
+      imagen_1: values.imagen_1 || '',
+      imagen_2: values.imagen_2 || '',
+      imagen_3: values.imagen_3 || '',
+      imagen_4: values.imagen_4 || '',
+      imagen_5: values.imagen_5 || '',
+      imagen_6: values.imagen_6 || ''
+    };
 
-  const handleDelete = (id) => {
-    api.delete(`noticias/${id}/`)
-      .then(() => {
-        message.success("Noticia eliminada con éxito");
-        fetchNews(); // Recargar las noticias en lugar de recargar la página
+    const endpoint = editingId 
+      ? `noticias/${editingId}/`
+      : 'noticias/';
+    
+    const method = editingId ? 'put' : 'post';
+
+    api[method](endpoint, noticiaEditada)
+      .then(response => {
+        // Invalidar caché de noticias
+        invalidateNewsCache();
+        
+        // Actualizar el estado local optimísticamente
+        if (editingId) {
+          // Actualizar noticia existente
+          setNews(prevNews => 
+            prevNews.map(noticia => 
+              noticia.id === editingId 
+                ? { ...noticia, ...response.data }
+                : noticia
+            )
+          );
+        } else {
+          // Agregar nueva noticia
+          setNews(prevNews => sortNewsByDate([...prevNews, response.data]));
+        }
+        
+        message.success(editingId ? 'Noticia actualizada' : 'Noticia creada');
+        setIsModalVisible(false);
       })
       .catch(error => {
-        console.error("Error al eliminar la noticia:", error);
-        message.error("Error al eliminar la noticia");
+        console.error('Error:', error);
+        message.error('Error al guardar la noticia');
+        setIsModalVisible(false);
       });
-  };
+  });
+};
+
+  const handleDelete = (id) => {
+  api.delete(`noticias/${id}/`)
+    .then(() => {
+      // Invalidar caché
+      invalidateNewsCache();
+      
+      // Actualizar estado local optimísticamente
+      setNews(prevNews => prevNews.filter(noticia => noticia.id !== id));
+      
+      message.success("Noticia eliminada con éxito");
+    })
+    .catch(error => {
+      console.error("Error al eliminar la noticia:", error);
+      message.error("Error al eliminar la noticia");
+      // Recargar noticias en caso de error
+      fetchNews();
+    });
+};
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -484,9 +635,11 @@ const NewsManagement = () => {
     console.log('Navigating to preview for news ID:', record.id);
   };
 
-  const filteredNews = news.filter(record => 
-    record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredNews = news.filter(record => {
+    const matchesSearch = record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesState = selectedStateFilter === null || record.estado === selectedStateFilter;
+    return matchesSearch && matchesState;
+  });
   
   console.log('Filtered News:', filteredNews);
 
@@ -502,8 +655,10 @@ const NewsManagement = () => {
         const editorObjs = Array.isArray(record.editores_en_jefe) 
           ? record.editores_en_jefe.map(editorId => 
               editors.find(editor => editor.id === editorId)
-            ).filter(Boolean) // Filtrar para eliminar posibles undefined
+            ).filter(Boolean)
           : [];
+        
+        const currentState = publicationStates.find(state => state.id === record.estado); // AGREGAR ESTA LÍNEA
         
         return (
           <div style={{ 
@@ -585,17 +740,15 @@ const NewsManagement = () => {
             </div>
   
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Estado:</strong>
-              <span>
-                {publicationStates.find(state => state.id === record.estado)
-                  ? publicationStates.find(state => state.id === record.estado).nombre_estado
-                  : 'Unknown'}
-              </span>
-            </div>
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px'
+}}>
+  <strong>Estado:</strong>
+  <Tag color={getStateColor(currentState?.nombre_estado)}>
+    {currentState?.nombre_estado || 'Unknown'}
+  </Tag>
+</div>
   
             <div style={{ 
               display: 'flex', 
@@ -734,7 +887,50 @@ const NewsManagement = () => {
             </div>
           </div>
         </Layout.Header>
-        
+        <div style={{ 
+  padding: '16px 20px', 
+  background: '#f5f5f5', 
+  borderBottom: '1px solid #d9d9d9' 
+}}>
+  <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '12px',
+    flexWrap: 'wrap'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <FilterOutlined />
+      <strong>Filtrar por estado:</strong>
+    </div>
+    
+    <Space wrap>
+      <Button
+        type={selectedStateFilter === null ? 'primary' : 'default'}
+        onClick={() => setSelectedStateFilter(null)}
+        size="small"
+      >
+        Todos ({news.length})
+      </Button>
+      
+      {publicationStates.map(state => (
+        <Button
+          key={state.id}
+          type={selectedStateFilter === state.id ? 'primary' : 'default'}
+          onClick={() => handleStateFilter(state.id)}
+          size="small"
+          style={{ 
+            borderColor: getStateColor(state.nombre_estado) === 'default' ? undefined : getStateColor(state.nombre_estado),
+            color: selectedStateFilter === state.id ? 'black' : getStateColor(state.nombre_estado)
+          }}
+        >
+          {state.nombre_estado.charAt(0).toUpperCase() + state.nombre_estado.slice(1)} 
+          ({getNewsCountByState(state.id)})
+        </Button>
+      ))}
+    </Space>
+  </div>
+</div>
+
         <Layout.Content style={{ padding: '20px' }}>
           <Table 
             columns={columns} 
