@@ -53,7 +53,7 @@ const NewsDetail = () => {
   const [newsData, setNewsData] = useState(null);
   const [authorData, setAuthorData] = useState(null);
   const [editorsData, setEditorsData] = useState([]);
-  const [Palabras_clave, setPalabras_clave] = useState([]);
+  const [palabrasClave, setPalabrasClave] = useState([]);
   const { user } = useUser();
   const [speechState, setSpeechState] = useState('stopped');
   const [speechProgress, setSpeechProgress] = useState(0);
@@ -83,7 +83,7 @@ const NewsDetail = () => {
   const newsId = getNewsId();
   
   // Utility function to strip HTML tags
-  const stripHtmlPalabras_clave = (html) => {
+  const stripHtmlPalabrasClave = (html) => {
     const tmp = document.createElement('DIV');
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
@@ -167,7 +167,7 @@ const NewsDetail = () => {
 
   const readContentAloud = () => {
     if (newsData && newsData.contenido) {
-      const plainText = stripHtmlPalabras_clave(newsData.contenido);
+      const plainText = stripHtmlPalabrasClave(newsData.contenido);
       const truncatedText = plainText.substring(0, 3000);
   
       if (speechState === 'speaking') {
@@ -331,8 +331,12 @@ const NewsDetail = () => {
         const news = response.data;
         setNewsData(news);
     
+        // Procesar palabras clave: dividir por comas, limpiar espacios y reemplazar guiones bajos con espacios
         if (news.Palabras_clave) {
-          setPalabras_clave(news.Palabras_clave.split(',').map(tag => tag.trim()));
+          const processedKeywords = news.Palabras_clave
+            .split(',')
+            .map(tag => tag.trim().replace(/_/g, ' '));
+          setPalabrasClave(processedKeywords);
         }
     
         if (news.autor) {
@@ -624,7 +628,7 @@ const NewsDetail = () => {
       <div className="tags-section" style={{ marginBottom: '30px' }}>
         <h3 className="tags-title">Palabras clave </h3>
         <div className="news-tags">
-          {Palabras_clave.map((tag, index) => (
+          {palabrasClave.map((tag, index) => (
             <Link key={index} to={`/tag/${encodeURIComponent(tag)}`} className="tag-link">
               <span className="tag">{tag}</span>
             </Link>
