@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Table, 
   Form, 
@@ -14,7 +14,8 @@ import {
   message,
   Space,
   Tag,
-  Switch
+  Switch,
+  Spin
 } from 'antd';
 import { 
   EditOutlined, 
@@ -41,13 +42,16 @@ const CACHE_KEYS = {
   CACHE_TIMESTAMP: 'cache_timestamp'
 };
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos en milisegundos
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
+const INITIAL_PAGE_SIZE = 10; // Cargar menos elementos inicialmente
+const MAX_PAGE_SIZE = 50;
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { useBreakpoint } = Grid;
 
 const NewsManagement = () => {
+  // Estados existentes
   const [news, setNews] = useState([]);
   const [allNews, setAllNews] = useState([]);
   const [editors, setEditors] = useState([]);
@@ -59,159 +63,26 @@ const NewsManagement = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [trabajadorId, setTrabajadorId] = useState(null);
-  const [showAllNews, setShowAllNews] = useState(false); // Nuevo estado para controlar la vista
+  const [showAllNews, setShowAllNews] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Nuevos estados para optimización
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const navigate = useNavigate();
   const screens = useBreakpoint();
   const [isMobile, setIsMobile] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Detect mobile screen
   useEffect(() => {
     setIsMobile(screens.xs && !screens.sm);
   }, [screens]);
 
-  // Función para verificar si el caché es válido
-  const isCacheValid = (timestamp) => {
-    if (!timestamp) return false;
-    return Date.now() - parseInt(timestamp) < CACHE_DURATION;
-  };
-
-  // Función para guardar en caché
-  const saveToCache = (key, data) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-      localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
-    } catch (error) {
-      console.warn('Error saving to cache:', error);
-    }
-  };
-
-  // Función para obtener del caché
-  const getFromCache = (key) => {
-    try {
-      const cachedData = localStorage.getItem(key);
-      const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
-      
-      if (cachedData && isCacheValid(timestamp)) {
-        return JSON.parse(cachedData);
-      }
-    } catch (error) {
-      console.warn('Error reading from cache:', error);
-    }
-    return null;
-  };
-
-  // Función para borrar todo el caché del navegador
-  const clearAllCache = async () => {
-    try {
-      Modal.confirm({
-        title: '¿Borrar todo el caché?',
-        content: 'Esta acción borrará todo el caché del navegador, incluyendo noticias, editores y estados. La página se recargará automáticamente.',
-        okText: 'Sí, borrar todo',
-        cancelText: 'Cancelar',
-        onOk: async () => {
-          try {
-            // Borrar nuestro caché específico primero
-            Object.values(CACHE_KEYS).forEach(key => {
-              localStorage.removeItem(key);
-            });
-              // Borrar localStorage
-              localStorage.clear();
-              
-              // Borrar sessionStorage
-              sessionStorage.clear();
-              
-              // Borrar cookies (todas las del dominio actual)
-              document.cookie.split(";").forEach(function(c) { 
-                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-              });
-              
-              // Borrar IndexedDB si está disponible
-              if ('indexedDB' in window) {
-                try {
-                  // Obtener todas las bases de datos y borrarlas
-                  if (indexedDB.databases) {
-                    const databases = await indexedDB.databases();
-                    await Promise.all(
-                      databases.map(db => {
-                        return new Promise((resolve, reject) => {
-                          const deleteReq = indexedDB.deleteDatabase(db.name);
-                          deleteReq.onsuccess = () => resolve();
-                          deleteReq.onerror = () => reject(deleteReq.error);
-                        });
-                      })
-                    );
-                  }
-                } catch (error) {
-                  console.log('Error al borrar IndexedDB:', error);
-                }
-              }
-              
-              // Borrar WebSQL si está disponible (obsoleto pero por compatibilidad)
-              if ('webkitStorageInfo' in window) {
-                try {
-                  webkitStorageInfo.requestQuota(
-                    webkitStorageInfo.TEMPORARY, 
-                    0, 
-                    function() {}, 
-                    function() {}
-                  );
-                } catch (error) {
-                  console.log('Error al borrar WebSQL:', error);
-                }
-              }
-              
-              // Borrar Application Cache si está disponible (obsoleto)
-              if ('applicationCache' in window) {
-                try {
-                  window.applicationCache.update();
-                } catch (error) {
-                  console.log('Error al actualizar Application Cache:', error);
-                }
-              }
-              
-              // Borrar Service Workers si están disponibles
-              if ('serviceWorker' in navigator) {
-                try {
-                  const registrations = await navigator.serviceWorker.getRegistrations();
-                  await Promise.all(
-                    registrations.map(registration => registration.unregister())
-                  );
-                } catch (error) {
-                  console.log('Error al borrar Service Workers:', error);
-                }
-              }
-              
-              // Borrar Cache API si está disponible
-              if ('caches' in window) {
-                try {
-                  const cacheNames = await caches.keys();
-                  await Promise.all(
-                    cacheNames.map(cacheName => caches.delete(cacheName))
-                  );
-                } catch (error) {
-                  console.log('Error al borrar Cache API:', error);
-                }
-              }
-              
-              message.success('Caché borrado exitosamente. Recargando página...');
-            setTimeout(() => {
-              window.location.reload(true);
-            }, 1000);
-            
-          } catch (error) {
-            console.error('Error al borrar el caché:', error);
-            message.error('Error al borrar el caché completo');
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error en clearAllCache:', error);
-      message.error('Error al intentar borrar el caché');
-    }
-  };
-    
   const CATEGORIAS = [
     ['Politica', [
       ['legislativos', 'Legislativos'],
@@ -254,191 +125,265 @@ const NewsManagement = () => {
       ['entrevistas', 'Entrevistas'],
     ]]
   ];
-  
-  useEffect(() => {
-    verifyTrabajador();
-    fetchEditors();
-    fetchPublicationStates();
-    
-    const handleKeyDown = (event) => {
-      if (event.key === 'F12') {
-        console.log('ID del trabajador:', trabajadorId);
-      }
-    };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-  
-  // Efecto adicional para cargar noticias cuando tengamos el ID del trabajador
-  useEffect(() => {
-    if (trabajadorId) {
-      setLoading(true);
-      if (showAllNews) {
-        fetchAllNews().finally(() => {
-          setLoading(false);
-        });
-      } else {
-        fetchNews().finally(() => {
-          setLoading(false);
-        });
-      }
+  // Funciones de caché (mantenidas igual)
+  const isCacheValid = (timestamp) => {
+    if (!timestamp) return false;
+    return Date.now() - parseInt(timestamp) < CACHE_DURATION;
+  };
+
+  const saveToCache = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
+    } catch (error) {
+      console.warn('Error saving to cache:', error);
     }
-  }, [trabajadorId, showAllNews]);
+  };
 
-  const sortNewsByDate = (newsArray) => {
+  const getFromCache = (key) => {
+    try {
+      const cachedData = localStorage.getItem(key);
+      const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
+      
+      if (cachedData && isCacheValid(timestamp)) {
+        return JSON.parse(cachedData);
+      }
+    } catch (error) {
+      console.warn('Error reading from cache:', error);
+    }
+    return null;
+  };
+
+  // Función optimizada para ordenar noticias
+  const sortNewsByDate = useCallback((newsArray) => {
     return [...newsArray].sort((a, b) => {
       const dateA = moment(a.fecha_publicacion);
       const dateB = moment(b.fecha_publicacion);
       return dateB.valueOf() - dateA.valueOf();
     });
-  };
+  }, []);
 
-  const fetchNews = (forceRefresh = false) => {
-    if (dataLoaded && !forceRefresh) {
-      return Promise.resolve();
-    }
+  // Función optimizada para obtener noticias con paginación
+  const fetchPaginatedNews = useCallback(async (page = 1, size = INITIAL_PAGE_SIZE, reset = false) => {
+    try {
+      if (reset) {
+        setLoading(true);
+        setCurrentPage(1);
+        setNews([]);
+        setAllNews([]);
+      } else {
+        setLoadingMore(true);
+      }
 
-    const cachedNews = getFromCache(CACHE_KEYS.NEWS);
-    
-    if (cachedNews && Array.isArray(cachedNews) && !forceRefresh) {
-      const filteredNews = cachedNews.filter(noticia => 
-        noticia.autor === trabajadorId || 
-        (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
-      );
-      const sortedNews = sortNewsByDate(filteredNews);
-      setNews(sortedNews);
-      setDataLoaded(true);
-      console.log('Noticias cargadas desde caché');
-      return Promise.resolve();
-    }
-
-    return api.get('noticias/')
-      .then(response => {
-        saveToCache(CACHE_KEYS.NEWS, response.data);
+      // Intentar cargar desde caché primero solo en la primera carga
+      if (page === 1 && !reset) {
+        const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
+        const cachedNews = getFromCache(cacheKey);
         
-        const filteredNews = response.data.filter(noticia => 
+        if (cachedNews && Array.isArray(cachedNews)) {
+          const sortedNews = sortNewsByDate(cachedNews);
+          const paginatedNews = sortedNews.slice(0, size);
+          
+          if (showAllNews) {
+            setAllNews(paginatedNews);
+          } else {
+            const filteredNews = cachedNews.filter(noticia => 
+              noticia.autor === trabajadorId || 
+              (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
+            );
+            const sortedFilteredNews = sortNewsByDate(filteredNews);
+            setNews(sortedFilteredNews.slice(0, size));
+          }
+          
+          setTotalCount(cachedNews.length);
+          setHasMore(cachedNews.length > size);
+          setLoading(false);
+          setLoadingMore(false);
+          console.log('Noticias cargadas desde caché (paginadas)');
+          return;
+        }
+      }
+
+      // Si no hay caché o estamos cargando más páginas, hacer petición a la API
+      const response = await api.get(`noticias/?page=${page}&page_size=${size}`);
+      
+      let newNews = response.data.results || response.data;
+      const total = response.data.count || newNews.length;
+
+      if (!showAllNews) {
+        // Filtrar noticias del usuario
+        newNews = newNews.filter(noticia => 
           noticia.autor === trabajadorId || 
           (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
         );
-        
-        const sortedNews = sortNewsByDate(filteredNews);
-        setNews(sortedNews);
-        setDataLoaded(true);
-        console.log('Noticias actualizadas desde API');
-      })
-      .catch(error => {
-        console.error("Error al obtener noticias:", error);
-        if (!cachedNews) {
-          message.error("No se pudieron cargar las noticias");
-        }
-      });
-  };
+      }
 
-  // Nueva función para obtener todas las noticias
-  const fetchAllNews = (forceRefresh = false) => {
-    const cachedAllNews = getFromCache(CACHE_KEYS.ALL_NEWS);
-    
-    if (cachedAllNews && Array.isArray(cachedAllNews) && !forceRefresh) {
-      const sortedNews = sortNewsByDate(cachedAllNews);
-      setAllNews(sortedNews);
-      console.log('Todas las noticias cargadas desde caché');
-      return Promise.resolve();
+      const sortedNews = sortNewsByDate(newNews);
+
+      if (page === 1 || reset) {
+        // Primera carga o reset
+        if (showAllNews) {
+          setAllNews(sortedNews);
+          saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
+        } else {
+          setNews(sortedNews);
+          saveToCache(CACHE_KEYS.NEWS, sortedNews);
+        }
+      } else {
+        // Cargar más páginas
+        if (showAllNews) {
+          setAllNews(prevNews => {
+            const combined = [...prevNews, ...sortedNews];
+            const unique = combined.filter((news, index, self) => 
+              index === self.findIndex(n => n.id === news.id)
+            );
+            return sortNewsByDate(unique);
+          });
+        } else {
+          setNews(prevNews => {
+            const combined = [...prevNews, ...sortedNews];
+            const unique = combined.filter((news, index, self) => 
+              index === self.findIndex(n => n.id === news.id)
+            );
+            return sortNewsByDate(unique);
+          });
+        }
+      }
+
+      setTotalCount(total);
+      setHasMore(newNews.length === size);
+      setCurrentPage(page);
+
+    } catch (error) {
+      console.error("Error al obtener noticias:", error);
+      message.error("Error al cargar las noticias");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setDataLoaded(true);
     }
+  }, [trabajadorId, showAllNews, sortNewsByDate]);
 
-    return api.get('noticias/')
-      .then(response => {
-        saveToCache(CACHE_KEYS.ALL_NEWS, response.data);
-        const sortedNews = sortNewsByDate(response.data);
-        setAllNews(sortedNews);
-        console.log('Todas las noticias actualizadas desde API');
-      })
-      .catch(error => {
-        console.error("Error al obtener todas las noticias:", error);
-        if (!cachedAllNews) {
-          message.error("No se pudieron cargar todas las noticias");
-        }
-      });
-  };
+  // Función para cargar más noticias
+  const loadMoreNews = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      const nextPage = currentPage + 1;
+      fetchPaginatedNews(nextPage, pageSize);
+    }
+  }, [currentPage, pageSize, loadingMore, hasMore, fetchPaginatedNews]);
 
-  // Nueva función para manejar el filtro por estado
-  const handleStateFilter = (stateId) => {
-    setSelectedStateFilter(stateId);
-    console.log('Filtering by state ID:', stateId);
-  };
+  // Efecto principal de inicialización
+  useEffect(() => {
+    verifyTrabajador();
+    fetchEditors();
+    fetchPublicationStates();
+  }, []);
 
-  // Función para limpiar filtros
-  const clearFilters = () => {
-    setSelectedStateFilter(null);
-    setSearchTerm('');
-  };
+  // Efecto para cargar noticias cuando cambie el trabajador o la vista
+  useEffect(() => {
+    if (trabajadorId) {
+      fetchPaginatedNews(1, INITIAL_PAGE_SIZE, true);
+    }
+  }, [trabajadorId, showAllNews, fetchPaginatedNews]);
 
-  const getStateColor = (stateName) => {
-    const colorMap = {
-      'publicado': 'green',
-      'borrador': 'orange',
-      'en_revision': 'blue',
-      'rechazado': 'red',
-      'programado': 'purple',
-      'archivado': 'gray'
-    };
-    return colorMap[stateName?.toLowerCase()] || 'default';
-  };
-  
-  // Función para contar noticias por estado
-  const getNewsCountByState = (stateId) => {
-    const currentNewsArray = showAllNews ? allNews : news;
-    return currentNewsArray.filter(record => record.estado === stateId).length;
-  };
-
-  const fetchEditors = () => {
+  // Funciones de datos auxiliares (editores, estados) - optimizadas con caché
+  const fetchEditors = useCallback(async () => {
     const cachedEditors = getFromCache(CACHE_KEYS.EDITORS);
     if (cachedEditors && Array.isArray(cachedEditors)) {
       setEditors(cachedEditors);
       console.log('Editores cargados desde caché');
     }
 
-    api.get('trabajadores/')
-      .then(response => {
-        saveToCache(CACHE_KEYS.EDITORS, response.data);
-        setEditors(response.data);
-        console.log('Editores actualizados desde API');
-      })
-      .catch(error => {
-        console.error("Error al obtener editores:", error);
-        if (!cachedEditors) {
-          message.error("No se pudieron cargar los editores");
-        }
-      });
-  };
+    try {
+      const response = await api.get('trabajadores/');
+      saveToCache(CACHE_KEYS.EDITORS, response.data);
+      setEditors(response.data);
+      console.log('Editores actualizados desde API');
+    } catch (error) {
+      console.error("Error al obtener editores:", error);
+      if (!cachedEditors) {
+        message.error("No se pudieron cargar los editores");
+      }
+    }
+  }, []);
 
-  const fetchPublicationStates = () => {
+  const fetchPublicationStates = useCallback(async () => {
     const cachedStates = getFromCache(CACHE_KEYS.PUBLICATION_STATES);
     if (cachedStates && Array.isArray(cachedStates)) {
       setPublicationStates(cachedStates);
       console.log('Estados cargados desde caché');
     }
 
-    api.get('estados-publicacion/')
-      .then(response => {
-        saveToCache(CACHE_KEYS.PUBLICATION_STATES, response.data);
-        setPublicationStates(response.data);
-        console.log('Estados actualizados desde API');
-      })
-      .catch(error => {
-        console.error("Error al obtener estados de publicación:", error);
-        if (!cachedStates) {
-          message.error("No se pudieron cargar los estados");
+    try {
+      const response = await api.get('estados-publicacion/');
+      saveToCache(CACHE_KEYS.PUBLICATION_STATES, response.data);
+      setPublicationStates(response.data);
+      console.log('Estados actualizados desde API');
+    } catch (error) {
+      console.error("Error al obtener estados de publicación:", error);
+      if (!cachedStates) {
+        message.error("No se pudieron cargar los estados");
+      }
+    }
+  }, []);
+
+  // Función para limpiar caché (mantenida igual)
+  const clearAllCache = async () => {
+    try {
+      Modal.confirm({
+        title: '¿Borrar todo el caché?',
+        content: 'Esta acción borrará todo el caché del navegador, incluyendo noticias, editores y estados. La página se recargará automáticamente.',
+        okText: 'Sí, borrar todo',
+        cancelText: 'Cancelar',
+        onOk: async () => {
+          try {
+            Object.values(CACHE_KEYS).forEach(key => {
+              localStorage.removeItem(key);
+            });
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            document.cookie.split(";").forEach(function(c) { 
+              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            if ('caches' in window) {
+              try {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                  cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+              } catch (error) {
+                console.log('Error al borrar Cache API:', error);
+              }
+            }
+            
+            message.success('Caché borrado exitosamente. Recargando página...');
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 1000);
+            
+          } catch (error) {
+            console.error('Error al borrar el caché:', error);
+            message.error('Error al borrar el caché completo');
+          }
         }
       });
+    } catch (error) {
+      console.error('Error en clearAllCache:', error);
+      message.error('Error al intentar borrar el caché');
+    }
   };
 
-  const invalidateNewsCache = () => {
+  // Función para invalidar caché de noticias
+  const invalidateNewsCache = useCallback(() => {
     localStorage.removeItem(CACHE_KEYS.NEWS);
     localStorage.removeItem(CACHE_KEYS.ALL_NEWS);
     console.log('Caché de noticias invalidado');
-  };
+  }, []);
 
+  // Verificación de trabajador (mantenida igual)
   const verifyTrabajador = () => {
     const accessToken = localStorage.getItem('access');
     if (!accessToken) {
@@ -482,14 +427,13 @@ const NewsManagement = () => {
     }
   };
 
-  // Función para verificar si el usuario puede editar una noticia
-  const canEditNews = (record) => {
+  // Funciones auxiliares memoizadas
+  const canEditNews = useCallback((record) => {
     return record.autor === trabajadorId || 
            (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId));
-  };
+  }, [trabajadorId]);
 
-  // Función para ordenar editores con el ID 6 primero
-  const getSortedEditors = () => {
+  const getSortedEditors = useMemo(() => {
     return [...editors].sort((a, b) => {
       if (a.id === 6) return -1;
       if (b.id === 6) return 1;
@@ -497,11 +441,69 @@ const NewsManagement = () => {
       if (b.id === 4) return 1;
       return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
     });
-  };
+  }, [editors]);
 
-  const showModal = (record = null) => {
+  // Funciones de filtrado optimizadas
+  const handleStateFilter = useCallback((stateId) => {
+    setSelectedStateFilter(stateId);
+    console.log('Filtering by state ID:', stateId);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSelectedStateFilter(null);
+    setSearchTerm('');
+  }, []);
+
+  const handleSearch = useCallback((e) => {
+    setSearchTerm(e.target.value);
+    console.log('Search term:', e.target.value);
+  }, []);
+
+  // Función para cambiar vista optimizada
+  const toggleNewsView = useCallback((showAll) => {
+    setShowAllNews(showAll);
+    setSelectedStateFilter(null);
+    setSearchTerm('');
+    setCurrentPage(1);
+    console.log('Vista cambiada a:', showAll ? 'Todas las noticias' : 'Mis noticias');
+  }, []);
+
+  // Datos filtrados memoizados
+  const { filteredNews, currentNewsArray } = useMemo(() => {
+    const currentArray = showAllNews ? allNews : news;
+    const filtered = currentArray.filter(record => {
+      const matchesSearch = record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesState = selectedStateFilter === null || record.estado === selectedStateFilter;
+      return matchesSearch && matchesState;
+    });
+    
+    return {
+      filteredNews: filtered,
+      currentNewsArray: currentArray
+    };
+  }, [showAllNews, allNews, news, searchTerm, selectedStateFilter]);
+
+  // Función para obtener color del estado
+  const getStateColor = useCallback((stateName) => {
+    const colorMap = {
+      'publicado': 'green',
+      'borrador': 'orange',
+      'en_revision': 'blue',
+      'rechazado': 'red',
+      'programado': 'purple',
+      'archivado': 'gray'
+    };
+    return colorMap[stateName?.toLowerCase()] || 'default';
+  }, []);
+
+  // Función para contar noticias por estado
+  const getNewsCountByState = useCallback((stateId) => {
+    return currentNewsArray.filter(record => record.estado === stateId).length;
+  }, [currentNewsArray]);
+
+  // Funciones de manejo de noticias (mantenidas pero optimizadas)
+  const showModal = useCallback((record = null) => {
     if (record) {
-      // Si estamos en vista "todas las noticias" y el usuario no puede editar, no mostrar modal
       if (showAllNews && !canEditNews(record)) {
         message.warning('No tienes permisos para editar esta noticia');
         return;
@@ -537,9 +539,9 @@ const NewsManagement = () => {
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
     }
     setIsModalVisible(true);
-  };
+  }, [showAllNews, canEditNews, form, trabajadorId, publicationStates]);
 
-  const handleOk = () => {
+  const handleOk = useCallback(() => {
     form.validateFields().then(values => {
       if (!Array.isArray(values.categorias)) {
         values.categorias = values.categorias ? [values.categorias] : [];
@@ -579,7 +581,6 @@ const NewsManagement = () => {
           invalidateNewsCache();
           
           if (editingId) {
-            // Actualizar en ambos arrays si existe la noticia
             setNews(prevNews => 
               prevNews.map(noticia => 
                 noticia.id === editingId 
@@ -595,9 +596,8 @@ const NewsManagement = () => {
               )
             );
           } else {
-            // Agregar nueva noticia a ambos arrays
-            setNews(prevNews => sortNewsByDate([...prevNews, response.data]));
-            setAllNews(prevAllNews => sortNewsByDate([...prevAllNews, response.data]));
+            // Recargar las noticias después de crear una nueva
+            fetchPaginatedNews(1, pageSize, true);
           }
           
           message.success(editingId ? 'Noticia actualizada' : 'Noticia creada');
@@ -609,9 +609,9 @@ const NewsManagement = () => {
           setIsModalVisible(false);
         });
     });
-  };
+  }, [form, editingId, invalidateNewsCache, fetchPaginatedNews, pageSize]);
 
-  const handleDelete = (id) => {
+  const handleDelete = useCallback((id) => {
     api.delete(`noticias/${id}/`)
       .then(() => {
         invalidateNewsCache();
@@ -625,237 +625,257 @@ const NewsManagement = () => {
         console.error("Error al eliminar la noticia:", error);
         message.error("Error al eliminar la noticia");
         // Recargar noticias en caso de error
-        if (showAllNews) {
-          fetchAllNews();
-        } else {
-          fetchNews();
-        }
+        fetchPaginatedNews(1, pageSize, true);
       });
-  };
+  }, [invalidateNewsCache, fetchPaginatedNews, pageSize]);
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    console.log('Search term:', e.target.value);
-  };
-
-  const handleEditContent = (id) => {
+  // Funciones de navegación (mantenidas igual)
+  const handleEditContent = useCallback((id) => {
     navigate(`/edit-content/${id}`);
     console.log('Navigating to edit content for news ID:', id);
-  };
+  }, [navigate]);
 
-  const handleComment = (id) => {
+  const handleComment = useCallback((id) => {
     navigate(`/comments/${id}`);
     console.log('Navigating to comments for news ID:', id);
-  };
+  }, [navigate]);
 
-  const generateNewsUrl = (newsItem) => {
+  const generateNewsUrl = useCallback((newsItem) => {
     if (newsItem.slug) {
       return `/noticia/${newsItem.id}-${newsItem.slug}`;
     }
     return `/noticia/${newsItem.id}`;
-  };
+  }, []);
 
-  const handlePreview = (record) => {
+  const handlePreview = useCallback((record) => {
     const previewUrl = generateNewsUrl(record);
     navigate(previewUrl);
     console.log('Navigating to preview for news ID:', record.id);
-  };
+  }, [generateNewsUrl, navigate]);
 
-  // Función para cambiar entre vista personal y vista de todas las noticias
-  const toggleNewsView = (showAll) => {
-    setShowAllNews(showAll);
-    setSelectedStateFilter(null); // Limpiar filtros al cambiar vista
-    setSearchTerm(''); // Limpiar búsqueda al cambiar vista
-    console.log('Vista cambiada a:', showAll ? 'Todas las noticias' : 'Mis noticias');
-  };
-
-  // Determinar qué array de noticias usar basado en la vista actual
-  const currentNewsArray = showAllNews ? allNews : news;
-  
-  const filteredNews = currentNewsArray.filter(record => {
-    const matchesSearch = record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesState = selectedStateFilter === null || record.estado === selectedStateFilter;
-    return matchesSearch && matchesState;
-  });
-  
-  console.log('Filtered News:', filteredNews);
-
-  const columns = [
-    { 
-      title: 'Detalles de la Noticia', 
-      dataIndex: 'nombre_noticia', 
-      key: 'nombre_noticia',
-      render: (text, record) => {
-        const authorObj = editors.find(editor => editor.id === record.autor);
-        
-        const editorObjs = Array.isArray(record.editores_en_jefe) 
-          ? record.editores_en_jefe.map(editorId => 
-              editors.find(editor => editor.id === editorId)
-            ).filter(Boolean)
-          : [];
-        
-        const currentState = publicationStates.find(state => state.id === record.estado);
-        const userCanEdit = canEditNews(record);
-        
-        return (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Título:</strong>
-              <span>{text}</span>
-              {showAllNews && !userCanEdit && (
-                <Tag color="orange" style={{ marginLeft: 'auto' }}>
-                  Solo lectura
-                </Tag>
-              )}
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Autor:</strong>
-              <span>
-                {authorObj
-                  ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
-                  : `Unknown (ID: ${record.autor})`}
-              </span>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px'
-            }}>
-              <strong>Editores:</strong>
-              <div>
-                {editorObjs.length > 0 
-                  ? editorObjs.map(editor => 
-                      `${editor.nombre} ${editor.apellido} (ID: ${editor.id})`
-                    ).join(', ')
-                  : 'Ninguno asignado'}
-              </div>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Fecha:</strong>
-              <span>{record.fecha_publicacion}</span>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Categorías:</strong>
-              <span>{record.categorias ? record.categorias.join(', ') : ''}</span>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Palabras Clave:</strong>
-              <span>{record.Palabras_clave || 'N/A'}</span>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Suscriptores:</strong>
-              <span>{record.solo_para_subscriptores ? 'Sí' : 'No'}</span>
-            </div>
-  
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
-            }}>
-              <strong>Estado:</strong>
-              <Tag color={getStateColor(currentState?.nombre_estado)}>
-                {currentState?.nombre_estado || 'Unknown'}
-              </Tag>
-            </div>
-  
+  // Configuración optimizada de la tabla
+  const tableConfig = useMemo(() => ({
+    columns: [
+      { 
+        title: 'Detalles de la Noticia', 
+        dataIndex: 'nombre_noticia', 
+        key: 'nombre_noticia',
+        render: (text, record) => {
+          const authorObj = editors.find(editor => editor.id === record.autor);
+          
+          const editorObjs = Array.isArray(record.editores_en_jefe) 
+            ? record.editores_en_jefe.map(editorId => 
+                editors.find(editor => editor.id === editorId)
+              ).filter(Boolean)
+            : [];
+          
+          const currentState = publicationStates.find(state => state.id === record.estado);
+          const userCanEdit = canEditNews(record);
+          
+          return (
             <div style={{ 
               display: 'flex', 
-              flexWrap: 'wrap',
-              gap: '8px', 
-              width: '100%', 
-              marginTop: '12px' 
+              flexDirection: 'column',
+              gap: '8px'
             }}>
-              {userCanEdit && (
-                <Button 
-                  icon={<EditOutlined />} 
-                  onClick={() => showModal(record)} 
-                  size="small"
-                >
-                  Editar
-                </Button>
-              )}
-              {userCanEdit && (
-                <Button 
-                  icon={<EditOutlined />} 
-                  onClick={() => handleEditContent(record.id)} 
-                  size="small"
-                >
-                  Contenido
-                </Button>
-              )}
-              <Button 
-                icon={<EyeOutlined />} 
-                onClick={() => handlePreview(record)} 
-                size="small"
-                type="default"
-              >
-                Vista Previa
-              </Button>
-              {userCanEdit && (
-                <Popconfirm
-                  title="¿Eliminar esta noticia?"
-                  onConfirm={() => handleDelete(record.id)}
-                  okText="Sí"
-                  cancelText="No"
-                >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Título:</strong>
+                <span>{text}</span>
+                {showAllNews && !userCanEdit && (
+                  <Tag color="orange" style={{ marginLeft: 'auto' }}>
+                    Solo lectura
+                  </Tag>
+                )}
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Autor:</strong>
+                <span>
+                  {authorObj
+                    ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
+                    : `Unknown (ID: ${record.autor})`}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px'
+              }}>
+                <strong>Editores:</strong>
+                <div>
+                  {editorObjs.length > 0 
+                    ? editorObjs.map(editor => 
+                        `${editor.nombre} ${editor.apellido} (ID: ${editor.id})`
+                      ).join(', ')
+                    : 'Ninguno asignado'}
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Fecha:</strong>
+                <span>{record.fecha_publicacion}</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Categorías:</strong>
+                <span>{record.categorias ? record.categorias.join(', ') : ''}</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Palabras Clave:</strong>
+                <span>{record.Palabras_clave || 'N/A'}</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Suscriptores:</strong>
+                <span>{record.solo_para_subscriptores ? 'Sí' : 'No'}</span>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <strong>Estado:</strong>
+                <Tag color={getStateColor(currentState?.nombre_estado)}>
+                  {currentState?.nombre_estado || 'Unknown'}
+                </Tag>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap',
+                gap: '8px', 
+                width: '100%', 
+                marginTop: '12px' 
+              }}>
+                {userCanEdit && (
                   <Button 
-                    icon={<DeleteOutlined />} 
-                    danger 
+                    icon={<EditOutlined />} 
+                    onClick={() => showModal(record)} 
                     size="small"
                   >
-                    Eliminar
+                    Editar
                   </Button>
-                </Popconfirm>
-              )}
-              <Button 
-                icon={<CommentOutlined />} 
-                onClick={() => handleComment(record.id)}
-                size="small"
-              >
-                Comentar
-              </Button>
+                )}
+                {userCanEdit && (
+                  <Button 
+                    icon={<EditOutlined />} 
+                    onClick={() => handleEditContent(record.id)} 
+                    size="small"
+                  >
+                    Contenido
+                  </Button>
+                )}
+                <Button 
+                  icon={<EyeOutlined />} 
+                  onClick={() => handlePreview(record)} 
+                  size="small"
+                  type="default"
+                >
+                  Vista Previa
+                </Button>
+                {userCanEdit && (
+                  <Popconfirm
+                    title="¿Eliminar esta noticia?"
+                    onConfirm={() => handleDelete(record.id)}
+                    okText="Sí"
+                    cancelText="No"
+                  >
+                    <Button 
+                      icon={<DeleteOutlined />} 
+                      danger 
+                      size="small"
+                    >
+                      Eliminar
+                    </Button>
+                  </Popconfirm>
+                )}
+                <Button 
+                  icon={<CommentOutlined />} 
+                  onClick={() => handleComment(record.id)}
+                  size="small"
+                >
+                  Comentar
+                </Button>
+              </div>
             </div>
-          </div>
-        );
-      }
-    },
-  ];
+          );
+        }
+      },
+    ],
+    pagination: {
+      current: currentPage,
+      pageSize: pageSize,
+      total: filteredNews.length,
+      showSizeChanger: !isMobile,
+      showQuickJumper: !isMobile,
+      showTotal: (total, range) => 
+        `${range[0]}-${range[1]} de ${total} noticias`,
+      onChange: (page, size) => {
+        setCurrentPage(page);
+        if (size !== pageSize) {
+          setPageSize(size);
+        }
+        // Si necesitamos más datos y estamos cerca del final, cargar más
+        if (page * size > currentNewsArray.length * 0.8 && hasMore) {
+          loadMoreNews();
+        }
+      },
+      onShowSizeChange: (current, size) => {
+        setPageSize(size);
+        setCurrentPage(1);
+      },
+      pageSizeOptions: ['10', '20', '50', '100'],
+      responsive: true,
+    }
+  }), [
+    editors, 
+    publicationStates, 
+    canEditNews, 
+    showAllNews, 
+    getStateColor, 
+    showModal, 
+    handleEditContent, 
+    handlePreview, 
+    handleDelete, 
+    handleComment,
+    currentPage,
+    pageSize,
+    filteredNews.length,
+    isMobile,
+    currentNewsArray.length,
+    hasMore,
+    loadMoreNews
+  ]);
 
-  const renderCategoryOptions = () => {
+  // Función para renderizar opciones de categorías (mantenida igual)
+  const renderCategoryOptions = useCallback(() => {
     return CATEGORIAS.map(([value, labelOrSubcats]) => {
       if (Array.isArray(labelOrSubcats)) {
         const [categoryLabel, subcategories] = [value, labelOrSubcats];
@@ -870,7 +890,7 @@ const NewsManagement = () => {
         return <Option key={value} value={value}>{labelOrSubcats}</Option>;
       }
     });
-  };
+  }, []);
 
   return (
     <div className="news-management-container">
@@ -1010,7 +1030,7 @@ const NewsManagement = () => {
             </Space>
           </div>
           
-          {/* Indicador de vista actual */}
+          {/* Indicador de vista actual y estado de carga */}
           <div style={{
             marginTop: '12px',
             padding: '8px 12px',
@@ -1018,36 +1038,83 @@ const NewsManagement = () => {
             border: `1px solid ${showAllNews ? '#91d5ff' : '#b7eb8f'}`,
             borderRadius: '4px',
             fontSize: '13px',
-            fontWeight: '500'
+            fontWeight: '500',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px'
           }}>
-            {showAllNews ? (
-              <span style={{ color: '#1890ff' }}>
-                Mostrando todas las noticias del sistema ({allNews.length} total)
-                {filteredNews.length !== allNews.length && ` - ${filteredNews.length} filtradas`}
-              </span>
-            ) : (
-              <span style={{ color: '#52c41a' }}>
-                Mostrando solo tus noticias ({news.length} total)
-                {filteredNews.length !== news.length && ` - ${filteredNews.length} filtradas`}
-              </span>
+            <span style={{ color: showAllNews ? '#1890ff' : '#52c41a' }}>
+              {showAllNews ? (
+                <>
+                  Mostrando todas las noticias del sistema ({allNews.length} cargadas)
+                  {filteredNews.length !== allNews.length && ` - ${filteredNews.length} filtradas`}
+                </>
+              ) : (
+                <>
+                  Mostrando solo tus noticias ({news.length} cargadas)
+                  {filteredNews.length !== news.length && ` - ${filteredNews.length} filtradas`}
+                </>
+              )}
+            </span>
+            
+            {/* Indicador de más contenido disponible */}
+            {hasMore && !loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={loadMoreNews}
+                  loading={loadingMore}
+                  style={{ padding: '0 8px', height: 'auto' }}
+                >
+                  {loadingMore ? 'Cargando...' : 'Cargar más'}
+                </Button>
+                {loadingMore && <Spin size="small" />}
+              </div>
             )}
           </div>
         </div>
 
         <Layout.Content style={{ padding: '20px' }}>
           <Table 
-            columns={columns} 
+            columns={tableConfig.columns}
             dataSource={filteredNews} 
             rowKey="id" 
             scroll={{ x: true }} 
-            pagination={{
-              responsive: true,
-              showSizeChanger: !isMobile,
-              showTotal: (total, range) => 
-                `${range[0]}-${range[1]} de ${total} noticias`
-            }}
+            pagination={tableConfig.pagination}
             loading={loading}
+            locale={{
+              emptyText: loading ? 'Cargando noticias...' : 'No hay noticias disponibles'
+            }}
           />
+          
+          {/* Indicador de carga al final para carga infinita */}
+          {loadingMore && (
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              borderTop: '1px solid #f0f0f0'
+            }}>
+              <Spin size="large" />
+              <p style={{ marginTop: '10px', color: '#999' }}>
+                Cargando más noticias...
+              </p>
+            </div>
+          )}
+          
+          {/* Mensaje cuando no hay más contenido */}
+          {!hasMore && currentNewsArray.length > 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              borderTop: '1px solid #f0f0f0',
+              color: '#999'
+            }}>
+              No hay más noticias para cargar
+            </div>
+          )}
         </Layout.Content>
       </Layout>
 
@@ -1061,6 +1128,7 @@ const NewsManagement = () => {
           maxHeight: isMobile ? '80vh' : 'none',
           overflowY: 'auto'
         }}
+        confirmLoading={false}
       >
         <Form form={form} layout="vertical">
           <Form.Item 
@@ -1083,7 +1151,7 @@ const NewsManagement = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              {getSortedEditors().map(editor => (
+              {getSortedEditors.map(editor => (
                 <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
@@ -1102,7 +1170,7 @@ const NewsManagement = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              {getSortedEditors().map(editor => (
+              {getSortedEditors.map(editor => (
                 <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
               ))}
             </Select>
