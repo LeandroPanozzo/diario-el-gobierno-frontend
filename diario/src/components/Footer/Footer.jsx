@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import "./Footer.css";
 
 function Footer() {
@@ -6,7 +7,6 @@ function Footer() {
     <footer className="footer">
       <div className="container">
         <div className="footer-content">
-          {/* Sobre el Diario */}
           <div className="footer-section">
             <h3>Sobre Diario El Gobierno</h3>
             <p>
@@ -14,55 +14,38 @@ function Footer() {
               como principal objetivo proporcionar información a la esfera
               pública sobre la coyuntura nacional e internacional.
             </p>
+            <Link to="/donaciones" className="btn-donar">
+              <i className="ri-heart-line"></i>
+              Apoyar con una donación
+            </Link>
           </div>
 
-          {/* Equipo Editorial */}
           <div className="footer-section">
             <h3>Equipo Editorial</h3>
             <ul>
               <li>Director periodístico: Francisco Sanz Specogna</li>
               <li>Coordinador de edición: Santiago Ragaglia</li>
               <li>Coordinadores de redacción: Pablo Fiotto Berardi e Ivan Nelegatti</li>
-              <li>Editor de la revista “Sociedad”: Gabriel Bernal Gallegos</li>
-              <li>Subeditor de la revista “Sociedad”: Juan Cárdenas</li>
+              <li>Editor de la revista "Sociedad": Gabriel Bernal Gallegos</li>
+              <li>Subeditor de la revista "Sociedad": Juan Cárdenas</li>
             </ul>
           </div>
 
-          {/* Redes Sociales */}
           <div className="footer-section">
             <h3>Redes Sociales</h3>
             <div className="social-icons">
-            <a
-        href="https://www.linkedin.com/company/diario-el-gobierno-ar/posts/?feedView=all"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="social-button"
-        aria-label="LinkedIn"
-      >
-        <i className="ri-linkedin-fill"></i>
-      </a>
-      <a
-        href="https://www.instagram.com/diarioelgobierno.ar/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="social-button"
-        aria-label="Instagram"
-      >
-       <i className="ri-instagram-line"></i>
-      </a>
-      <a
-        href="https://x.com/elgobierno_ar?t=_1gDxj8kEbKcuTXMOarWgA&s=08"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="social-button"
-        aria-label="Instagram"
-      >
-       <i className="ri-twitter-x-line"></i>
-      </a>
+              <a href="https://www.linkedin.com/company/diario-el-gobierno-ar/posts/?feedView=all" target="_blank" rel="noopener noreferrer" className="social-button" aria-label="LinkedIn">
+                <i className="ri-linkedin-fill"></i>
+              </a>
+              <a href="https://www.instagram.com/diarioelgobierno.ar/" target="_blank" rel="noopener noreferrer" className="social-button" aria-label="Instagram">
+                <i className="ri-instagram-line"></i>
+              </a>
+              <a href="https://x.com/elgobierno_ar?t=_1gDxj8kEbKcuTXMOarWgA&s=08" target="_blank" rel="noopener noreferrer" className="social-button" aria-label="Twitter">
+                <i className="ri-twitter-x-line"></i>
+              </a>
             </div>
           </div>
         
-          {/* Contacto - Nueva sección */}
           <div className="footer-section">
             <h3>Contacto</h3>
             <ul>
@@ -71,12 +54,10 @@ function Footer() {
                   diarioelgobiernoargentina@gmail.com
                 </a>
               </li>
-              
             </ul>
           </div>
         </div>
 
-        {/* Información Adicional */}
         <div className="footer-info">
           <p>Director: Juan Pablo Bernal Gallegos |</p>
           <p>ISSN (ElGobierno)</p>

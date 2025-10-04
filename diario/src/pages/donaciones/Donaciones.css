@@ -1,0 +1,369 @@
+/* Donaciones.css - Adaptado al estilo del sitio */
+
+.donaciones-container {
+  min-height: 100vh;
+  background-color: #fff;
+  padding-bottom: 60px;
+}
+
+.donaciones-hero {
+  background-color: #156AA2;
+  color: white;
+  text-align: center;
+  padding: 60px 20px;
+  margin-bottom: 40px;
+  border-bottom: 3px solid #0e476d;
+}
+
+.donaciones-hero h1 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  font-weight: 700;
+  color: white;
+}
+
+.donaciones-hero p {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  max-width: 600px;
+  margin: 0 auto;
+  font-family: 'Roboto Slab', serif;
+}
+
+.donaciones-content {
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.donaciones-info {
+  background: #fff;
+  padding: 30px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.donaciones-info h2 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.8rem;
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 700;
+  border-bottom: 3px solid #156AA2;
+  padding-bottom: 10px;
+}
+
+.donaciones-info ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 30px;
+}
+
+.donaciones-info ul li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  color: #555;
+  font-family: 'Roboto Slab', serif;
+}
+
+.donaciones-info ul li i {
+  font-size: 1.3rem;
+  color: #156AA2;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.payment-info {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 4px;
+  border-left: 4px solid #156AA2;
+  border: 1px solid #ddd;
+}
+
+.payment-info h3 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #333;
+  font-weight: 700;
+}
+
+.payment-details p {
+  margin: 12px 0;
+  font-size: 1rem;
+  color: #555;
+  font-family: 'Roboto Slab', serif;
+}
+
+.payment-details strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.donaciones-form-wrapper {
+  background: #fff;
+  padding: 30px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.success-message,
+.error-message {
+  padding: 15px;
+  border-radius: 4px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Roboto Slab', serif;
+}
+
+.success-message {
+  background: #d4edda;
+  border-left: 4px solid #28a745;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.error-message {
+  background: #f8d7da;
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.success-message i,
+.error-message i {
+  font-size: 1.3rem;
+}
+
+.donaciones-form h2 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.6rem;
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 700;
+  border-bottom: 3px solid #156AA2;
+  padding-bottom: 10px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+  font-family: 'Roboto Slab', serif;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: 'Roboto Slab', serif;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #156AA2;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.file-input-wrapper {
+  position: relative;
+}
+
+.file-input-wrapper input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2px dashed #156AA2;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+  font-family: 'Roboto Slab', serif;
+}
+
+.file-input-label:hover {
+  background: #e9ecef;
+  border-color: #0e476d;
+}
+
+.file-input-label i {
+  font-size: 1.3rem;
+  color: #156AA2;
+}
+
+.image-preview {
+  margin-top: 15px;
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.remove-image {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.remove-image:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.submit-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #156AA2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  margin-top: 25px;
+  font-family: 'Roboto Slab', serif;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #0e476d;
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #999;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Media query para dispositivos móviles */
+@media screen and (max-width: 768px) {
+  .donaciones-hero {
+    padding: 40px 20px;
+  }
+
+  .donaciones-hero h1 {
+    font-size: 2rem;
+  }
+
+  .donaciones-hero p {
+    font-size: 1rem;
+  }
+
+  .donaciones-content {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 0 15px;
+  }
+
+  .donaciones-info,
+  .donaciones-form-wrapper {
+    padding: 20px;
+  }
+
+  .donaciones-info h2,
+  .donaciones-form h2 {
+    font-size: 1.4rem;
+  }
+
+  .payment-info {
+    padding: 20px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="number"],
+  .form-group textarea {
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .donaciones-hero h1 {
+    font-size: 1.6rem;
+  }
+
+  .donaciones-info,
+  .donaciones-form-wrapper {
+    padding: 15px;
+  }
+
+  .donaciones-info ul li {
+    font-size: 0.9rem;
+  }
+
+  .payment-details p {
+    font-size: 0.9rem;
+  }
+}

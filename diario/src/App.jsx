@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Footer from './components/Footer/Footer';
@@ -23,16 +22,18 @@ import UserProfile from './components/User/UserProfile';
 import TrabajadorNoticias from './components/Trabajador/TrabajadorNoticias';
 import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
 import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
-import ScrollToTop from './ScrollToTop'; // Importar el componente ScrollToTop
+import Donaciones from './pages/donaciones/Donaciones'; // AGREGAR ESTA LÍNEA
+import ScrollToTop from './ScrollToTop';
 
-import '@fontsource/roboto-slab';  // Importa la fuente
+import '@fontsource/roboto-slab';
 import 'remixicon/fonts/remixicon.css'
 import './index.css'
+
 function App() {
   return (
     <UserProvider>
       <BrowserRouter>
-        <ScrollToTop /> {/* Añadir el componente aquí */}
+        <ScrollToTop />
         <Header />
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
@@ -45,7 +46,6 @@ function App() {
           <Route path="/rol" element={<Rol />} />
           <Route path="/ed" element={<NewsArticleEditor />} />
           <Route path="/edit-content/:id" element={<EditNewsContent />} />
-          {/* Rutas para detalles de noticias - con y sin slug */}
           <Route path="/noticia/:id" element={<NewsDetailPage />} />
           <Route path="/seccion/:sectionName" element={<SectionPage />} />
           <Route path="/subcategoria/:subcategory" element={<SubcategoryPage />} />
@@ -56,6 +56,7 @@ function App() {
           <Route path="/trabajador/:trabajadorId/noticias" element={<TrabajadorNoticias />} />
           <Route path="/terminos-y-condiciones" element={<TerminosYCondiciones />} />
           <Route path="/anunciar" element={<ComoAnunciar />} />
+          <Route path="/donaciones" element={<Donaciones />} /> {/* AGREGAR ESTA LÍNEA */}
         </Routes>
         <Footer />
       </BrowserRouter>
