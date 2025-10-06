@@ -338,7 +338,7 @@ export const EditNewsContent = () => {
       }
 
       p {
-        font-family: 'Linotype Devanagari';
+        font-family: 'Georgia', serif;
         font-size: 13pt;
         margin: 0;
         white-space: normal;
