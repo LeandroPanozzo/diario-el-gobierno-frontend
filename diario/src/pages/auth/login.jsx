@@ -17,13 +17,35 @@ const Login = () => {
         setError(null);
         setLoading(true);
         
-        console.log("Attempting login with:", { username, password });
+        // Validación de espacios en blanco
+        const trimmedUsername = username.trim();
+        const trimmedPassword = password.trim();
+        
+        if (trimmedUsername !== username) {
+            setError('El usuario no puede contener espacios al inicio o al final');
+            setLoading(false);
+            return;
+        }
+        
+        if (trimmedPassword !== password) {
+            setError('La contraseña no puede contener espacios al inicio o al final');
+            setLoading(false);
+            return;
+        }
+        
+        if (trimmedUsername === '' || trimmedPassword === '') {
+            setError('Por favor complete todos los campos');
+            setLoading(false);
+            return;
+        }
+        
+        console.log("Attempting login with:", { username: trimmedUsername, password: trimmedPassword });
         
         try {
             // Paso 1: Obtener tokens
             const response = await axios.post('login/', { 
-                username: username, 
-                password: password 
+                username: trimmedUsername, 
+                password: trimmedPassword 
             });
             
             console.log("Login response:", response.data);
@@ -79,6 +101,31 @@ const Login = () => {
         }
     };
 
+    // Función para manejar el cambio de usuario y detectar espacios
+    const handleUsernameChange = (e) => {
+        const value = e.target.value;
+        setUsername(value);
+        
+        // Limpiar error si el campo está correcto
+        if (value === value.trim() || value === '') {
+            if (error && error.includes('espacios')) {
+                setError(null);
+            }
+        }
+    };
+
+    const handlePasswordChange = (e) => {
+        const value = e.target.value;
+        setPassword(value);
+        
+        // Limpiar error si el campo está correcto
+        if (value === value.trim() || value === '') {
+            if (error && error.includes('espacios')) {
+                setError(null);
+            }
+        }
+    };
+
     return (
         <div className="login-container">
             <div className="login-card">
@@ -90,7 +137,7 @@ const Login = () => {
                         <input
                             type="text"
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={handleUsernameChange}
                             required
                         />
                     </label>
@@ -99,7 +146,7 @@ const Login = () => {
                         <input
                             type="password"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={handlePasswordChange}
                             required
                         />
                     </label>

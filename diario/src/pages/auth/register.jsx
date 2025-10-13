@@ -16,10 +16,25 @@ export const Register = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // Limpiar errores de espacios cuando el usuario corrige el input
+    if (error && error.includes('espacios')) {
+      if (name === 'username' && !(/\s/.test(value))) {
+        setError(null);
+      }
+      if ((name === 'password' || name === 'confirmPassword') && value === value.trim()) {
+        setError(null);
+      }
+      if (name === 'email' && value === value.trim()) {
+        setError(null);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -27,11 +42,40 @@ export const Register = () => {
     
     setError(null);
 
+    // Validación de espacios en username (no debe tener ningún espacio)
     if (/\s/.test(formData.username)) {
       setError('El nombre de usuario no debe contener espacios. Usa guiones bajos "_" en su lugar.');
       return;
     }
 
+    // Validación de espacios al inicio/final en email
+    if (formData.email !== formData.email.trim()) {
+      setError('El correo electrónico no puede contener espacios al inicio o al final');
+      return;
+    }
+
+    // Validación de espacios al inicio/final en password
+    if (formData.password !== formData.password.trim()) {
+      setError('La contraseña no puede contener espacios al inicio o al final');
+      return;
+    }
+
+    // Validación de espacios al inicio/final en confirmPassword
+    if (formData.confirmPassword !== formData.confirmPassword.trim()) {
+      setError('La confirmación de contraseña no puede contener espacios al inicio o al final');
+      return;
+    }
+
+    // Validación de campos vacíos después del trim
+    if (formData.username.trim() === '' || 
+        formData.email.trim() === '' || 
+        formData.password.trim() === '' || 
+        formData.confirmPassword.trim() === '') {
+      setError('Por favor complete todos los campos');
+      return;
+    }
+
+    // Validación de contraseñas coincidentes
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -39,9 +83,9 @@ export const Register = () => {
 
     try {
       const response = await api.post('register/', {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password.trim()
       });
 
       if (response.status === 201) {
