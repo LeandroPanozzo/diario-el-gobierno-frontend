@@ -714,135 +714,113 @@ const getFirstParagraphContent = useCallback((content) => {
   }, []);
 
   // Optimización: Carrusel con prioridad en imágenes críticas
-  const renderFeaturedCarousel = useCallback(() => {
-    const isLoading = loadingStates.featured;
-    
-    if (isLoading) {
-      return (
-        <div className="carousel-wrapper">
-          <div className="carousel-container skeleton-carousel">
-            <div className="slide active">
-              <div className="featured-left skeleton">
-                <div className="skeleton-img"></div>
-                <div className="overlay">
-                  <div className="skeleton-line title"></div>
-                  <div className="skeleton-line meta"></div>
-                </div>
-              </div>
-              <div className="featured-right">
-                <div className="carousel-item skeleton">
-                  <div className="skeleton-img"></div>
-                  <div className="carousel-caption">
-                    <div className="skeleton-line title"></div>
-                    <div className="skeleton-line meta"></div>
-                  </div>
-                </div>
-                <div className="carousel-bottom-row">
-                  {[...Array(2)].map((_, idx) => (
-                    <div key={idx} className="carousel-item skeleton">
-                      <div className="skeleton-img"></div>
-                      <div className="carousel-caption">
-                        <div className="skeleton-line title"></div>
-                        <div className="skeleton-line meta"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    if (!featuredNews || featuredNews.length === 0) return null;
-    
-    return (
-      <div className="carousel-wrapper">
-        <button 
-          className="carousel-arrow carousel-arrow-prev" 
-          onClick={handlePrevSlide}
-          aria-label="Anterior"
-        >
-          &#10094;
-        </button>
-        
-        <button 
-          className="carousel-arrow carousel-arrow-next" 
-          onClick={handleNextSlide}
-          aria-label="Siguiente"
-        >
-          &#10095;
-        </button>
+  // En la función renderFeaturedCarousel, modifica esta parte:
+const renderFeaturedCarousel = useCallback(() => {
+  const isLoading = loadingStates.featured;
+  
+  if (isLoading) {
+    // ... tu código de skeleton
+  }
+  
+  if (!featuredNews || featuredNews.length === 0) return null;
+  
+  // Calcular cuántos slides realmente necesitamos
+  const itemsPerSlide = 4;
+  const actualTotalSlides = Math.ceil(featuredNews.length / itemsPerSlide);
+  
+  return (
+    <div className="carousel-wrapper">
+      <button 
+        className="carousel-arrow carousel-arrow-prev" 
+        onClick={handlePrevSlide}
+        aria-label="Anterior"
+      >
+        &#10094;
+      </button>
+      
+      <button 
+        className="carousel-arrow carousel-arrow-next" 
+        onClick={handleNextSlide}
+        aria-label="Siguiente"
+      >
+        &#10095;
+      </button>
 
-        <div className="carousel-container">
-          {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-            const startIdx = slideIndex * 4;
-            const slideNews = featuredNews.slice(startIdx, startIdx + 4);
-            
-            if (slideNews.length === 0) return null;
-            
-            const isActive = slideIndex === currentSlide;
-            const isCriticalSlide = slideIndex === 0; // Primer slide es crítico
-            
-            return (
+      <div className="carousel-container">
+        {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+          const startIdx = slideIndex * itemsPerSlide;
+          const slideNews = featuredNews.slice(startIdx, startIdx + itemsPerSlide);
+          
+          // Si no hay noticias en este slide, no renderizar
+          if (slideNews.length === 0) return null;
+          
+          const isActive = slideIndex === currentSlide;
+          const isCriticalSlide = slideIndex === 0;
+
+          return (
+            <div 
+              key={`slide-${slideIndex}`} 
+              className={`slide ${isActive ? 'active' : ''}`}
+              style={{ 
+                transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
+                opacity: isActive ? 1 : 0.5,
+                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+              }}
+            >
+              {/* Tu código existente para renderizar el slide */}
               <div 
-                key={`slide-${slideIndex}`} 
-                className={`slide ${isActive ? 'active' : ''}`}
-                style={{ 
-                  transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
-                  opacity: isActive ? 1 : 0.5,
-                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-                }}
+                className="featured-left" 
+                onClick={() => slideNews[0] && navigate(generateNewsUrl(slideNews[0]))}
               >
-                <div 
-                  className="featured-left" 
-                  onClick={() => navigate(generateNewsUrl(slideNews[0]))}
-                >
-                  <OptimizedImage 
-                    src={slideNews[0]?.contentImage} 
-                    alt={slideNews[0]?.nombre_noticia}
-                    isCritical={isCriticalSlide}
-                  />
-                  <div className="overlay">
-                    <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
-                    <p style={{ color: '#ffff', marginBottom: '8px' }}>{formatDate(slideNews[0]?.fecha_publicacion)}</p>
-                    {slideNews[0]?.autorData && (
-                      <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
-                        por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="featured-right">
-                  {/* Noticia superior derecha */}
-                  {slideNews[1] && (
-                    <div
-                      className="carousel-item carousel-item-top"
-                      onClick={() => navigate(generateNewsUrl(slideNews[1]))}
-                    >
-                      <OptimizedImage 
-                        src={slideNews[1].contentImage} 
-                        alt={slideNews[1].nombre_noticia} 
-                        className="carousel-image"
-                        isCritical={isCriticalSlide}
-                      />
-                      <div className="carousel-caption">
-                        <h3>{slideNews[1].nombre_noticia}</h3>
-                        <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
-                        {slideNews[1].autorData && (
-                          <p className="author">
-                            por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
-                          </p>
-                        )}
-                      </div>
+                {slideNews[0] && (
+                  <>
+                    <OptimizedImage 
+                      src={slideNews[0]?.contentImage} 
+                      alt={slideNews[0]?.nombre_noticia}
+                      isCritical={isCriticalSlide}
+                    />
+                    <div className="overlay">
+                      <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
+                      <p style={{ color: '#ffff', marginBottom: '8px' }}>{formatDate(slideNews[0]?.fecha_publicacion)}</p>
+                      {slideNews[0]?.autorData && (
+                        <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
+                          por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
+                        </p>
+                      )}
                     </div>
-                  )}
-                  
-                  {/* Fila inferior con 2 noticias lado a lado */}
-                  <div className="carousel-bottom-row">
-                    {slideNews.slice(2, 4).map((newsItem, idx) => (
+                  </>
+                )}
+              </div>
+
+              <div className="featured-right">
+                {/* Noticia superior derecha */}
+                {slideNews[1] && (
+                  <div
+                    className="carousel-item carousel-item-top"
+                    onClick={() => navigate(generateNewsUrl(slideNews[1]))}
+                  >
+                    <OptimizedImage 
+                      src={slideNews[1].contentImage} 
+                      alt={slideNews[1].nombre_noticia} 
+                      className="carousel-image"
+                      isCritical={isCriticalSlide}
+                    />
+                    <div className="carousel-caption">
+                      <h3>{slideNews[1].nombre_noticia}</h3>
+                      <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
+                      {slideNews[1].autorData && (
+                        <p className="author">
+                          por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fila inferior con 2 noticias lado a lado */}
+                <div className="carousel-bottom-row">
+                  {slideNews.slice(2, 4).map((newsItem, idx) => (
+                    newsItem && (
                       <div
                         key={newsItem.id}
                         className="carousel-item carousel-item-bottom"
@@ -868,28 +846,29 @@ const getFirstParagraphContent = useCallback((content) => {
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
-        
-        <div className="carousel-dots">
-          {Array.from({ length: totalSlides }).map((_, index) => (
-            <span 
-              key={`dot-${index}`}
-              className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-              onClick={() => handleDotClick(index)}
-              aria-label={`Ir a la diapositiva ${index + 1}`}
-            />
-          ))}
-        </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
-
+      
+      {/* Actualizar los dots para que solo muestre los slides que tienen contenido */}
+      <div className="carousel-dots">
+        {Array.from({ length: Math.min(totalSlides, actualTotalSlides) }).map((_, index) => (
+          <span 
+            key={`dot-${index}`}
+            className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+            onClick={() => handleDotClick(index)}
+            aria-label={`Ir a la diapositiva ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
   // Optimización: Estilos mejorados con transformaciones CSS para mejor rendimiento
   const SkeletonStyles = useMemo(() => (
     <style>{`
