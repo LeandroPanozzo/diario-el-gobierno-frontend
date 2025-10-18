@@ -1,81 +1,180 @@
-/* Estilos generales del header */
+/* === HEADER GENERAL === */
 .header {
   background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e5e5e5;
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   z-index: 1000;
-  transition: background-color 0.3s ease;
 }
 
-.header.scrolled {
-  background-color: rgba(255, 255, 255, 0.95);
+.header-spacer {
+  height: 140px;
 }
 
+/* === CONTENEDOR PRINCIPAL === */
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 40px;
+}
+
+/* === PARTE SUPERIOR === */
+.header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  padding: 20px 0 10px 0;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
 }
 
-.header-content {
+/* === CONTENEDOR DERECHO (REDES SOCIALES + BOTONES) === */
+.header-right {
   display: flex;
-  align-items: center;
-  justify-content: center; /* Centrar el logo y el texto */
-  width: 100%;
-  position: relative; /* Para posicionar los botones de autenticación */
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  width: auto;
+  flex: 1;
 }
+
+/* === CONTENEDOR DE ACCIONES DERECHAS === */
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* === CONTENEDOR PARA CENTRAR REDES SOCIALES === */
+.social-icons-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* === LOGO (CÍRCULO AZUL + TEXTO) - CENTRADO === */
 .logo {
   display: flex;
   align-items: center;
   text-decoration: none;
   color: #156AA2;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0 auto; /* Centrar el logo y el texto */
+  font-size: 2.1rem;
+  font-weight: 700;
+  font-family: 'Roboto Slab', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 20px;
 }
 
 .logo-image {
-  height: 40px;
-  margin-right: 10px;
-}
-
-/* Botón hamburguesa */
-.hamburger-button {
-  display: none;
-  background: none;
+  height: 48px;
+  width: 48px;
+  border-radius: 50%;
+  background-color: #156AA2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-right: 12px;
   border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
 }
 
-/* Menú de navegación */
+/* === BOTONES DE LOGIN / REGISTRO === */
+.header-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.button-common {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  background-color: #156AA2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.button-common:hover {
+  background-color: #0e4f7a;
+}
+
+/* === ÍCONOS DE REDES - AHORA CENTRADOS === */
+.social-icons-container {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-button {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #156AA2;
+  color: #fff;
+  font-size: 1.1rem;
+  transition: opacity 0.3s;
+  text-decoration: none;
+}
+
+.social-button:hover {
+  opacity: 0.8;
+}
+
+/* === NAVEGACIÓN PRINCIPAL === */
 .nav-menu {
   display: flex;
-  gap: 20px;
-  align-items: center; /* Alinear verticalmente con los botones */
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
 }
 
-.nav-menu a,
-.nav-menu .section-with-subcategorias > a {
+.nav-links {
+  display: flex;
+  gap: 38px;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links a,
+.nav-links .section-with-subcategorias > a {
   text-decoration: none;
-  color: #333;
+  color: #000;
   font-weight: 500;
-  padding: 10px 0;
-  position: relative;
+  font-size: 1.05rem;
+  font-family: 'Roboto Slab', serif;
+  transition: color 0.3s ease;
 }
 
-.nav-menu a:hover,
-.nav-menu .section-with-subcategorias > a:hover {
+.nav-links a:hover {
   color: #156AA2;
 }
 
-/* Subcategorías */
+/* === DROPDOWN === */
 .section-with-subcategorias {
   position: relative;
 }
@@ -84,12 +183,14 @@
   display: none;
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: #fff;
-  border: 1px solid #ddd;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  min-width: 200px;
+  min-width: 220px;
+  margin-top: 8px;
 }
 
 .section-with-subcategorias:hover .subcategorias {
@@ -98,16 +199,35 @@
 
 .subcategorias a {
   display: block;
-  padding: 10px;
+  padding: 12px 20px;
   color: #333;
   text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.subcategorias a:last-child {
+  border-bottom: none;
 }
 
 .subcategorias a:hover {
   background-color: #f8f9fa;
+  color: #156AA2;
 }
 
-/* Menú móvil */
+/* === HAMBURGUESA === */
+.hamburger-button {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #156AA2;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 1001;
+}
+
+/* === OVERLAY MÓVIL === */
 .mobile-menu-overlay {
   display: none;
   position: fixed;
@@ -116,26 +236,27 @@
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  z-index: 998;
 }
 
 .mobile-menu-overlay.open {
   display: block;
 }
 
+/* === MENÚ MÓVIL === */
 .navv-menu {
   display: none;
   position: fixed;
   top: 0;
   right: -100%;
-  width: 80%;
+  width: 85%;
   max-width: 300px;
   height: 100%;
   background-color: #fff;
-  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
   transition: right 0.3s ease;
-  z-index: 1000;
-  padding: 20px;
+  z-index: 999;
+  padding: 80px 20px 20px;
   overflow-y: auto;
 }
 
@@ -143,148 +264,186 @@
   right: 0;
 }
 
+/* === LINKS MÓVILES === */
 .mobile-section-link {
   display: block;
-  padding: 10px 0;
+  padding: 15px 0;
   text-decoration: none;
-  color: #333;
+  color: #000;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: color 0.3s ease;
 }
 
-.mobile-section-with-subcategorias {
-  margin-bottom: 10px;
+.mobile-section-link:hover {
+  color: #156AA2;
 }
 
+/* === SUBCATEGORÍAS MÓVILES === */
 .mobile-subcategorias {
-  margin-left: 20px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 5px 0;
+}
+
+.mobile-subcategorias.open {
+  max-height: 500px;
 }
 
 .mobile-subcategoria-link {
   display: block;
-  padding: 5px 0;
+  padding: 12px 15px;
   text-decoration: none;
-  color: #666;
-}
-
-.mobile-auth-links {
-  margin-top: 20px;
-  gap: 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Estilos para botones sociales redondeados con imágenes */
-.social-icons-container {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 15px;
-  margin-top: 20px;
-}
-
-.social-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #156AA1; /* Fondo rojo */
-  color: white;
-  text-decoration: none;
-  padding: 8px;
-  border-radius: 20px; /* Bordes muy redondeados */
+  color: #555;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #e8e8e8;
   transition: all 0.3s ease;
-  width: 40px;
-  height: 40px;
 }
 
-
-.social-button:hover {/* Rojo más brillante al hacer hover */
-  background-color: #0e476d; /* Rojo más brillante al hacer hover */
-
-
+.mobile-subcategoria-link:last-child {
+  border-bottom: none;
 }
 
-
-.social-icon-img {
-  width: 24px;
-  height: 24px;
+.mobile-subcategoria-link:hover {
+  background-color: #e9ecef;
+  color: #156AA2;
+  padding-left: 20px;
 }
 
-/* Ajustes responsive */
-@media (max-width: 768px) {
-  .social-button {
-    width: 36px;
-    height: 36px;
-    padding: 6px;
-  }
-  
-  .social-icon-img {
-    width: 20px;
-    height: 20px;
-  }
+/* === REDES SOCIALES MÓVILES === */
+.mobile-social-icons {
+  display: none;
+  justify-content: center;
+  gap: 15px;
+  margin: 25px 0;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
 }
 
-/* Header actions */
-.header-actions {
-  display: flex;
+/* === BOTONES AUTH MÓVILES === */
+.mobile-auth-links {
+  display: none;
   flex-direction: column;
-  align-items: center;
-  position: absolute; /* Posicionar los botones a la derecha */
-  right: 2%; /* Ajustar la distancia desde el borde derecho */
-  top: 50%; /* Centrar verticalmente */
-  transform: translateY(-50%); /* Ajustar para centrar exactamente */
-}
-
-.header-buttons {
-  display: flex;
   gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
 }
 
-.button-common {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  background-color: #156AA2;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
-  transition: 0.3s;
+.mobile-auth-links .button-common {
+  width: 100%;
+  justify-content: center;
+  padding: 12px;
 }
 
-.button-common:hover {
-  background-color: #0e476d; /* Rojo más brillante al hacer hover */
+/* === RESPONSIVE MÓVIL === */
+@media (max-width: 768px) {
+  .header-spacer {
+    height: 70px;
+  }
 
-}
+  .container {
+    padding: 0 15px;
+  }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .hamburger-button {
-    display: block;
+  .header-top {
+    padding: 10px 0;
+    align-items: center;
+    min-height: 60px;
+  }
+
+  /* Logo móvil */
+  .logo {
+    position: static;
+    transform: none;
+    font-size: 1.4rem;
+    top: auto;
+    left: auto;
+    margin: 0 auto;
+    justify-content: center;
+    width: auto;
+  }
+
+  .logo-image {
+    height: 35px;
+    width: 35px;
+    margin-right: 8px;
+  }
+
+  /* Ocultar elementos desktop en móvil */
+  .header-right {
+    display: none;
   }
 
   .nav-menu {
     display: none;
   }
 
-  .header-actions {
-    display: none;
+  /* Mostrar hamburguesa */
+  .hamburger-button {
+    display: block;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
   }
-  
 
+  /* Mostrar menú móvil */
   .navv-menu {
     display: block;
   }
-  
-  /* Social icons for mobile menu */
+
   .mobile-social-icons {
     display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 15px;
-    margin-top: 10px;
+  }
+
+  .mobile-auth-links {
+    display: flex;
   }
 }
 
+/* Móvil muy pequeño */
+@media (max-width: 480px) {
+  .header-spacer {
+    height: 60px;
+  }
+
+  .container {
+    padding: 0 10px;
+  }
+
+  .logo {
+    font-size: 1.2rem;
+  }
+
+  .logo-image {
+    height: 30px;
+    width: 30px;
+    margin-right: 6px;
+  }
+
+  .navv-menu {
+    width: 90%;
+    max-width: 280px;
+    padding: 70px 15px 15px;
+  }
+
+  .mobile-section-link {
+    font-size: 1rem;
+    padding: 12px 0;
+  }
+
+  .mobile-subcategoria-link {
+    font-size: 0.9rem;
+    padding: 10px 8px;
+  }
+
+  .hamburger-button {
+    font-size: 1.3rem;
+    right: 10px;
+  }
+}

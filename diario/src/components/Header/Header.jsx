@@ -9,11 +9,11 @@ function Header() {
   const { user, setUser, logout } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const navigate = useNavigate();
 
   // Definir las categorías y subcategorías
   const categorias = [
-    
     {
       nombre: 'Politica',
       path: 'Politica',
@@ -25,7 +25,6 @@ function Header() {
         { nombre: 'Provincias', path: 'provincias' },
         { nombre: 'Capital', path: 'capital' },
         { nombre: 'Nacion', path: 'nacion' },
-
       ],
     },
     {
@@ -72,7 +71,6 @@ function Header() {
         { nombre: 'De opinion', path: 'de_opinion' },
         { nombre: 'Informativas', path: 'informativas' },
         { nombre: 'Entrevistas', path: 'entrevistas' },
-
       ],
     },
     {
@@ -81,7 +79,6 @@ function Header() {
       external: true,
       subcategorias: [],
     },
-    
   ];
 
   useEffect(() => {
@@ -90,12 +87,10 @@ function Header() {
     
     if (accessToken) {
       if (storedUserData) {
-        // Parse and set user data from local storage
         const parsedUserData = JSON.parse(storedUserData);
         setUser(parsedUserData);
       }
-      
-      fetchUserProfile();  // Sin pasar el accessToken como parámetro
+      fetchUserProfile();
     }
   }, []);
 
@@ -112,38 +107,40 @@ function Header() {
   const fetchUserProfile = async () => {
     try {
       const response = await api.get('user-profile/');
-      
-      // preservamos el status trabajador del local storage si existe
       const storedUserData = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      // Update user context con profile data 
       const updatedUserData = { 
         ...response.data,
         trabajador: storedUserData.trabajador ?? response.data.trabajador ?? false 
       };
-      
-      // guardamos en local storage para perisistir el status
       localStorage.setItem('user', JSON.stringify(updatedUserData));
-      
       setUser(updatedUserData);
     } catch (error) {
       console.error(error);
       handleLogout();
     }
   };
+
   const handleLogout = () => {
-    // Clear all auth data
     localStorage.clear();
     sessionStorage.clear();
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
     localStorage.removeItem('user');
     setUser(null);
+    setIsMenuOpen(false);
     navigate('/login');
   };
+
+  const toggleDropdown = (index) => {
+    setActiveDropdown(activeDropdown === index ? null : index);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    setActiveDropdown(null);
+  };
   
-  // Componente de iconos sociales con imagenes en botones redondeados
-   const SocialIcons = () => (
+  const SocialIcons = () => (
     <div className="social-icons-container">
       <a
         href="https://www.linkedin.com/company/diario-el-gobierno-ar/posts/?feedView=all"
@@ -168,47 +165,43 @@ function Header() {
         target="_blank"
         rel="noopener noreferrer"
         className="social-button"
-        aria-label="Instagram"
+        aria-label="Twitter"
       >
        <i className="ri-twitter-x-line"></i>
       </a>
-     
     </div>
   );
 
   const renderAuthLinks = () => (
     user ? (
       <>
-        <button
-          className="button-common"
-          onClick={() => {
-            handleLogout();
-            setIsMenuOpen(false);
-          }}
-        >
-          Cerrar sesión
-        </button>
         <Link
           to={user.trabajador ? "/trabajador/profile" : "/usuario/profile"}
           className="button-common"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={closeMenu}
         >
-          {user.trabajador ? "Perfil" : "Perfil de usuario"}
+          <i className="ri-user-line"></i> {user.trabajador ? "Perfil" : "Perfil"}
         </Link>
+        <button
+          className="button-common"
+          onClick={handleLogout}
+        >
+          Cerrar sesión
+        </button>
       </>
     ) : (
       <>
         <Link
           to="/login"
           className="button-common"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={closeMenu}
         >
           <i className="ri-user-line"></i> Iniciar sesión
         </Link>
         <Link
           to="/register"
           className="button-common"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={closeMenu}
         >
           <i className="ri-user-line"></i> Registrarse
         </Link>
@@ -221,22 +214,38 @@ function Header() {
       <div className="header-spacer" />
       <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
         <div className="container">
-          <div className="header-content">
-            <Link to="/home" className="logo">
+          {/* Parte superior con logo centrado y todo a la derecha */}
+          <div className="header-top">
+            {/* Logo centrado */}
+            <Link to="/home" className="logo" onClick={closeMenu}>
               <img src={logo} alt="Logo Diario El Gobierno" className="logo-image" />
               DIARIO EL GOBIERNO
             </Link>
+            
+            {/* Contenedor DERECHO (redes sociales + botones) */}
+            <div className="header-right">
+              <div className="header-actions">
+                <div className="social-icons-wrapper">
+                  <SocialIcons />
+                </div>
+                <div className="header-buttons">
+                  {renderAuthLinks()}
+                </div>
+              </div>
+            </div>
 
             <button 
               className="hamburger-button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Menú"
             >
               {isMenuOpen ? '✕' : '☰'}
             </button>
           </div>
 
-          <div className="sections-container">
-            <nav className="nav-menu">
+          {/* Navegación centrada debajo del logo */}
+          <nav className="nav-menu">
+            <div className="nav-links">
               {categorias.map((categoria) => (
                 categoria.external ? (
                   <a
@@ -259,10 +268,10 @@ function Header() {
                       <div className="subcategorias">
                         {categoria.subcategorias.map((subcat) => (
                           <Link
-                          key={subcat.path}
-                          to={`/subcategoria/${subcat.path}`}
-                          onClick={() => setIsMenuOpen(false)}
-                        >
+                            key={subcat.path}
+                            to={`/subcategoria/${subcat.path}`}
+                            onClick={() => setIsMenuOpen(false)}
+                          >
                             {subcat.nombre}
                           </Link>
                         ))}
@@ -271,68 +280,66 @@ function Header() {
                   </div>
                 )
               ))}
-            </nav>
+            </div>
+          </nav>
 
-            <div 
-              className={`mobile-menu-overlay ${isMenuOpen ? 'open' : ''}`}
-              onClick={() => setIsMenuOpen(false)}
-            />
+          {/* Menú móvil */}
+          <div 
+            className={`mobile-menu-overlay ${isMenuOpen ? 'open' : ''}`}
+            onClick={closeMenu}
+          />
 
-            <nav className={`navv-menu ${isMenuOpen ? 'open' : ''}`}>
-              {categorias.map((categoria) => (
-                categoria.external ? (
-                  <a
-                    key={categoria.path}
-                    href={categoria.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setIsMenuOpen(false)}
+          <nav className={`navv-menu ${isMenuOpen ? 'open' : ''}`}>
+            {categorias.map((categoria, index) => (
+              categoria.external ? (
+                <a
+                  key={categoria.path}
+                  href={categoria.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeMenu}
+                  className="mobile-section-link"
+                >
+                  {categoria.nombre}
+                </a>
+              ) : (
+                <div key={categoria.path} className="mobile-section-with-subcategorias">
+                  <div 
                     className="mobile-section-link"
+                    onClick={() => toggleDropdown(index)}
+                    style={{cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
                   >
-                    {categoria.nombre}
-                  </a>
-                ) : (
-                  <div key={categoria.path} className="mobile-section-with-subcategorias">
-                    <Link
-                      to={`/seccion/${categoria.path}`}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="mobile-section-link"
-                    >
-                      {categoria.nombre}
-                    </Link>
+                    <span>{categoria.nombre}</span>
                     {categoria.subcategorias.length > 0 && (
-                      <div className="mobile-subcategorias">
-                        {categoria.subcategorias.map((subcat) => (
-                          <Link
+                      <span>{activeDropdown === index ? '▲' : '▼'}</span>
+                    )}
+                  </div>
+                  {categoria.subcategorias.length > 0 && (
+                    <div className={`mobile-subcategorias ${activeDropdown === index ? 'open' : ''}`}>
+                      {categoria.subcategorias.map((subcat) => (
+                        <Link
                           key={subcat.path}
                           to={`/subcategoria/${subcat.path}`}
-                          onClick={() => setIsMenuOpen(false)}
+                          onClick={closeMenu}
                           className="mobile-subcategoria-link"
                         >
-                            {subcat.nombre}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              ))}
+                          {subcat.nombre}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            ))}
 
-              <div className="mobile-social-icons">
-                <SocialIcons />
-              </div>
+            <div className="mobile-social-icons">
+              <SocialIcons />
+            </div>
 
-              <div className="mobile-auth-links">
-                {renderAuthLinks()}
-              </div>
-            </nav>
-          </div>
-          <div className="header-actions">
-            <SocialIcons />
-            <div className="header-buttons">
+            <div className="mobile-auth-links">
               {renderAuthLinks()}
             </div>
-          </div>
+          </nav>
         </div>
       </header>
     </>

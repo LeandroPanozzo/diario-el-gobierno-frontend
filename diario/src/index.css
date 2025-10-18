@@ -1,3 +1,84 @@
-img{
-    object-fit: cover;
+/* AGREGAR ESTO AL FINAL DE index.css */
+
+/* Reset global para asegurar ancho completo */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Forzar ancho completo en todos los containers */
+.header .container,
+footer .container {
+  max-width: none !important;
+  width: 100% !important;
+  padding-left: 90px !important;
+  padding-right: 90px !important;
+}
+
+/* Asegurar que el home use todo el ancho con márgenes de 30px */
+.home-container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding-left: 90px !important;
+  padding-right: 90px !important;
+}
+
+/* Eliminar cualquier limitación de ancho heredada */
+main {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Si existe algún wrapper adicional */
+.app,
+.App,
+.main-wrapper,
+.page-wrapper {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 1200px) {
+  .header .container,
+  footer .container,
+  .home-container {
+    padding-left: 25px !important;
+    padding-right: 25px !important;
+  }
+}
+
+/* Responsive - Móvil */
+@media (max-width: 768px) {
+  .header .container,
+  footer .container,
+  .home-container {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+/* Responsive - Móvil pequeño */
+@media (max-width: 480px) {
+  .header .container,
+  footer .container,
+  .home-container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
 }

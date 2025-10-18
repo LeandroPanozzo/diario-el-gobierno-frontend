@@ -44,10 +44,33 @@
 .footer-section ul li {
   margin-bottom: 8px;
 }
+
 .footer-section a {
   text-decoration: none;
   transition: color 0.3s ease;
 }
+
+/* Botón de donaciones */
+.btn-donar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: #156AA2;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 15px;
+  transition: all 0.3s ease;
+}
+
+.btn-donar:hover {
+  background-color: #0e4f7a;
+  transform: translateY(-2px);
+}
+
+/* Redes sociales */
 .social-icons {
   display: flex;
   gap: 15px;
@@ -59,16 +82,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
+  background-color: #156AA2;
+  border-radius: 50%;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
 }
 
-.social-icons a img {
-  width: 20px;
-  height: 20px;
+.social-icons a:hover {
+  background-color: #0e4f7a;
+  transform: scale(1.1);
 }
 
+.social-icons i {
+  font-size: 1.2rem;
+}
 
-
+/* Información del footer */
 .footer-info {
   margin-top: 20px;
   border-top: 1px solid #ddd;
@@ -80,4 +110,118 @@
 
 .footer-info p {
   margin-bottom: 5px;
+}
+
+/* === RESPONSIVE MÓVIL === */
+@media (max-width: 768px) {
+  .footer {
+    padding: 30px 15px;
+  }
+
+  .container {
+    padding: 0 10px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .footer-section {
+    min-width: 100%;
+    text-align: center;
+  }
+
+  .footer-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .footer-section p,
+  .footer-section ul {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .footer-section ul li {
+    margin-bottom: 6px;
+  }
+
+  /* Botón de donaciones móvil */
+  .btn-donar {
+    padding: 14px 24px;
+    font-size: 14px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  /* Redes sociales móvil */
+  .social-icons {
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .social-icons a {
+    width: 44px;
+    height: 44px;
+  }
+
+  .social-icons i {
+    font-size: 1.3rem;
+  }
+
+  /* Información del footer móvil */
+  .footer-info {
+    margin-top: 30px;
+    padding-top: 15px;
+    font-size: 11px;
+  }
+
+  .footer-info p {
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+}
+
+/* Móvil muy pequeño */
+@media (max-width: 480px) {
+  .footer {
+    padding: 25px 10px;
+  }
+
+  .footer-content {
+    gap: 25px;
+  }
+
+  .footer-section h3 {
+    font-size: 15px;
+  }
+
+  .footer-section p,
+  .footer-section ul {
+    font-size: 12px;
+  }
+
+  .btn-donar {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+
+  .social-icons {
+    gap: 15px;
+  }
+
+  .social-icons a {
+    width: 40px;
+    height: 40px;
+  }
+
+  .social-icons i {
+    font-size: 1.2rem;
+  }
+
+  .footer-info {
+    font-size: 10px;
+  }
 }

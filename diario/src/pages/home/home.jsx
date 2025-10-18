@@ -91,7 +91,6 @@ const HomePage = () => {
   const totalSlides = 4;
   const navigate = useNavigate();
   const carouselInterval = useRef(null);
-  const [isPaused, setIsPaused] = useState(false);
   const abortController = useRef(new AbortController());
   const imageLoadPromises = useRef(new Map());
 
@@ -125,17 +124,29 @@ const HomePage = () => {
     };
   }, []);
 
-  // Funciones de procesamiento optimizadas
-  const stripHtml = useCallback((html) => {
-    if (!html) return "";
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  }, []);
+// Función para decodificar entidades HTML
+const decodeHtmlEntities = (text) => {
+  if (!text) return "";
+  
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+};
 
-  const getFirstParagraphContent = useCallback((content) => {
-    const plainText = stripHtml(content);
-    const words = plainText.split(/\s+/);
-    return words.slice(0, 13).join(' ') + (words.length > 13 ? '...' : '');
-  }, [stripHtml]);
+// Modifica la función stripHtml para incluir la decodificación
+const stripHtml = useCallback((html) => {
+  if (!html) return "";
+  const stripped = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return decodeHtmlEntities(stripped);
+}, []);
+
+// O si prefieres mantenerlas separadas:
+const getFirstParagraphContent = useCallback((content) => {
+  const plainText = stripHtml(content);
+  const decodedText = decodeHtmlEntities(plainText);
+  const words = decodedText.split(/\s+/);
+  return words.slice(0, 13).join(' ') + (words.length > 13 ? '...' : '');
+}, [stripHtml]);
 
   const truncateTitle = useCallback((title, maxLength) => {
     return title?.length > maxLength ? title.slice(0, maxLength) + '...' : title;
@@ -364,7 +375,7 @@ const HomePage = () => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
       const response = await api.get('noticias/recientes/', {
-        params: { limit: 5 },
+        params: { limit: 10 },
         signal
       });
       
@@ -389,7 +400,7 @@ const HomePage = () => {
       await new Promise(resolve => setTimeout(resolve, 250));
       
       const response = await api.get('noticias/mas_vistas/', {
-        params: { limit: 5 },
+        params: { limit: 10 },
         signal
       });
       
@@ -427,13 +438,6 @@ const HomePage = () => {
   }, [fetchFeaturedNews, fetchSectionNews, fetchRecentNews, fetchMostViewedNews]);
 
   // Carousel handlers
-  const handlePauseToggle = useCallback(() => {
-    setIsPaused(!isPaused);
-    if (carouselInterval.current) {
-      clearInterval(carouselInterval.current);
-    }
-  }, [isPaused]);
-
   const handleNextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);
   }, []);
@@ -450,7 +454,7 @@ const HomePage = () => {
   useEffect(() => {
     const isAnyLoading = Object.values(loadingStates).some(state => state);
     
-    if (!isPaused && !isAnyLoading && criticalImagesLoaded) {
+    if (!isAnyLoading && criticalImagesLoaded) {
       carouselInterval.current = setInterval(() => {
         setCurrentSlide((prev) => (prev + 1) % totalSlides);
       }, 5000);
@@ -461,7 +465,7 @@ const HomePage = () => {
         clearInterval(carouselInterval.current);
       }
     };
-  }, [isPaused, loadingStates, criticalImagesLoaded]);
+  }, [loadingStates, criticalImagesLoaded]);
 
   // Componente de imagen optimizada
   const OptimizedImage = useCallback(({ 
@@ -549,6 +553,7 @@ const HomePage = () => {
     return (
       <div className="news-section" key={sectionTitle}>
         <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
+        <div className="section-title-line"></div>  {/* Nueva línea */}
         <div className="news-grid">
           {isLoading ? (
             <>
@@ -623,6 +628,7 @@ const HomePage = () => {
     return (
       <div className="recent-news-section">
         <h2 className="section-titleNR">NOTICIAS RECIENTES</h2>
+        <div className="section-title-line"></div>  {/* Nueva línea */}
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
@@ -662,6 +668,8 @@ const HomePage = () => {
     return (
       <div className="recent-news-section">
         <h2 className="section-titleNR">MÁS LEÍDAS</h2>
+        <div className="section-title-line"></div>  {/* Nueva línea */}
+
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
@@ -722,15 +730,24 @@ const HomePage = () => {
                 </div>
               </div>
               <div className="featured-right">
-                {[...Array(2)].map((_, idx) => (
-                  <div key={idx} className="carousel-item skeleton">
-                    <div className="skeleton-img"></div>
-                    <div className="carousel-caption">
-                      <div className="skeleton-line title"></div>
-                      <div className="skeleton-line meta"></div>
-                    </div>
+                <div className="carousel-item skeleton">
+                  <div className="skeleton-img"></div>
+                  <div className="carousel-caption">
+                    <div className="skeleton-line title"></div>
+                    <div className="skeleton-line meta"></div>
                   </div>
-                ))}
+                </div>
+                <div className="carousel-bottom-row">
+                  {[...Array(2)].map((_, idx) => (
+                    <div key={idx} className="carousel-item skeleton">
+                      <div className="skeleton-img"></div>
+                      <div className="carousel-caption">
+                        <div className="skeleton-line title"></div>
+                        <div className="skeleton-line meta"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -757,18 +774,11 @@ const HomePage = () => {
         >
           &#10095;
         </button>
-        
-        <div 
-          className="carousel-pause-indicator" 
-          onClick={handlePauseToggle}
-        >
-          {isPaused ? "▶ Play" : "❚❚ Pause"}
-        </div>
 
         <div className="carousel-container">
           {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-            const startIdx = slideIndex * 3;
-            const slideNews = featuredNews.slice(startIdx, startIdx + 3);
+            const startIdx = slideIndex * 4;
+            const slideNews = featuredNews.slice(startIdx, startIdx + 4);
             
             if (slideNews.length === 0) return null;
             
@@ -796,9 +806,9 @@ const HomePage = () => {
                   />
                   <div className="overlay">
                     <h1 style={{ color: '#ffff' }}>{slideNews[0]?.nombre_noticia}</h1>
-                    <p style={{ color: '#ffff' }}>{formatDate(slideNews[0]?.fecha_publicacion)}</p>
+                    <p style={{ color: '#ffff', marginBottom: '8px' }}>{formatDate(slideNews[0]?.fecha_publicacion)}</p>
                     {slideNews[0]?.autorData && (
-                      <p className="author" style={{ marginTop: '-5px', color: '#ffff' }}>
+                      <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
                         por {slideNews[0]?.autorData.nombre} {slideNews[0]?.autorData.apellido}
                       </p>
                     )}
@@ -806,29 +816,60 @@ const HomePage = () => {
                 </div>
 
                 <div className="featured-right">
-                  {slideNews.slice(1, 3).map((newsItem, idx) => (
+                  {/* Noticia superior derecha */}
+                  {slideNews[1] && (
                     <div
-                      key={newsItem.id}
-                      className="carousel-item"
-                      onClick={() => navigate(generateNewsUrl(newsItem))}
+                      className="carousel-item carousel-item-top"
+                      onClick={() => navigate(generateNewsUrl(slideNews[1]))}
                     >
                       <OptimizedImage 
-                        src={newsItem.contentImage} 
-                        alt={newsItem.nombre_noticia} 
+                        src={slideNews[1].contentImage} 
+                        alt={slideNews[1].nombre_noticia} 
                         className="carousel-image"
-                        isCritical={isCriticalSlide && idx < 2}
+                        isCritical={isCriticalSlide}
                       />
                       <div className="carousel-caption">
-                        <h3>{newsItem.nombre_noticia}</h3>
-                        <p>{formatDate(newsItem.fecha_publicacion)}</p>
-                        {newsItem.autorData && (
+                        <h3>{slideNews[1].nombre_noticia}</h3>
+                        <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
+                        {slideNews[1].autorData && (
                           <p className="author">
-                            por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                            por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
                           </p>
                         )}
                       </div>
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Fila inferior con 2 noticias lado a lado */}
+                  <div className="carousel-bottom-row">
+                    {slideNews.slice(2, 4).map((newsItem, idx) => (
+                      <div
+                        key={newsItem.id}
+                        className="carousel-item carousel-item-bottom"
+                        onClick={() => navigate(generateNewsUrl(newsItem))}
+                      >
+                        <OptimizedImage 
+                          src={newsItem.contentImage} 
+                          alt={newsItem.nombre_noticia} 
+                          className="carousel-image"
+                          isCritical={isCriticalSlide && idx < 1}
+                        />
+                        <div className="carousel-caption">
+                          <h3>
+                            {newsItem.nombre_noticia.length > 45 
+                              ? newsItem.nombre_noticia.slice(0, 45) + '...' 
+                              : newsItem.nombre_noticia}
+                          </h3>
+                          <p>{formatDate(newsItem.fecha_publicacion)}</p>
+                          {newsItem.autorData && (
+                            <p className="author">
+                              por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -847,7 +888,7 @@ const HomePage = () => {
         </div>
       </div>
     );
-  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, handlePauseToggle, isPaused, navigate, formatDate, handleDotClick, OptimizedImage]);
+  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
 
   // Optimización: Estilos mejorados con transformaciones CSS para mejor rendimiento
   const SkeletonStyles = useMemo(() => (
@@ -946,9 +987,8 @@ const HomePage = () => {
     </main>
   ), [renderFeaturedCarousel, sectionNews, renderNewsSection, renderRecentNews, recentNews, renderMostViewedNews, mostViewedNews]);
 
-  return (
-    <div className="container">
-      {SkeletonStyles}
+return (
+    <div className="home-container">
       {MainContent}
     </div>
   );
