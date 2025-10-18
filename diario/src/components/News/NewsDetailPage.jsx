@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
@@ -6,7 +7,7 @@ import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
 import TwitterEmbed from './TwitterEmbed';
-import AdSenseAd from './AdSenseAd'; // Importar el componente AdSense
+import AdSenseAd from './AdSenseAd';
 
 // Imagen por defecto para usuarios sin foto de perfil
 const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -15,29 +16,22 @@ const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-pro
 const extractFirstImageFromContent = (htmlContent) => {
   if (!htmlContent) return null;
   
-  // Crear un elemento DOM temporal para buscar imágenes
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
   
-  // Buscar la primera imagen en el contenido
   const firstImage = tempDiv.querySelector('img');
   
-  // Si encontramos una imagen, devolver su URL
   if (firstImage && firstImage.src) {
     return firstImage.src;
   }
   
-  // No se encontró ninguna imagen
   return null;
 };
 
 // Procesar los datos de noticias para extraer imágenes del contenido
 const processNewsWithImages = (newsItems) => {
   return newsItems.map(newsItem => {
-    // Extraer la primera imagen del contenido
     const contentImage = extractFirstImageFromContent(newsItem.contenido);
-    
-    // Si encontramos una imagen en el contenido, la usamos. De lo contrario, usamos imagen_1 o imagen_cabecera
     const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
     
     return {
@@ -48,7 +42,6 @@ const processNewsWithImages = (newsItems) => {
 };
 
 const NewsDetail = () => {
-  // Capturar todos los parámetros de la URL
   const params = useParams();
   const [newsData, setNewsData] = useState(null);
   const [authorData, setAuthorData] = useState(null);
@@ -58,28 +51,27 @@ const NewsDetail = () => {
   const [speechState, setSpeechState] = useState('stopped');
   const [speechProgress, setSpeechProgress] = useState(0);
   const [topNews, setTopNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showStickyPlayer, setShowStickyPlayer] = useState(false);
   const speechUtteranceRef = useRef(null);
   const speechInterval = useRef(null);
   const progressBarRef = useRef(null);
   const audioTextRef = useRef('');
   const totalTextLengthRef = useRef(0);
   const speechStartTimeRef = useRef(null);
+  const contentRef = useRef(null);
 
   // Extraemos el ID real de los parámetros de URL
-  // Este es el punto clave: Extraer correctamente el ID incluso si viene con un slug
   const getNewsId = () => {
     if (!params.id) return null;
     
-    // Si la URL es del tipo /noticia/8-prueba, extraemos solo el 8
     if (params.id.includes('-')) {
       return params.id.split('-')[0];
     }
     
-    // Si es tipo /noticia/8, usamos el ID completo
     return params.id;
   };
 
-  // Obtenemos el ID para usar en las solicitudes API
   const newsId = getNewsId();
   
   // Utility function to strip HTML tags
@@ -89,9 +81,8 @@ const NewsDetail = () => {
     return tmp.textContent || tmp.innerText || '';
   };
 
-  // Añade este useEffect para cargar el script de Twitter
+  // Cargar script de Twitter
   useEffect(() => {
-    // Cargar el script de Twitter solo si no está ya cargado
     if (!window.twttr) {
       const script = document.createElement('script');
       script.src = 'https://platform.twitter.com/widgets.js';
@@ -100,7 +91,6 @@ const NewsDetail = () => {
       document.body.appendChild(script);
       
       return () => {
-        // Limpieza opcional cuando el componente se desmonta
         if (document.body.contains(script)) {
           document.body.removeChild(script);
         }
@@ -108,49 +98,62 @@ const NewsDetail = () => {
     }
   }, []);
   
-  // Función para envolver videos de YouTube en contenedores centrados
+  // Efecto para mostrar/ocultar el reproductor sticky
+  useEffect(() => {
+    const handleScroll = () => {
+      if (contentRef.current) {
+        const contentTop = contentRef.current.getBoundingClientRect().top;
+        const windowHeight = window.innerHeight;
+        
+        // Mostrar el sticky player cuando el contenido esté en el viewport
+        setShowStickyPlayer(contentTop < windowHeight - 100);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Función para procesar contenido HTML
   const processContent = (htmlContent) => {
-  if (!htmlContent) return '';
-  
-  // Crear un elemento DOM temporal para modificar el contenido
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = htmlContent;
-  
-  // Procesar tablas para agregar contenedor responsive si es necesario
-  const tables = tempDiv.querySelectorAll('table');
-  tables.forEach(table => {
-    // Solo envolver en contenedor si la tabla no está ya en uno
-    if (!table.parentElement.classList.contains('table-container')) {
-      const container = document.createElement('div');
-      container.className = 'table-container';
-      table.parentNode.insertBefore(container, table);
-      container.appendChild(table);
-    }
+    if (!htmlContent) return '';
     
-    // Asegurar que la tabla tenga la clase correcta
-    table.classList.add('responsive-table');
-  });
-  
-  // Procesar videos de YouTube como ya tenías
-  const wrappedYoutubeContent = tempDiv.innerHTML.replace(
-    /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
-    '<div class="video-container">$1</div>'
-  );
-  
-  // Detectar enlaces de Twitter y marcarlos para ser reemplazados por componentes React
-  const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
-  const markedContent = wrappedYoutubeContent.replace(
-    tweetRegex,
-    '<!-- TWITTER_EMBED:$1 -->'
-  );
-  
-  return markedContent;
-};
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Procesar tablas para agregar contenedor responsive
+    const tables = tempDiv.querySelectorAll('table');
+    tables.forEach(table => {
+      if (!table.parentElement.classList.contains('table-container')) {
+        const container = document.createElement('div');
+        container.className = 'table-container';
+        table.parentNode.insertBefore(container, table);
+        container.appendChild(table);
+      }
+      
+      table.classList.add('responsive-table');
+    });
+    
+    // Procesar videos de YouTube
+    const wrappedYoutubeContent = tempDiv.innerHTML.replace(
+      /(<iframe[^>]*src=["']https?:\/\/(www\.)?youtube(-nocookie)?\.com\/embed\/[^"']+["'][^>]*><\/iframe>)/g,
+      '<div class="video-container">$1</div>'
+    );
+    
+    // Detectar enlaces de Twitter
+    const tweetRegex = /(https?:\/\/(www\.)?(twitter\.com|x\.com)\/\w+\/status(es)?\/\d+[^\s"'<>]*)/g;
+    const markedContent = wrappedYoutubeContent.replace(
+      tweetRegex,
+      '<!-- TWITTER_EMBED:$1 -->'
+    );
+    
+    return markedContent;
+  };
   
   const renderNewsContent = () => {
-    if (!contenido) return null;
+    if (!newsData || !newsData.contenido) return null;
     
-    const processedContent = processContent(contenido);
+    const processedContent = processContent(newsData.contenido);
     
     // Dividir el contenido por los marcadores de Twitter
     const parts = processedContent.split(/<!-- TWITTER_EMBED:(.*?) -->/);
@@ -178,7 +181,7 @@ const NewsDetail = () => {
   
         // Guardar tiempo acumulado hablado
         const elapsedTime = performance.now() - speechStartTimeRef.current;
-        speechStartTimeRef.current = elapsedTime; // Ahora almacena el tiempo hablado
+        speechStartTimeRef.current = elapsedTime;
         return;
       }
   
@@ -314,24 +317,21 @@ const NewsDetail = () => {
       if (!newsId) return;
       
       try {
-        // CORRECCIÓN AQUÍ: Usar el endpoint correcto
-        // Si hay un guión en la URL, usamos el formato con slug completo
+        setLoading(true);
         const isSlugUrl = params.id.includes('-');
         let response;
         
         if (isSlugUrl) {
-          // Extraer el ID y el slug
           const fullId = params.id;
           response = await api.get(`noticias/${fullId}/`);
         } else {
-          // URL antigua con solo ID
           response = await api.get(`noticias/${newsId}/`);
         }
         
         const news = response.data;
         setNewsData(news);
     
-        // Procesar palabras clave: dividir por comas, limpiar espacios y reemplazar guiones bajos con espacios
+        // Procesar palabras clave
         if (news.Palabras_clave) {
           const processedKeywords = news.Palabras_clave
             .split(',')
@@ -346,10 +346,8 @@ const NewsDetail = () => {
         
         // Handle multiple editors
         if (news.editores_en_jefe && Array.isArray(news.editores_en_jefe) && news.editores_en_jefe.length > 0) {
-          // Create an array to store all editor data
           const editorsDataArray = [];
           
-          // Fetch each editor's data
           for (const editorId of news.editores_en_jefe) {
             try {
               const editorResponse = await api.get(`trabajadores/${editorId}/`);
@@ -361,7 +359,6 @@ const NewsDetail = () => {
           
           setEditorsData(editorsDataArray);
         } else if (news.editor_en_jefe) {
-          // For backward compatibility with the old single editor field
           try {
             const editorResponse = await api.get(`trabajadores/${news.editor_en_jefe}/`);
             setEditorsData([editorResponse.data]);
@@ -371,16 +368,15 @@ const NewsDetail = () => {
         }
       } catch (error) {
         console.error('Error fetching news data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
     const fetchTopNews = async () => {
       try {
-        // Esta URL debe apuntar a tu endpoint que devuelve las noticias más leídas
         const response = await api.get('noticias/mas_vistas/');
-        // Filtramos para no mostrar la noticia actual entre las más leídas
         const filteredNews = response.data.filter(news => news.id.toString() !== newsId);
-        // Tomamos solo las primeras 4 y procesamos las imágenes
         const processedNews = processNewsWithImages(filteredNews.slice(0, 4));
         setTopNews(processedNews);
       } catch (error) {
@@ -395,7 +391,7 @@ const NewsDetail = () => {
       window.speechSynthesis.cancel();
       clearInterval(speechInterval.current);
     };
-  }, [newsId, params.id]); // Dependencia actualizada a newsId y params.id
+  }, [newsId, params.id]);
 
   const handleDeleteComment = async (commentId) => {
     try {
@@ -410,59 +406,57 @@ const NewsDetail = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="news-detail-container">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Cargando noticia...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!newsData) {
-    return <div>Loading...</div>;
+    return (
+      <div className="news-detail-container">
+        <div className="error-container">
+          <h2>Noticia no encontrada</h2>
+          <p>La noticia que buscas no existe o ha sido eliminada.</p>
+          <Link to="/" className="back-home-btn">Volver al inicio</Link>
+        </div>
+      </div>
+    );
   }
 
   const { nombre_noticia, subtitulo, categorias, fecha_publicacion, imagen_cabecera, contenido } = newsData;
-
-  // Convertir las categorías de string a array si es necesario
   const subcategories = Array.isArray(categorias) ? categorias : (categorias || '').split(',').filter(Boolean);
 
   return (
     <div className="news-detail-container">
+      {/* Header de la noticia */}
       <div className="news-header">
-        {/* Categories section first */}
+        {/* Breadcrumb de categorías */}
         <div className="categories-container">
           {subcategories.map((category, index) => (
             <Link 
               key={index} 
               to={category.toLowerCase() === 'portada' ? '/seccion/portada' : `/subcategoria/${encodeURIComponent(category.toLowerCase())}`}
               className="news-section-link"
-              style={{ color: '#0066cc', textDecoration: 'none' }}
             >
-              <span className="news-section" style={{ fontSize: '14px' }}>{category}</span>
+              <span className="news-section">{category.replace(/_/g, ' ')}</span>
             </Link>
           ))}
         </div>
 
-        {/* Title and subtitle in their own container */}
+        {/* Título y subtítulo */}
         <div className="title-container">
-          
-          <h1
-            className="news-title"
-            style={{
-              fontFamily: "'Adelle Semibold Cnd'",
-              fontSize: '28px',
-              fontWeight: 'bold',
-              marginTop: '10px',
-              color: '#000000',
-            }}
-          >
+          <h1 className="news-title">
             {nombre_noticia}
           </h1>
 
           {subtitulo !== "default content" && (
-            <h2
-              className="news-subtitle"
-              style={{
-                fontFamily: "'Fenomen Slab CN SemiBold'",
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#425f75',
-                marginTop: '10px'
-              }}
-            >
+            <h2 className="news-subtitle">
               {subtitulo}
             </h2>
           )}
@@ -478,53 +472,39 @@ const NewsDetail = () => {
           </div>
         </div>
 
-
-        <div className="author-editor-info">
-          <div className="author-info">
-            {authorData && (
-              <>
-                <h3 className="author-title" style={{ fontSize: '16px', margin: '10px 0' }}>Redactor/es: </h3>
-                {/* IMAGEN ELIMINADA - era esta línea:
-                <img 
-                  src={authorData.foto_perfil || DEFAULT_AVATAR} 
-                  alt={`${authorData.nombre} ${authorData.apellido}`} 
-                  className="profile-image" 
-                  style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '5px' }}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = DEFAULT_AVATAR;
-                  }}
-                />
-                */}
-                <div className="author-details">
-                  <Link to={`/trabajador/${authorData.id}/noticias`}>
-                    <span className="author-name">{authorData.nombre} {authorData.apellido}</span>
-                  </Link>
-                </div>
-              </>
-            )}
+        {/* Imagen de cabecera si existe */}
+        {imagen_cabecera && (
+          <div className="header-image-container">
+            <img 
+              src={imagen_cabecera} 
+              alt={nombre_noticia}
+              className="header-image"
+            />
           </div>
+        )}
+
+        {/* Información de autor y editores */}
+        <div className="author-editor-info">
+          {authorData && (
+            <div className="author-info">
+              <h3 className="author-title">Redactor/es:</h3>
+              <div className="author-details">
+                <Link to={`/trabajador/${authorData.id}/noticias`} className="author-name">
+                  {authorData.nombre} {authorData.apellido}
+                </Link>
+              </div>
+            </div>
+          )}
+          
           {editorsData.length > 0 && (
             <div className="editor-info">
-              <h3 className="editors-title" style={{ fontSize: '16px', margin: '10px 0' }}>Editor/es:</h3>
-              <div className="editors-list" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <h3 className="editors-title">Editor/es:</h3>
+              <div className="editors-list">
                 {editorsData.map((editor, index) => (
-                  <div key={index} className="editor-item" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-                    {/* IMAGEN ELIMINADA - era esta línea:
-                    <img 
-                      src={editor.foto_perfil || DEFAULT_AVATAR} 
-                      alt={`${editor.nombre} ${editor.apellido}`} 
-                      className="profile-image" 
-                      style={{ width: '30px', height: '30px', borderRadius: '50%', marginRight: '5px' }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = DEFAULT_AVATAR;
-                      }}
-                    />
-                    */}
+                  <div key={index} className="editor-item">
                     <div className="editor-details">
-                      <Link to={`/trabajador/${editor.id}/noticias`}>
-                        <span className="editor-name">{editor.nombre} {editor.apellido}</span>
+                      <Link to={`/trabajador/${editor.id}/noticias`} className="editor-name">
+                        {editor.nombre} {editor.apellido}
                       </Link>
                     </div>
                   </div>
@@ -533,100 +513,21 @@ const NewsDetail = () => {
             </div>
           )}
         </div>
-        
-        <div 
-          className="audio-controls" 
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '20px 0'
-          }}
-        >
-          <button 
-            onClick={readContentAloud} 
-            className={`read-aloud-button ${speechState === 'speaking' ? 'speaking' : speechState === 'paused' ? 'paused' : ''}`}
-            style={{
-              padding: '10px 15px',
-              backgroundColor: 
-                speechState === 'speaking' ? '#ff4d4d' : 
-                speechState === 'paused' ? '#ffa500' : 
-                '#0066cc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              marginBottom: '10px'
-            }}
-          >
-            {speechState === 'speaking' ? 'Detener lectura' : 
-             speechState === 'paused' ? 'Continuar lectura' : 
-             'Leer en voz alta'}
-          </button>
-          
-          <div
-            ref={progressBarRef}
-            className="speech-progress-bar"
-            onClick={handleProgressBarClick}
-            style={{
-              width: '100%',
-              maxWidth: '600px',
-              height: '6px',
-              backgroundColor: '#e0e0e0',
-              borderRadius: '3px',
-              cursor: 'pointer',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              className="speech-progress"
-              style={{
-                width: `${speechProgress}%`,
-                height: '100%',
-                backgroundColor: '#0066cc', 
-                borderRadius: '3px',
-                transition: 'width 0.3s ease-out',
-              }}
-            ></div>
-            
-            {/* YouTube-like progress handle */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: `${speechProgress}%`,
-                transform: 'translate(-50%, -50%)',
-                backgroundColor: '#0066cc',
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                boxShadow: '0 0 4px rgba(0, 0, 0, 0.3)',
-                opacity: speechState === 'speaking' ? 1 : 0,
-                transition: 'opacity 0.2s ease-in-out'
-              }}
-            ></div>
-          </div>
-        </div>
       </div>
       
-      <div 
-        className="news-content" 
-        style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          overflowWrap: 'break-word'
-        }}
-      >
+      {/* Contenido de la noticia */}
+      <div className="news-content" ref={contentRef}>
         {renderNewsContent()}
       </div>
-      {/* ANUNCIO DESPUÉS DEL CONTENIDO */}
-      <div className="ad-section" style={{ margin: '30px 0', textAlign: 'center' }}>
+      
+      {/* Anuncio después del contenido */}
+      <div className="ad-section">
         <AdSenseAd />
       </div>
-      <div className="tags-section" style={{ marginBottom: '30px' }}>
-        <h3 className="tags-title">Palabras clave </h3>
+      
+      {/* Palabras clave */}
+      <div className="tags-section">
+        <h3 className="tags-title">Palabras clave</h3>
         <div className="news-tags">
           {palabrasClave.map((tag, index) => (
             <Link key={index} to={`/tag/${encodeURIComponent(tag)}`} className="tag-link">
@@ -636,116 +537,50 @@ const NewsDetail = () => {
         </div>
       </div>
 
-      <div className="reactions-section" style={{ 
-        marginBottom: '30px',
-        clear: 'both',
-        width: '100%',
-        maxWidth: '800px',
-        margin: '0 auto'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between', // Distribuye los elementos
-          flexWrap: 'wrap', // Permite que los elementos se envuelvan en pantallas pequeñas
-          gap: '10px' // Espacio entre elementos
-        }}>
-          <h3 className="tags-title" style={{ 
-            margin: 0,
-            marginRight: 'auto' // Empuja el título a la izquierda
-          }}>Reacciones</h3>
-          
-          <div style={{
-            display: 'flex',
-            justifyContent: 'right', // Centra las reacciones
-            flexGrow: 1 // Permite que ocupe el espacio disponible
-          }}>
-            <NewsReactions noticiaId={newsId} />
-          </div>
+      {/* Reacciones */}
+      <div className="reactions-section">
+        <div className="reactions-header">
+          <h3 className="reactions-title">Reacciones</h3>
+          <NewsReactions noticiaId={newsId} />
         </div>
       </div>
 
-      <h3 className="comments-title">Comentarios</h3>
-      <FacebookComments 
-        url={`${api.defaults.baseURL}noticias/${newsId}/`} 
-        numPosts={5}
-        canDeleteComments={user && user.es_trabajador}
-        onDeleteComment={handleDeleteComment}
-      />
-      {/* ANUNCIO ANTES DE COMENTARIOS */}
-      <div className="ad-section" style={{ margin: '30px 0', textAlign: 'center' }}>
+      {/* Anuncio antes de comentarios */}
+      <div className="ad-section">
         <AdSenseAd />
       </div>
-      {/* Sección de noticias más leídas - Actualizada para usar contentImage */}
-      <div className="most-read-section" style={{ 
-        marginTop: '40px',
-        marginBottom: '40px',
-        clear: 'both',
-        width: '100%',
-        maxWidth: '800px',
-        margin: '40px auto'
-      }}>
-        <h3 className="most-read-title" style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: '#0066b2',
-          borderBottom: '2px solid #0066b2',
-          paddingBottom: '10px',
-          marginBottom: '20px'
-        }}>
-          Lo más leído
-        </h3>
+
+      {/* Comentarios */}
+      <div className="comments-section">
+        <h3 className="comments-title">Comentarios</h3>
+        <FacebookComments 
+          url={`${api.defaults.baseURL}noticias/${newsId}/`} 
+          numPosts={5}
+          canDeleteComments={user && user.es_trabajador}
+          onDeleteComment={handleDeleteComment}
+        />
+      </div>
+
+      {/* Noticias más leídas */}
+      <div className="most-read-section">
+        <h3 className="most-read-title">Lo más leído</h3>
         
-        <div className="most-read-news-container" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: '20px'
-        }}>
+        <div className="most-read-news-container">
           {topNews.map((news) => (
             <Link 
               key={news.id} 
               to={`/noticia/${news.id}${news.slug ? `-${news.slug}` : ''}`}
               className="most-read-news-item"
-              style={{
-                textDecoration: 'none',
-                color: 'inherit',
-                display: 'block',
-                borderRadius: '5px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-              }}
             >
-              <div className="most-read-news-image" style={{
-                width: '100%',
-                height: '150px',
-                backgroundImage: `url(${news.contentImage || news.imagen_cabecera})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }} />
-              <div className="most-read-news-content" style={{ padding: '15px' }}>
-                <h4 style={{
-                  fontFamily: "'Adelle Semibold Cnd'",
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  margin: '0 0 8px 0',
-                  color: '#000000'
-                }}>
-                  {news.nombre_noticia}
-                </h4>
-                <div className="most-read-news-date" style={{
-                  color: '#666',
-                  fontSize: '12px'
-                }}>
+              <div 
+                className="most-read-news-image"
+                style={{
+                  backgroundImage: `url(${news.contentImage || news.imagen_cabecera})`
+                }}
+              />
+              <div className="most-read-news-content">
+                <h4>{news.nombre_noticia}</h4>
+                <div className="most-read-news-date">
                   {new Date(news.fecha_publicacion).toLocaleDateString('es-ES', { 
                     year: 'numeric', 
                     month: 'long', 
@@ -757,10 +592,67 @@ const NewsDetail = () => {
           ))}
         </div>
       </div>
-      {/* ANUNCIO DESPUÉS DEL HEADER */}
-      <div className="ad-section" style={{ margin: '20px 0', textAlign: 'center' }}>
+      
+      {/* Anuncio final */}
+      <div className="ad-section">
         <AdSenseAd />
       </div>
+
+      {/* Reproductor Sticky */}
+      {showStickyPlayer && (
+        <div className="sticky-audio-player">
+          <div className="sticky-player-content">
+            <div className="player-info">
+              <div className="player-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+              </div>
+              <div className="player-text">
+                <span className="player-title">Reproduciendo noticia</span>
+                <div className="player-progress">
+                  <div 
+                    className="player-progress-bar"
+                    style={{ width: `${speechProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div className="player-controls">
+              <button 
+                onClick={readContentAloud}
+                className={`player-button ${speechState}`}
+              >
+                {speechState === 'speaking' ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 6h4v12H6zM14 6h4v12h-4z"/>
+                  </svg>
+                ) : speechState === 'paused' ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                )}
+              </button>
+              <button 
+                onClick={() => {
+                  window.speechSynthesis.cancel();
+                  setSpeechState('stopped');
+                  setSpeechProgress(0);
+                }}
+                className="player-close-button"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

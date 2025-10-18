@@ -36,14 +36,12 @@ export const EditNewsContent = () => {
       }
     
       try {
-        // Use the same endpoint as in UserContext
         const response = await api.get('current-user/', {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
         });
     
-        // Check if user is a worker using the same condition as in UserContext
         if (!response.data.isWorker) {
           navigate('/login');
           return;
@@ -54,7 +52,7 @@ export const EditNewsContent = () => {
       }
     };
 
-    verifyTrabajador(); // Llamar a la función de verificación
+    verifyTrabajador();
 
     const fetchContent = async () => {
       try {
@@ -78,7 +76,7 @@ export const EditNewsContent = () => {
     };
 
     fetchContent();
-  }, [id, form, navigate]); // Agregar navigate a las dependencias
+  }, [id, form, navigate]);
 
   const handleImageUpload = (blobInfo, progress) => new Promise((resolve, reject) => {
     const formData = new FormData();
@@ -98,7 +96,6 @@ export const EditNewsContent = () => {
           setAllImages(prevImages => [...prevImages, imageUrl]);
           resolve(imageUrl);
         } else if (response.data.url) {
-          // Handle legacy response format
           const imageUrl = response.data.url;
           setAllImages(prevImages => [...prevImages, imageUrl]);
           resolve(imageUrl);
@@ -133,19 +130,33 @@ export const EditNewsContent = () => {
     return doc.body.innerHTML;
   };
 
+  const cleanContentForStorage = (content) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    
+    // Limpiar estilos en elementos con formato
+    const formattedElements = doc.querySelectorAll('strong, b, em, i, u');
+    formattedElements.forEach(el => {
+      el.removeAttribute('style');
+      el.removeAttribute('class');
+    });
+    
+    return doc.body.innerHTML;
+  };
+
   const handleSave = async () => {
     try {
-      // Extract just the image path if it's a full base64 string
+      const cleanedContent = cleanContentForStorage(content);
+      
       const cleanHeaderImage = headerImage.startsWith('data:image') 
-        ? '' // or extract path if possible
+        ? '' 
         : headerImage;
-  
+
       const updateData = {
         ...newsData,
-        contenido: content || '',
+        contenido: cleanedContent || '',
         subtitulo: newsData.subtitulo || '',
         imagen_cabecera: cleanHeaderImage || '',
-        // Other images
         imagen_1: '',
         imagen_2: '',
         imagen_3: '',
@@ -153,15 +164,15 @@ export const EditNewsContent = () => {
         imagen_5: '',
         imagen_6: '',
       };
-  
+
       console.log("Sending data:", updateData);
-  
+
       const response = await api.put(`noticias/${id}/`, updateData, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
-  
+
       message.success('Contenido actualizado exitosamente');
       navigate('/ed');
     } catch (error) {
@@ -188,149 +199,145 @@ export const EditNewsContent = () => {
       }
     }
   };
+
   const handleHeaderImageChange = (value) => {
     const oldHeaderImage = headerImage;
     setHeaderImage(value);
 
     if (oldHeaderImage) {
-      // Add old header image back to content if it's not the new header image
       if (oldHeaderImage !== value) {
         setContent(prevContent => prevContent + `<img src="${oldHeaderImage}" data-field="imagen" />`);
       }
     }
 
-    // Remove new header image from content
     setContent(prevContent => removeImageFromContent(prevContent, value));
   };
 
   return (
     <div style={{ marginTop: '120px' }}>
-    <div>
-      {headerImage && (
-        <div style={{ marginBottom: 10 }}>
-          
+      <div>
+        {headerImage && (
+          <div style={{ marginBottom: 10 }}>
+          </div>
+        )}
+
+        <div className="image-instruction-box" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: '5px' }}>
+          <p><strong>Nota:</strong> La primer imagen que agregue será la imagen de cabecera de la noticia. Podrá agregar hasta 5 imágenes adicionales.</p>
+          <p><strong>Nota 2:</strong> No agregar un titulo a la noticia, el titulo ya se encuentra al crear la misma.</p>
         </div>
-      )}
+        
+        <Editor
+          apiKey="n4p00cmzpfhi984ei5sgacg93brnu89dco7io30mvon29srl"
+          value={content}
+          init={{
+            height: 500,
+            menubar: false,
+            images_upload_handler: handleImageUpload,
+            automatic_uploads: false,
+            images_upload_credentials: true,
+            convert_urls: false,
+            forced_root_block: false,
+            force_br_newlines: false,
+            force_p_newlines: true,
+            invalid_styles: 'font-family font-size color background-color',
+            
+            paste_data_images: true,
+            paste_as_text: false,
+            paste_word_valid_elements: "b,strong,i,em,u,s,a[href],p,br,img[src|alt|width|height]",
+            paste_retain_style_properties: "none",
+            paste_remove_styles: true,
+            paste_remove_styles_if_webkit: true,
+            paste_strip_class_attributes: "all",
+            
+            paste_preprocess: function(plugin, args) {
+              console.log('Contenido antes de procesar:', args.content);
+              
+              args.content = args.content.replace(/style="[^"]*"/gi, '');
+              args.content = args.content.replace(/class="[^"]*"/gi, '');
+              args.content = args.content.replace(/font-family:[^;]*;?/gi, '');
+              args.content = args.content.replace(/font-size:[^;]*;?/gi, '');
+              args.content = args.content.replace(/color:[^;]*;?/gi, '');
+              args.content = args.content.replace(/background-color:[^;]*;?/gi, '');
+              
+              args.content = args.content.replace(/<h[3-5][^>]*>/gi, '<p>');
+              args.content = args.content.replace(/<\/h[3-5]>/gi, '</p>');
+              
+              args.content = args.content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
+              args.content = args.content.replace(/<\/(div|span|section|article)>/gi, '</p>');
+              
+              console.log('Contenido después de procesar:', args.content);
+            },
+            
+            paste_postprocess: function(plugin, args) {
+              const doc = args.node.ownerDocument;
+              const paragraphs = args.node.querySelectorAll('p');
+              
+              paragraphs.forEach(p => {
+                p.style.fontFamily = 'Linotype Devanagari';
+                p.style.fontSize = '13pt';
+                p.style.margin = '0';
+                p.style.padding = '0';
+              });
+              
+              const h1Elements = args.node.querySelectorAll('h1');
+              h1Elements.forEach(h1 => {
+                h1.style.fontFamily = 'Pentay Bold';
+                h1.style.fontSize = '18pt';
+                h1.style.fontWeight = 'bold';
+              });
+              
+              const h2Elements = args.node.querySelectorAll('h2');
+              h2Elements.forEach(h2 => {
+                h2.style.fontFamily = 'Pentay Bold';
+                h2.style.fontSize = '17pt';
+                h2.style.fontWeight = 'bold';
+                h2.style.fontStyle = 'italic';
+              });
+              
+              const h6Elements = args.node.querySelectorAll('h6');
+              h6Elements.forEach(h6 => {
+                h6.style.fontFamily = 'MVB Dovetail Light Italic';
+                h6.style.fontSize = '13.5pt';
+                h6.style.color = 'black';
+                h6.style.backgroundColor = '#f0f0f0';
+                h6.style.textIndent = '0.2in';
+              });
+              
+              const preElements = args.node.querySelectorAll('pre');
+              preElements.forEach(pre => {
+                pre.style.fontFamily = 'Times New Roman';
+                pre.style.fontSize = '9pt';
+                pre.style.color = 'gray';
+                pre.style.textAlign = 'center';
+                pre.style.whiteSpace = 'normal';
+                pre.style.wordBreak = 'break-word';
+              });
+              
+              const blockquoteElements = args.node.querySelectorAll('blockquote');
+              blockquoteElements.forEach(blockquote => {
+                blockquote.style.fontFamily = 'MVB Dovetail Light Italic';
+                blockquote.style.fontSize = '13.5pt';
+                blockquote.style.color = 'black';
+                blockquote.style.backgroundColor = '#f0f0f0';
+              });
+            },
 
-      <div className="image-instruction-box" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: '5px' }}>
-        <p><strong>Nota:</strong> La primer imagen que agregue será la imagen de cabecera de la noticia. Podrá agregar hasta 5 imágenes adicionales.</p>
-        <p><strong>Nota 2:</strong> No agregar un titulo a la noticia, el titulo ya se encuentra al crear la misma.</p>
-      </div>
-      <Editor
-        apiKey="n4p00cmzpfhi984ei5sgacg93brnu89dco7io30mvon29srl"
-        value={content}
-        init={{
-          height: 500,
-          menubar: false,
-          images_upload_handler: handleImageUpload,
-          automatic_uploads: false,
-          images_upload_credentials: true,
-          convert_urls: false,
-          
-          // CONFIGURACIÓN PARA MANEJO DE PEGADO
-          paste_data_images: true,
-          paste_as_text: false,
-          paste_word_valid_elements: "b,strong,i,em,u,s,a[href],p,br,img[src|alt|width|height]",
-          paste_retain_style_properties: "none",
-          paste_remove_styles: true,
-          paste_remove_styles_if_webkit: true,
-          paste_strip_class_attributes: "all",
-          
-          // Filtros de contenido para limpiar el pegado
-          paste_preprocess: function(plugin, args) {
-            console.log('Contenido antes de procesar:', args.content);
-            
-            // Limpiar estilos inline
-            args.content = args.content.replace(/style="[^"]*"/gi, '');
-            args.content = args.content.replace(/class="[^"]*"/gi, '');
-            args.content = args.content.replace(/font-family:[^;]*;?/gi, '');
-            args.content = args.content.replace(/font-size:[^;]*;?/gi, '');
-            args.content = args.content.replace(/color:[^;]*;?/gi, '');
-            args.content = args.content.replace(/background-color:[^;]*;?/gi, '');
-            
-            // Convertir todos los headings no permitidos a párrafos
-            args.content = args.content.replace(/<h[3-5][^>]*>/gi, '<p>');
-            args.content = args.content.replace(/<\/h[3-5]>/gi, '</p>');
-            
-            // Mantener solo los elementos que queremos
-            args.content = args.content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
-            args.content = args.content.replace(/<\/(div|span|section|article)>/gi, '</p>');
-            
-            console.log('Contenido después de procesar:', args.content);
-          },
-          
-          paste_postprocess: function(plugin, args) {
-            // Procesar después del pegado para aplicar estilos por defecto
-            const doc = args.node.ownerDocument;
-            const paragraphs = args.node.querySelectorAll('p');
-            
-            paragraphs.forEach(p => {
-              p.style.fontFamily = 'Linotype Devanagari';
-              p.style.fontSize = '13pt';
-              p.style.margin = '0';
-              p.style.padding = '0';
-            });
-            
-            // Procesar otros elementos para aplicar estilos correctos
-            const h1Elements = args.node.querySelectorAll('h1');
-            h1Elements.forEach(h1 => {
-              h1.style.fontFamily = 'Pentay Bold';
-              h1.style.fontSize = '18pt';
-              h1.style.fontWeight = 'bold';
-            });
-            
-            const h2Elements = args.node.querySelectorAll('h2');
-            h2Elements.forEach(h2 => {
-              h2.style.fontFamily = 'Pentay Bold';
-              h2.style.fontSize = '17pt';
-              h2.style.fontWeight = 'bold';
-              h2.style.fontStyle = 'italic';
-            });
-            
-            const h6Elements = args.node.querySelectorAll('h6');
-            h6Elements.forEach(h6 => {
-              h6.style.fontFamily = 'MVB Dovetail Light Italic';
-              h6.style.fontSize = '13.5pt';
-              h6.style.color = 'black';
-              h6.style.backgroundColor = '#f0f0f0';
-              h6.style.textIndent = '0.2in';
-            });
-            
-            const preElements = args.node.querySelectorAll('pre');
-            preElements.forEach(pre => {
-              pre.style.fontFamily = 'Times New Roman';
-              pre.style.fontSize = '9pt';
-              pre.style.color = 'gray';
-              pre.style.textAlign = 'center';
-              pre.style.whiteSpace = 'normal';
-              pre.style.wordBreak = 'break-word';
-            });
-            
-            const blockquoteElements = args.node.querySelectorAll('blockquote');
-            blockquoteElements.forEach(blockquote => {
-              blockquote.style.fontFamily = 'MVB Dovetail Light Italic';
-              blockquote.style.fontSize = '13.5pt';
-              blockquote.style.color = 'black';
-              blockquote.style.backgroundColor = '#f0f0f0';
-            });
-          },
+            block_formats: 'Párrafo=p; Heading 1=h1; Heading 2=h2; Citas=h6; Información Adicional=pre',
 
-          block_formats: 'Párrafo=p; Heading 1=h1; Heading 2=h2; Citas=h6; Información Adicional=pre',
-
-          plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
-            'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-            'image', 'paste'
-          ],
-          
-          toolbar:
-            'undo redo | styleselect | formatselect | bold italic underline | blocks | forecolor backcolor | ' +
-            'alignleft aligncenter alignright alignjustify | outdent indent | ' +
-            'bullist numlist | link image media table | charmap | ' +
-            'hr | blockquote | removeformat | help | fullscreen ',
-          
-          content_style: `
+            plugins: [
+              'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
+              'searchreplace', 'visualblocks', 'code', 'fullscreen',
+              'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
+              'image', 'paste'
+            ],
+            
+            toolbar:
+              'undo redo | styleselect | formatselect | bold italic underline | blocks | forecolor backcolor | ' +
+              'alignleft aligncenter alignright alignjustify | outdent indent | ' +
+              'bullist numlist | link image media table | charmap | ' +
+              'hr | blockquote | removeformat | help | fullscreen ',
+            
+            content_style: `
       /* Common styles for all devices */
       body {
         font-family: Arial, sans-serif;
@@ -338,8 +345,8 @@ export const EditNewsContent = () => {
       }
 
       p {
-        font-family: 'Georgia', serif;
-        font-size: 13pt;
+        font-family: 'Linotype Devanagari' !important;
+        font-size: 13pt !important;
         margin: 0;
         white-space: normal;
         word-break: break-word;
@@ -347,63 +354,198 @@ export const EditNewsContent = () => {
         z-index: 1;
       }
 
+      /* Estilos para elementos con formato dentro de párrafos */
+      p strong, p b {
+        font-family: 'Linotype Devanagari' !important;
+        font-size: 13pt !important;
+        font-weight: bold !important;
+      }
+
+      p em, p i {
+        font-family: 'Linotype Devanagari' !important;
+        font-size: 13pt !important;
+        font-style: italic !important;
+      }
+
+      p u {
+        font-family: 'Linotype Devanagari' !important;
+        font-size: 13pt !important;
+        text-decoration: underline !important;
+      }
+
+      /* Estilos para H1 con formatos */
+      h1 {
+        font-family: 'Pentay Bold' !important;
+        font-size: 18pt !important;
+        font-weight: bold !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      h1 strong, h1 b {
+        font-family: 'Pentay Bold' !important;
+        font-size: 18pt !important;
+        font-weight: bold !important;
+      }
+
+      h1 em, h1 i {
+        font-family: 'Pentay Bold' !important;
+        font-size: 18pt !important;
+        font-style: italic !important;
+        font-weight: bold !important;
+      }
+
+      h1 u {
+        font-family: 'Pentay Bold' !important;
+        font-size: 18pt !important;
+        text-decoration: underline !important;
+        font-weight: bold !important;
+      }
+
+      /* Estilos para H2 con formatos */
+      h2 {
+        font-family: 'Pentay Bold' !important;
+        font-size: 17pt !important;
+        font-weight: bold !important;
+        font-style: italic !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      h2 strong, h2 b {
+        font-family: 'Pentay Bold' !important;
+        font-size: 17pt !important;
+        font-weight: bold !important;
+        font-style: italic !important;
+      }
+
+      h2 em, h2 i {
+        font-family: 'Pentay Bold' !important;
+        font-size: 17pt !important;
+        font-style: italic !important;
+        font-weight: bold !important;
+      }
+
+      h2 u {
+        font-family: 'Pentay Bold' !important;
+        font-size: 17pt !important;
+        text-decoration: underline !important;
+        font-weight: bold !important;
+        font-style: italic !important;
+      }
+
+      /* Estilos para H6 con formatos */
+      h6 {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+        text-indent: 0.2in !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      h6 strong, h6 b {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        font-weight: bold !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
+      h6 em, h6 i {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        font-style: italic !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
+      h6 u {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        text-decoration: underline !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
+      /* Estilos para PRE con formatos */
+      pre {
+        font-family: 'Times New Roman' !important;
+        font-size: 9pt !important;
+        color: gray !important;
+        text-align: center !important;
+        margin-top: 0px !important;
+        margin-bottom: 20px !important;
+        position: relative;
+        z-index: 1;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        display: block !important;
+      }
+
+      pre strong, pre b {
+        font-family: 'Times New Roman' !important;
+        font-size: 9pt !important;
+        font-weight: bold !important;
+        color: gray !important;
+      }
+
+      pre em, pre i {
+        font-family: 'Times New Roman' !important;
+        font-size: 9pt !important;
+        font-style: italic !important;
+        color: gray !important;
+      }
+
+      pre u {
+        font-family: 'Times New Roman' !important;
+        font-size: 9pt !important;
+        text-decoration: underline !important;
+        color: gray !important;
+      }
+
+      /* Estilos para BLOCKQUOTE con formatos */
+      blockquote {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      blockquote strong, blockquote b {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        font-weight: bold !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
+      blockquote em, blockquote i {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        font-style: italic !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
+      blockquote u {
+        font-family: 'MVB Dovetail Light Italic' !important;
+        font-size: 13.5pt !important;
+        text-decoration: underline !important;
+        color: black !important;
+        background-color: #f0f0f0 !important;
+      }
+
       .news-detail-container {
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
-      }
-
-      h1 {
-        font-family: 'Pentay Bold';
-        font-size: 18pt;
-        font-weight: bold;
-        position: relative;
-        z-index: 1;
-      }
-
-      h2 {
-        font-family: 'Pentay Bold';
-        font-size: 17pt;
-        font-weight: bold;
-        font-style: italic;
-        position: relative;
-        z-index: 1;
-      }
-
-      h6 {
-        font-family: 'MVB Dovetail Light Italic';
-        font-size: 13.5pt;
-        color: black;
-        background-color: #f0f0f0;
-        text-indent: 0.2in;
-        position: relative;
-        z-index: 1;
-      }
-
-      pre {
-        font-family: 'Times New Roman';
-        font-size: 9pt;
-        color: gray;
-        text-align: center;
-        margin-top: 0px;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
-        white-space: normal;
-        word-break: break-word;
-        overflow-wrap: break-word;
-        box-sizing: border-box;
-        max-width: 100%;
-        display: block;
-      }
-
-      blockquote {
-        font-family: 'MVB Dovetail Light Italic';
-        font-size: 13.5pt;
-        color: black;
-        background-color: #f0f0f0;
-        position: relative;
-        z-index: 1;
       }
 
       img {
@@ -486,247 +628,193 @@ export const EditNewsContent = () => {
         }
       }
       `,
-          font_formats:
-            "Arial=arial,helvetica,sans-serif;" +
-            "Georgia=georgia,palatino;" +
-            "Helvetica=helvetica;" +
-            "Times New Roman=times new roman,times;" +
-            "Verdana=verdana,geneva;" +
-            "Pentay Bold=pentay bold,sans-serif;" +
-            "Linotype Devanagari=Linotype Devanagari;" +
-            "MVB Dovetail Light Italic=MVB Dovetail Light Italic;",
-          fontsize_formats: "8pt 10pt 12pt 14pt 17pt 18pt 24pt 36pt",
-          style_formats: [
-            {
-              title: 'Heading 1',
-              format: 'h1',
-            },
-            {
-              title: 'Heading 2',
-              format: 'h2',
-            },
-            {
-              title: 'Citas',
-              format: 'h6',
-            },
-            {
-              title: 'Párrafo',
-              format: 'p',
-            },
-            {
-              title: 'Información Adicional',
-              format: 'pre',
-            }
-          ],
-          setup: function (editor) {
-            // Evento personalizado para manejar el pegado
-            editor.on('PastePreProcess', function(e) {
-              console.log('Paste detected - cleaning content');
-              
-              // Limpiar todo el contenido pegado de estilos externos
-              let content = e.content;
-              
-              // Remover todos los atributos de estilo
-              content = content.replace(/style="[^"]*"/gi, '');
-              content = content.replace(/class="[^"]*"/gi, '');
-              content = content.replace(/font-[^=]*="[^"]*"/gi, '');
-              
-              // Convertir elementos no deseados a párrafos
-              content = content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
-              content = content.replace(/<\/(div|span|section|article)>/gi, '</p>');
-              
-              // Limpiar párrafos vacíos duplicados
-              content = content.replace(/<p><\/p>/gi, '');
-              content = content.replace(/<p>\s*<\/p>/gi, '');
-              
-              e.content = content;
-            });
-            
-            // Evento después del pegado para aplicar formato correcto
-            editor.on('PastePostProcess', function(e) {
-              setTimeout(() => {
-                // Aplicar formato de párrafo por defecto a todo el contenido pegado
-                const pastedContent = e.node;
+            font_formats:
+              "Arial=arial,helvetica,sans-serif;" +
+              "Georgia=georgia,palatino;" +
+              "Helvetica=helvetica;" +
+              "Times New Roman=times new roman,times;" +
+              "Verdana=verdana,geneva;" +
+              "Pentay Bold=pentay bold,sans-serif;" +
+              "Linotype Devanagari=Linotype Devanagari;" +
+              "MVB Dovetail Light Italic=MVB Dovetail Light Italic;",
+            fontsize_formats: "8pt 10pt 12pt 14pt 17pt 18pt 24pt 36pt",
+            style_formats: [
+              {
+                title: 'Heading 1',
+                format: 'h1',
+              },
+              {
+                title: 'Heading 2',
+                format: 'h2',
+              },
+              {
+                title: 'Citas',
+                format: 'h6',
+              },
+              {
+                title: 'Párrafo',
+                format: 'p',
+              },
+              {
+                title: 'Información Adicional',
+                format: 'pre',
+              }
+            ],
+            setup: function (editor) {
+              editor.on('PastePreProcess', function(e) {
+                console.log('Paste detected - cleaning content');
                 
-                // Si no hay formato específico, aplicar párrafo
-                const allElements = pastedContent.querySelectorAll('*');
-                allElements.forEach(el => {
-                  if (!['H1', 'H2', 'H6', 'PRE', 'BLOCKQUOTE', 'IMG', 'A', 'STRONG', 'EM', 'U', 'BR'].includes(el.tagName)) {
-                    if (el.tagName === 'P' || el.innerHTML.trim()) {
-                      el.style.fontFamily = 'Linotype Devanagari';
-                      el.style.fontSize = '13pt';
-                      el.style.margin = '0';
-                      el.style.padding = '0';
+                let content = e.content;
+                
+                content = content.replace(/style="[^"]*"/gi, '');
+                content = content.replace(/class="[^"]*"/gi, '');
+                content = content.replace(/font-[^=]*="[^"]*"/gi, '');
+                
+                content = content.replace(/<(div|span|section|article)[^>]*>/gi, '<p>');
+                content = content.replace(/<\/(div|span|section|article)>/gi, '</p>');
+                
+                content = content.replace(/<p><\/p>/gi, '');
+                content = content.replace(/<p>\s*<\/p>/gi, '');
+                
+                e.content = content;
+              });
+              
+              editor.on('PastePostProcess', function(e) {
+                setTimeout(() => {
+                  const pastedContent = e.node;
+                  
+                  const allElements = pastedContent.querySelectorAll('*');
+                  allElements.forEach(el => {
+                    if (!['H1', 'H2', 'H6', 'PRE', 'BLOCKQUOTE', 'IMG', 'A', 'STRONG', 'EM', 'U', 'BR'].includes(el.tagName)) {
+                      if (el.tagName === 'P' || el.innerHTML.trim()) {
+                        el.style.fontFamily = 'Linotype Devanagari';
+                        el.style.fontSize = '13pt';
+                        el.style.margin = '0';
+                        el.style.padding = '0';
+                      }
                     }
-                  }
-                });
-                
-                // Forzar actualización del editor
-                editor.fire('change');
-              }, 100);
-            });
-
-            editor.ui.registry.addButton('formatselect', {
-              text: 'Párrafo',
-              tooltip: 'Formato',
-              onAction: function () {
-                editor.execCommand('mceToggleFormat');
-              }
-            });
-            
-            // Add a custom handler for the clear formatting command
-            editor.on('BeforeExecCommand', function(e) {
-              if (e.command === 'RemoveFormat') {
-                // Get the selected content and nodes
-                const selectedNode = editor.selection.getNode();
-                const selectedContent = editor.selection.getContent();
-                const selectedRange = editor.selection.getRng();
-                
-                // First let TinyMCE's default RemoveFormat run
-                setTimeout(function() {
-                  // Then convert the selection to a paragraph format
-                  editor.formatter.apply('p');
+                  });
                   
-                  // Apply the standard paragraph styling
-                  const paragraphNode = editor.selection.getNode();
-                  if (paragraphNode) {
-                    paragraphNode.style.fontFamily = 'Linotype Devanagari';
-                    paragraphNode.style.fontSize = '13pt';
-                    paragraphNode.style.margin = '0';
-                    paragraphNode.style.padding = '0';
-                    paragraphNode.style.fontWeight = 'normal';
-                    paragraphNode.style.fontStyle = 'normal';
-                    paragraphNode.style.textDecoration = 'none';
-                    paragraphNode.style.backgroundColor = '';
-                    paragraphNode.style.color = '';
-                  }
-                }, 0);
-              }
-            });
-            
-            editor.on('keydown', function (e) {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                
-                // Get current node and its complete styling
-                const currentNode = editor.selection.getNode();
-                
-                // Capture all relevant styles
-                const styles = window.getComputedStyle(currentNode);
-                const backgroundColor = styles.backgroundColor;
-                const color = styles.color;
-                const fontFamily = currentNode.style.fontFamily || styles.fontFamily || 'Linotype Devanagari';
-                
-                // Check if we're in a special format (h1, h2, etc.)
-                const nodeName = currentNode.nodeName.toLowerCase();
-                
-                // Don't preserve formatting for headings and special formats
-                if (['h1', 'h2', 'h6', 'pre', 'blockquote'].includes(nodeName)) {
-                  // For headings, just insert a standard paragraph without special formatting
-                  editor.insertContent('<p style="margin: 0; padding: 0; font-family: Linotype Devanagari; font-size: 13pt;">\u200B</p>');
-                } else {
-                  // For regular paragraphs, preserve the background color
-                  const bgColorStyle = backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent' 
-                    ? `background-color: ${backgroundColor};` 
-                    : '';
-                  
-                  const textColorStyle = color && color !== 'rgba(0, 0, 0, 0)' 
-                    ? `color: ${color};` 
-                    : '';
-                  
-                  // Insert new paragraph with preserved styles
-                  editor.insertContent(`<p style="margin: 0; padding: 0; font-family: ${fontFamily}; font-size: 13pt; ${bgColorStyle} ${textColorStyle}">\u200B</p>`);
-                }
-                
-                editor.execCommand('FormatBlock', false, 'p');
-                
-                // Set cursor position
-                const newNode = editor.selection.getNode();
-                if (newNode) {
-                  const rng = editor.selection.getRng();
-                  rng.setStart(newNode, 0);
-                  rng.setEnd(newNode, 0);
-                  editor.selection.setRng(rng);
-                }
-                
-                // Maintain focus
-                editor.focus();
-              }
-            });
-            
-            editor.on('BeforeSetContent', function (e) {
-              if (e.format === 'html') {
-                e.content = e.content.replace(/<h1>/g, '<h1 style="font-family: Pentay Bold; font-size: 18pt; font-weight: bold;">');
-                e.content = e.content.replace(/<h2>/g, '<h2 style="font-family: Pentay Bold; font-size: 17pt; font-weight: bold; font-style: italic;">');
-                e.content = e.content.replace(/<h6>/g, '<h6 style="font-family: MVB Dovetail Light Italic; font-size: 13.5pt; color: black; background-color: #f0f0f0; text-indent: 0.2in;">');
-                e.content = e.content.replace(/<blockquote>/g, '<blockquote style="font-family: MVB Dovetail Light Italic; font-size: 13.5pt; color: black; background-color: #f0f0f0;">');
-                e.content = e.content.replace(/<pre>/g, '<pre style="font-family: Times New Roman; font-size: 9pt; color: gray;">');
-              }
-            });
+                  editor.fire('change');
+                }, 100);
+              });
 
-            editor.on('NodeChange', function (e) {
-              const { nodeName } = e.element;
-              if (nodeName === 'H1') {
-                e.element.style.fontFamily = 'Pentay Bold';
-                e.element.style.fontSize = '18pt';
-                e.element.style.fontWeight = 'bold';
-              } else if (nodeName === 'H2') {
-                e.element.style.fontFamily = 'Pentay Bold';
-                e.element.style.fontSize = '17pt';
-                e.element.style.fontWeight = 'bold';
-                e.element.style.fontStyle = 'italic';
-              } else if (nodeName === 'H6') {
-                e.element.style.fontFamily = 'MVB Dovetail Light Italic';
-                e.element.style.fontSize = '13.5pt';
-                e.element.style.color = 'black';
-                e.element.style.backgroundColor = '#f0f0f0';
-                e.element.style.textIndent = '0.2in';
-              } else if (nodeName === 'P') {
-                e.element.style.fontFamily = 'Linotype Devanagari';
-                e.element.style.fontSize = '13pt';
-                e.element.style.margin = '0';
-              } else if (nodeName === 'PRE') {
-                e.element.style.fontFamily = 'Times New Roman';
-                e.element.style.fontSize = '9pt';
-                e.element.style.color = 'gray';
-              }
-            });
-
-            // Keep your FormatChanged event handler
-            editor.on('FormatChanged', function (e) {
-              const selectedNode = editor.selection.getNode();
-              if (selectedNode) {
-                const tagName = selectedNode.nodeName;
-                if (tagName === 'P' || tagName === 'PRE') {
-                  editor.execCommand('RemoveFormat');
-                  editor.execCommand('mceRemoveFormat', false, 'strong');
-                  editor.execCommand('mceRemoveFormat', false, 'b');
-                }
-              }
-            });
-            
-            // Add a specific handling for the Clear Formatting toolbar button
-            editor.on('init', function() {
-              editor.shortcuts.add('meta+space', 'Clear formatting and convert to paragraph', function() {
-                editor.execCommand('RemoveFormat');
-                editor.formatter.apply('p');
-                
-                const paragraphNode = editor.selection.getNode();
-                if (paragraphNode) {
-                  paragraphNode.style.fontFamily = 'Linotype Devanagari';
-                  paragraphNode.style.fontSize = '13pt';
-                  paragraphNode.style.margin = '0';
+              editor.ui.registry.addButton('formatselect', {
+                text: 'Párrafo',
+                tooltip: 'Formato',
+                onAction: function () {
+                  editor.execCommand('mceToggleFormat');
                 }
               });
               
-              // Look for the clear formatting button and add a custom handler
-              const clearFormatButton = editor.editorContainer.querySelector('[title="Clear formatting"]');
-              if (clearFormatButton) {
-                clearFormatButton.addEventListener('mousedown', function(e) {
-                  e.preventDefault();
-                  e.stopPropagation();
+              editor.on('BeforeExecCommand', function(e) {
+                if (e.command === 'RemoveFormat') {
+                  const selectedNode = editor.selection.getNode();
+                  const selectedContent = editor.selection.getContent();
+                  const selectedRange = editor.selection.getRng();
                   
-                  // Execute our custom command that applies paragraph formatting after clearing
+                  setTimeout(function() {
+                    editor.formatter.apply('p');
+                    
+                    const paragraphNode = editor.selection.getNode();
+                    if (paragraphNode) {
+                      paragraphNode.style.fontFamily = 'Linotype Devanagari';
+                      paragraphNode.style.fontSize = '13pt';
+                      paragraphNode.style.margin = '0';
+                      paragraphNode.style.padding = '0';
+                      paragraphNode.style.fontWeight = 'normal';
+                      paragraphNode.style.fontStyle = 'normal';
+                      paragraphNode.style.textDecoration = 'none';
+                      paragraphNode.style.backgroundColor = '';
+                      paragraphNode.style.color = '';
+                    }
+                  }, 0);
+                }
+              });
+              
+              editor.on('BeforeSetContent', function (e) {
+                if (e.format === 'html') {
+                  e.content = e.content.replace(/<h1([^>]*)>/gi, '<h1$1 style="font-family: Pentay Bold !important; font-size: 18pt !important; font-weight: bold !important;">');
+                  e.content = e.content.replace(/<h2([^>]*)>/gi, '<h2$1 style="font-family: Pentay Bold !important; font-size: 17pt !important; font-weight: bold !important; font-style: italic !important;">');
+                  e.content = e.content.replace(/<h6([^>]*)>/gi, '<h6$1 style="font-family: MVB Dovetail Light Italic !important; font-size: 13.5pt !important; color: black !important; background-color: #f0f0f0 !important; text-indent: 0.2in !important;">');
+                  e.content = e.content.replace(/<blockquote([^>]*)>/gi, '<blockquote$1 style="font-family: MVB Dovetail Light Italic !important; font-size: 13.5pt !important; color: black !important; background-color: #f0f0f0 !important;">');
+                  e.content = e.content.replace(/<pre([^>]*)>/gi, '<pre$1 style="font-family: Times New Roman !important; font-size: 9pt !important; color: gray !important;">');
+                  
+                  e.content = e.content.replace(/<p([^>]*)>/gi, '<p$1 style="font-family: Linotype Devanagari !important; font-size: 13pt !important; margin: 0 !important;">');
+                }
+              });
+
+              editor.on('NodeChange', function (e) {
+                const { nodeName, style } = e.element;
+                
+                const cleanFormattedElements = (element) => {
+                  const formattedElements = element.querySelectorAll('strong, b, em, i, u');
+                  formattedElements.forEach(el => {
+                    el.style.fontFamily = '';
+                    el.style.fontSize = '';
+                    el.style.color = '';
+                    el.style.backgroundColor = '';
+                  });
+                };
+                
+                if (nodeName === 'H1') {
+                  e.element.style.fontFamily = 'Pentay Bold !important';
+                  e.element.style.fontSize = '18pt !important';
+                  e.element.style.fontWeight = 'bold !important';
+                  cleanFormattedElements(e.element);
+                } else if (nodeName === 'H2') {
+                  e.element.style.fontFamily = 'Pentay Bold !important';
+                  e.element.style.fontSize = '17pt !important';
+                  e.element.style.fontWeight = 'bold !important';
+                  e.element.style.fontStyle = 'italic !important';
+                  cleanFormattedElements(e.element);
+                } else if (nodeName === 'H6') {
+                  e.element.style.fontFamily = 'MVB Dovetail Light Italic !important';
+                  e.element.style.fontSize = '13.5pt !important';
+                  e.element.style.color = 'black !important';
+                  e.element.style.backgroundColor = '#f0f0f0 !important';
+                  e.element.style.textIndent = '0.2in !important';
+                  cleanFormattedElements(e.element);
+                } else if (nodeName === 'P') {
+                  e.element.style.fontFamily = 'Linotype Devanagari !important';
+                  e.element.style.fontSize = '13pt !important';
+                  e.element.style.margin = '0 !important';
+                  cleanFormattedElements(e.element);
+                } else if (nodeName === 'PRE') {
+                  e.element.style.fontFamily = 'Times New Roman !important';
+                  e.element.style.fontSize = '9pt !important';
+                  e.element.style.color = 'gray !important';
+                  cleanFormattedElements(e.element);
+                } else if (nodeName === 'BLOCKQUOTE') {
+                  e.element.style.fontFamily = 'MVB Dovetail Light Italic !important';
+                  e.element.style.fontSize = '13.5pt !important';
+                  e.element.style.color = 'black !important';
+                  e.element.style.backgroundColor = '#f0f0f0 !important';
+                  cleanFormattedElements(e.element);
+                }
+                
+                if (['STRONG', 'B', 'EM', 'I', 'U'].includes(nodeName)) {
+                  e.element.style.fontFamily = '';
+                  e.element.style.fontSize = '';
+                  e.element.style.color = '';
+                  e.element.style.backgroundColor = '';
+                }
+              });
+
+              editor.on('FormatChanged', function (e) {
+                const selectedNode = editor.selection.getNode();
+                if (selectedNode) {
+                  const tagName = selectedNode.nodeName;
+                  if (tagName === 'P' || tagName === 'PRE') {
+                    editor.execCommand('RemoveFormat');
+                    editor.execCommand('mceRemoveFormat', false, 'strong');
+                    editor.execCommand('mceRemoveFormat', false, 'b');
+                  }
+                }
+              });
+              
+              editor.on('init', function() {
+                editor.shortcuts.add('meta+space', 'Clear formatting and convert to paragraph', function() {
                   editor.execCommand('RemoveFormat');
                   editor.formatter.apply('p');
                   
@@ -736,37 +824,94 @@ export const EditNewsContent = () => {
                     paragraphNode.style.fontSize = '13pt';
                     paragraphNode.style.margin = '0';
                   }
-                  
-                  return false;
                 });
-              }
+                
+                const clearFormatButton = editor.editorContainer.querySelector('[title="Clear formatting"]');
+                if (clearFormatButton) {
+                  clearFormatButton.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    editor.execCommand('RemoveFormat');
+                    editor.formatter.apply('p');
+                    
+                    const paragraphNode = editor.selection.getNode();
+                    if (paragraphNode) {
+                      paragraphNode.style.fontFamily = 'Linotype Devanagari';
+                      paragraphNode.style.fontSize = '13pt';
+                      paragraphNode.style.margin = '0';
+                    }
+                    
+                    return false;
+                  });
+                }
+              });
+
+              editor.on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  
+                  const currentNode = editor.selection.getNode();
+                  
+                  const styles = window.getComputedStyle(currentNode);
+                  const backgroundColor = styles.backgroundColor;
+                  const color = styles.color;
+                  const fontFamily = currentNode.style.fontFamily || styles.fontFamily || 'Linotype Devanagari';
+                  
+                  const nodeName = currentNode.nodeName.toLowerCase();
+                  
+                  if (['h1', 'h2', 'h6', 'pre', 'blockquote'].includes(nodeName)) {
+                    editor.insertContent('<p style="margin: 0; padding: 0; font-family: Linotype Devanagari; font-size: 13pt;">\u200B</p>');
+                  } else {
+                    const bgColorStyle = backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent' 
+                      ? `background-color: ${backgroundColor};` 
+                      : '';
+                    
+                    const textColorStyle = color && color !== 'rgba(0, 0, 0, 0)' 
+                      ? `color: ${color};` 
+                      : '';
+                    
+                    editor.insertContent(`<p style="margin: 0; padding: 0; font-family: ${fontFamily}; font-size: 13pt; ${bgColorStyle} ${textColorStyle}">\u200B</p>`);
+                  }
+                  
+                  editor.execCommand('FormatBlock', false, 'p');
+                  
+                  const newNode = editor.selection.getNode();
+                  if (newNode) {
+                    const rng = editor.selection.getRng();
+                    rng.setStart(newNode, 0);
+                    rng.setEnd(newNode, 0);
+                    editor.selection.setRng(rng);
+                  }
+                  
+                  editor.focus();
+                }
+              });
+            },
+            formats: {
+              h1: { block: 'h1' },
+              h2: { block: 'h2' },
+              h6: { block: 'h6' },
+              p: { block: 'p' },
+              blockquote: { block: 'blockquote' },
+              pre: { block: 'pre' }
+            }
+          }}
+          
+          onEditorChange={(newContent) => {
+            setContent(newContent);
+            const newImages = extractImagesFromContent(newContent);
+            setAllImages(prevImages => {
+              const combinedImages = [...new Set([...prevImages, ...newImages])];
+              return combinedImages.filter(url => url !== headerImage);
             });
-          },
-          formats: {
-            h1: { block: 'h1' },
-            h2: { block: 'h2' },
-            h6: { block: 'h6' },
-            p: { block: 'p' },
-            blockquote: { block: 'blockquote' },
-            pre: { block: 'pre' }
-          }
-        }}
-        
-        onEditorChange={(newContent) => {
-          setContent(newContent);
-          const newImages = extractImagesFromContent(newContent);
-          setAllImages(prevImages => {
-            const combinedImages = [...new Set([...prevImages, ...newImages])];
-            return combinedImages.filter(url => url !== headerImage);
-          });
-        }}
-      />
+          }}
+        />
 
-
-      <Button type="primary" onClick={handleSave} style={{ marginTop: 20 }}>
-        Guardar
-      </Button>
-    </div>
+        <Button type="primary" onClick={handleSave} style={{ marginTop: 20 }}>
+          Guardar
+        </Button>
+      </div>
     </div>
   );
 };
