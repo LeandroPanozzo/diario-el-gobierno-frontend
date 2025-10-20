@@ -108,7 +108,7 @@ function SearchResultsPage() {
           <h1>Resultados de búsqueda</h1>
           {query && (
             <p className="search-query">
-              Buscando: <strong>"{query}"</strong>
+              Buscando contenido con la palabra clave: <strong>"{query}"</strong>
             </p>
           )}
           {searchInfo && (
