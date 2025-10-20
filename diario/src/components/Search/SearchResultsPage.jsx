@@ -18,21 +18,65 @@ function SearchResultsPage() {
     }
   }, [query]);
 
+  // Función para extraer la primera imagen del contenido HTML (igual que SectionPage)
+  const extractFirstImageFromContent = (htmlContent) => {
+    if (!htmlContent) return null;
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const firstImage = tempDiv.querySelector('img');
+    
+    if (firstImage && firstImage.src) {
+      return firstImage.src;
+    }
+    
+    return null;
+  };
+
+  // Procesar los datos de noticias para extraer imágenes del contenido
+  const processNewsWithImages = (newsItems) => {
+    return newsItems.map(newsItem => {
+      const contentImage = extractFirstImageFromContent(newsItem.contenido);
+      const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
+      
+      return {
+        ...newsItem,
+        contentImage: finalImage
+      };
+    });
+  };
+
+  // Función para eliminar etiquetas HTML (igual que SectionPage)
+  const stripHtml = (html) => {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  };
+
+  // Función para truncar contenido (igual que SectionPage)
+  const truncateContent = (content, maxLength = 150) => {
+    const plainText = stripHtml(content);
+    return plainText.length > maxLength ? 
+      plainText.slice(0, maxLength) + '...' : 
+      plainText;
+  };
+
   const searchNews = async (searchQuery) => {
     setLoading(true);
     try {
       const response = await api.get('/noticias/buscar/', {
         params: { 
           q: searchQuery,
-          limit: 50  // Aumentar el límite de resultados
+          limit: 50
         }
       });
       
       console.log('Search response:', response.data);
       
-      // La API devuelve un objeto con 'results' y metadata
       if (response.data.results) {
-        setResults(response.data.results);
+        // Procesar las noticias con las imágenes (igual que SectionPage)
+        const processedNews = processNewsWithImages(response.data.results);
+        setResults(processedNews);
         setSearchInfo({
           query: response.data.query,
           resultsCount: response.data.results_count,
@@ -55,18 +99,6 @@ function SearchResultsPage() {
     return newsItem.slug 
       ? `/noticia/${newsItem.id}-${newsItem.slug}` 
       : `/noticia/${newsItem.id}`;
-  };
-
-  const stripHtmlTags = (html) => {
-    const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  };
-
-  const truncateText = (text, maxLength = 200) => {
-    const cleanText = stripHtmlTags(text);
-    if (cleanText.length <= maxLength) return cleanText;
-    return cleanText.substring(0, maxLength) + '...';
   };
 
   return (
@@ -94,41 +126,35 @@ function SearchResultsPage() {
         ) : results.length > 0 ? (
           <div className="search-results">
             {results.map(newsItem => (
-              <article key={newsItem.id} className="search-result-item">
-                <Link to={generateNewsUrl(newsItem)} className="result-link">
-                  <div className="result-content">
-                    {newsItem.imagen_1 && (
-                      <div className="result-image">
-                        <img 
-                          src={newsItem.imagen_1} 
-                          alt={newsItem.nombre_noticia}
-                          loading="lazy"
-                        />
-                      </div>
+              <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="search-result-item">
+                <div className="result-image">
+                  <img 
+                    src={newsItem.contentImage} 
+                    alt={newsItem.nombre_noticia}
+                    loading="lazy"
+                  />
+                </div>
+                <div className="result-text">
+                  <h2 className="result-title">{newsItem.nombre_noticia}</h2>
+                  <p className="result-subtitle">{truncateContent(newsItem.contenido)}</p>
+                  <div className="result-meta">
+                    <span className="result-date">
+                      {new Date(newsItem.fecha_publicacion).toLocaleDateString('es-PE', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                    {newsItem.categorias && newsItem.categorias.length > 0 && (
+                      <span className="result-category">
+                        {Array.isArray(newsItem.categorias) 
+                          ? newsItem.categorias[0].replace(/_/g, ' ').toUpperCase()
+                          : newsItem.categorias.split(',')[0].trim().replace(/_/g, ' ').toUpperCase()}
+                      </span>
                     )}
-                    <div className="result-text">
-                      <h2 className="result-title">{newsItem.nombre_noticia}</h2>
-                      {newsItem.subtitulo && (
-                        <p className="result-subtitle">{truncateText(newsItem.subtitulo, 150)}</p>
-                      )}
-                      <div className="result-meta">
-                        <span className="result-date">
-                          {new Date(newsItem.fecha_publicacion).toLocaleDateString('es-PE', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </span>
-                        {newsItem.categorias && newsItem.categorias.length > 0 && (
-                          <span className="result-category">
-                            {newsItem.categorias[0].replace(/_/g, ' ').toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
                   </div>
-                </Link>
-              </article>
+                </div>
+              </Link>
             ))}
           </div>
         ) : (
