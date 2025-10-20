@@ -10,6 +10,8 @@ function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   // Definir las categorías y subcategorías
@@ -104,6 +106,13 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Cerrar búsqueda al hacer scroll
+  useEffect(() => {
+    if (isSearchOpen) {
+      setIsSearchOpen(false);
+    }
+  }, [isScrolled]);
+
   const fetchUserProfile = async () => {
     try {
       const response = await api.get('user-profile/');
@@ -130,6 +139,31 @@ function Header() {
     setIsMenuOpen(false);
     navigate('/login');
   };
+
+  // Función para manejar la búsqueda
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/buscar?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+      setIsMenuOpen(false);
+    }
+  };
+
+  // Función para cerrar la búsqueda al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isSearchOpen && !event.target.closest('.search-container')) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchOpen]);
 
   const toggleDropdown = (index) => {
     setActiveDropdown(activeDropdown === index ? null : index);
@@ -169,6 +203,42 @@ function Header() {
       >
        <i className="ri-twitter-x-line"></i>
       </a>
+    </div>
+  );
+
+  const SearchButton = () => (
+    <button
+      className="search-button"
+      onClick={() => setIsSearchOpen(!isSearchOpen)}
+      aria-label="Buscar noticias"
+    >
+      <i className="ri-search-line"></i>
+    </button>
+  );
+
+  const SearchBar = () => (
+    <div className={`search-container ${isSearchOpen ? 'open' : ''}`}>
+      <form onSubmit={handleSearch} className="search-form">
+        <input
+          type="text"
+          placeholder="Buscar noticias..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+          autoFocus
+        />
+        <button type="submit" className="search-submit">
+          <i className="ri-search-line"></i>
+        </button>
+        <button
+          type="button"
+          className="search-close"
+          onClick={() => setIsSearchOpen(false)}
+          aria-label="Cerrar búsqueda"
+        >
+          <i className="ri-close-line"></i>
+        </button>
+      </form>
     </div>
   );
 
@@ -243,7 +313,7 @@ function Header() {
             </button>
           </div>
 
-          {/* Navegación centrada debajo del logo */}
+          {/* Navegación centrada debajo del logo con búsqueda a la derecha */}
           <nav className="nav-menu">
             <div className="nav-links">
               {categorias.map((categoria) => (
@@ -281,7 +351,15 @@ function Header() {
                 )
               ))}
             </div>
+            
+            {/* Botón de búsqueda a la derecha de las secciones */}
+            <div className="nav-search-button">
+              <SearchButton />
+            </div>
           </nav>
+
+          {/* Barra de búsqueda */}
+          <SearchBar />
 
           {/* Menú móvil */}
           <div 
@@ -290,6 +368,26 @@ function Header() {
           />
 
           <nav className={`navv-menu ${isMenuOpen ? 'open' : ''}`}>
+            {/* Barra de búsqueda móvil */}
+            <div className="mobile-search-container">
+              <h3 className="mobile-search-title">Buscar noticias</h3>
+              <form onSubmit={handleSearch} className="mobile-search-form">
+                <div className="mobile-search-wrapper">
+                  <i className="ri-search-line mobile-search-icon"></i>
+                  <input
+                    type="text"
+                    placeholder="¿Qué estás buscando?"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="mobile-search-input"
+                  />
+                </div>
+                <button type="submit" className="mobile-search-submit">
+                  Buscar
+                </button>
+              </form>
+            </div>
+
             {categorias.map((categoria, index) => (
               categoria.external ? (
                 <a

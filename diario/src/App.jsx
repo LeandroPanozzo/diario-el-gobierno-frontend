@@ -24,6 +24,7 @@ import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
 import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
 import Donaciones from './pages/donaciones/Donaciones'; // AGREGAR ESTA LÍNEA
 import ScrollToTop from './ScrollToTop';
+import SearchResultsPage from './components/Search/SearchResultsPage';
 
 import '@fontsource/roboto-slab';
 import 'remixicon/fonts/remixicon.css'
@@ -37,6 +38,7 @@ function App() {
         <Header />
         <Routes>
           <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/buscar" element={<SearchResultsPage />} />
           <Route path="/home" element={<DiarioHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
