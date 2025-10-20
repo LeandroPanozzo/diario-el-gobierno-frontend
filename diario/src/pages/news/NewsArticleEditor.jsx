@@ -437,8 +437,8 @@ const NewsManagement = () => {
     return [...editors].sort((a, b) => {
       if (a.id === 6) return -1;
       if (b.id === 6) return 1;
-      if (a.id === 4) return -1;
-      if (b.id === 4) return 1;
+      if (a.id === 27) return -1;
+      if (b.id === 27) return 1;
       return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`);
     });
   }, [editors]);
@@ -533,7 +533,7 @@ const NewsManagement = () => {
       form.resetFields();
       form.setFieldsValue({
         autor: trabajadorId,
-        editores_en_jefe: [6, 4]
+        editores_en_jefe: [6, 27]
       });
       setEditingId(null);
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
