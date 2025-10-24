@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, message, Form, Input, Checkbox, Select } from 'antd';
+import { Button, message, Form, Input, Checkbox, Select, Modal } from 'antd';
 import { Editor } from '@tinymce/tinymce-react';
 import axios from 'axios';
 import './EditNewsContent.css';
@@ -26,6 +26,32 @@ export const EditNewsContent = () => {
   };
 
   useEffect(() => {
+    // Mostrar alerta sobre formato AVIF al cargar la página (solo una vez)
+    const hasSeenAvifWarning = localStorage.getItem('hasSeenAvifWarning');
+    
+    if (!hasSeenAvifWarning) {
+      Modal.warning({
+        title: '⚠️ Importante: Formato de Imágenes',
+        content: (
+          <div>
+            <p><strong>No use imágenes en formato AVIF</strong></p>
+            <p>El sistema no carga imágenes con extensión .avif</p>
+            <p>Por favor, utilice únicamente:</p>
+            <ul>
+              <li>JPG / JPEG</li>
+              <li>PNG</li>
+              <li>WebP</li>
+            </ul>
+          </div>
+        ),
+        okText: 'Entendido',
+        width: 450,
+        onOk: () => {
+          localStorage.setItem('hasSeenAvifWarning', 'true');
+        },
+      });
+    }
+
     // Verificar si el usuario es un trabajador
     const verifyTrabajador = async () => {
       const accessToken = localStorage.getItem('access');
@@ -79,6 +105,28 @@ export const EditNewsContent = () => {
   }, [id, form, navigate]);
 
   const handleImageUpload = (blobInfo, progress) => new Promise((resolve, reject) => {
+    // Verificar el tipo de archivo
+    const fileType = blobInfo.blob().type;
+    const fileName = blobInfo.filename().toLowerCase();
+    
+    console.log('File type:', fileType);
+    console.log('File name:', fileName);
+    
+    // Rechazar formato AVIF
+    if (fileType === 'image/avif' || fileName.endsWith('.avif')) {
+      console.log('AVIF detected - rejecting');
+      
+      // Mostrar mensaje de error
+      Modal.error({
+        title: '❌ Formato No Soportado',
+        content: 'El formato AVIF no está soportado. Por favor, use JPG, PNG o WebP.',
+        okText: 'Entendido',
+      });
+      
+      reject('Formato AVIF no soportado');
+      return;
+    }
+    
     const formData = new FormData();
     formData.append('file', blobInfo.blob(), blobInfo.filename());
   
@@ -224,6 +272,7 @@ export const EditNewsContent = () => {
         <div className="image-instruction-box" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#f7f7f7', border: '1px solid #e0e0e0', borderRadius: '5px' }}>
           <p><strong>Nota:</strong> La primer imagen que agregue será la imagen de cabecera de la noticia. Podrá agregar hasta 5 imágenes adicionales.</p>
           <p><strong>Nota 2:</strong> No agregar un titulo a la noticia, el titulo ya se encuentra al crear la misma.</p>
+          <p><strong>Nota 3:</strong> No usar imagenes con extension .AVIF.</p>
         </div>
         
         <Editor
