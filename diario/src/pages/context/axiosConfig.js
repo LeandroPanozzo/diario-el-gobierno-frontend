@@ -37,7 +37,7 @@ instance.interceptors.response.use(
                 if (refreshToken) {
                     console.log("Intentando refrescar el token...");
                     const response = await axios.post(
-                        'https://diario-el-gobierno-backend.onrender.com/diarioback/token/refresh/', 
+                        'https://api.diarioelgobierno.ar/diarioback/token/refresh/', 
                         { refresh: refreshToken }
                     );
                     const newAccessToken = response.data.access;

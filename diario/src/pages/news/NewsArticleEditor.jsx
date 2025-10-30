@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import { 
   Table, 
   Form, 
@@ -42,16 +42,277 @@ const CACHE_KEYS = {
   CACHE_TIMESTAMP: 'cache_timestamp'
 };
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutos
-const INITIAL_PAGE_SIZE = 10; // Cargar menos elementos inicialmente
+const CACHE_DURATION = 10 * 60 * 1000;
+const INITIAL_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
+const DEBOUNCE_DELAY = 300;
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { useBreakpoint } = Grid;
 
+// Categorías constantes (no necesitan recrearse)
+const CATEGORIAS = [
+  ['Politica', [
+    ['legislativos', 'Legislativos'],
+    ['policiales', 'Policiales'],
+    ['elecciones', 'Elecciones'],
+    ['gobierno', 'Gobierno'],
+    ['provincias', 'Provincias'],
+    ['capital', 'Capital'],
+    ['nacion', 'Nacion'],
+  ]],
+  ['Cultura', [
+    ['cine', 'Cine'],
+    ['literatura', 'Literatura'],
+    ['salud', 'Salud'],
+    ['tecnologia', 'Tecnologia'],
+    ['eventos', 'Eventos'],
+    ['educacion', 'Educacion'],
+    ['efemerides', 'Efemerides'],
+    ['deporte', 'Deporte'],
+  ]],
+  ['Economia', [
+    ['finanzas', 'Finanzas'],
+    ['comercio_internacional', 'Comercio internacional'],
+    ['politica_economica', 'Politica economica'],
+    ['pobreza_e_inflacion', 'Pobreza e inflacion'],
+    ['dolar', 'Dolar'],
+  ]],
+  ['Mundo', [
+    ['estados_unidos', 'Estados Unidos'],
+    ['argentina', 'Argentina'],
+    ['asia', 'Asia'],
+    ['medio_oriente', 'Medio Oriente'],
+    ['internacional', 'Internacional'],
+    ['latinoamerica', 'Latinoamerica'],
+  ]],
+  ['Tipos de notas', [
+    ['de_analisis', 'De analisis'],
+    ['de_opinion', 'De opinion'],
+    ['informativas', 'Informativas'],
+    ['entrevistas', 'Entrevistas'],
+  ]]
+];
+
+// Mapa de colores constante
+const STATE_COLOR_MAP = {
+  'publicado': 'green',
+  'borrador': 'orange',
+  'en_revision': 'blue',
+  'rechazado': 'red',
+  'programado': 'purple',
+  'archivado': 'gray'
+};
+
+// Componente memoizado para los botones de acción
+const ActionButtons = memo(({ 
+  record, 
+  userCanEdit, 
+  showModal, 
+  handleEditContent, 
+  handlePreview, 
+  handleDelete,
+  handleComment 
+}) => (
+  <div style={{ 
+    display: 'flex', 
+    flexWrap: 'wrap',
+    gap: '8px', 
+    width: '100%', 
+    marginTop: '12px' 
+  }}>
+    {userCanEdit && (
+      <>
+        <Button 
+          icon={<EditOutlined />} 
+          onClick={() => showModal(record)} 
+          size="small"
+        >
+          Editar
+        </Button>
+        <Button 
+          icon={<EditOutlined />} 
+          onClick={() => handleEditContent(record.id)} 
+          size="small"
+        >
+          Contenido
+        </Button>
+      </>
+    )}
+    <Button 
+      icon={<EyeOutlined />} 
+      onClick={() => handlePreview(record)} 
+      size="small"
+      type="default"
+    >
+      Vista Previa
+    </Button>
+    {userCanEdit && (
+      <Popconfirm
+        title="¿Eliminar esta noticia?"
+        onConfirm={() => handleDelete(record.id)}
+        okText="Sí"
+        cancelText="No"
+      >
+        <Button 
+          icon={<DeleteOutlined />} 
+          danger 
+          size="small"
+        >
+          Eliminar
+        </Button>
+      </Popconfirm>
+    )}
+    <Button 
+      icon={<CommentOutlined />} 
+      onClick={() => handleComment(record.id)}
+      size="small"
+    >
+      Comentar
+    </Button>
+  </div>
+));
+
+ActionButtons.displayName = 'ActionButtons';
+
+// Componente memoizado para los detalles de la noticia
+const NewsDetails = memo(({ 
+  text, 
+  record, 
+  editors, 
+  publicationStates,
+  canEditNews,
+  showAllNews,
+  getStateColor,
+  showModal,
+  handleEditContent,
+  handlePreview,
+  handleDelete,
+  handleComment
+}) => {
+  const authorObj = editors.find(editor => editor.id === record.autor);
+  
+  const editorObjs = Array.isArray(record.editores_en_jefe) 
+    ? record.editores_en_jefe.map(editorId => 
+        editors.find(editor => editor.id === editorId)
+      ).filter(Boolean)
+    : [];
+  
+  const currentState = publicationStates.find(state => state.id === record.estado);
+  const userCanEdit = canEditNews(record);
+  
+  return (
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Título:</strong>
+        <span>{text}</span>
+        {showAllNews && !userCanEdit && (
+          <Tag color="orange" style={{ marginLeft: 'auto' }}>
+            Solo lectura
+          </Tag>
+        )}
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Autor:</strong>
+        <span>
+          {authorObj
+            ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
+            : `Unknown (ID: ${record.autor})`}
+        </span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '10px'
+      }}>
+        <strong>Editores:</strong>
+        <div>
+          {editorObjs.length > 0 
+            ? editorObjs.map(editor => 
+                `${editor.nombre} ${editor.apellido} (ID: ${editor.id})`
+              ).join(', ')
+            : 'Ninguno asignado'}
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Fecha:</strong>
+        <span>{record.fecha_publicacion}</span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Categorías:</strong>
+        <span>{record.categorias ? record.categorias.join(', ') : ''}</span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Palabras Clave:</strong>
+        <span>{record.Palabras_clave || 'N/A'}</span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Suscriptores:</strong>
+        <span>{record.solo_para_subscriptores ? 'Sí' : 'No'}</span>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <strong>Estado:</strong>
+        <Tag color={getStateColor(currentState?.nombre_estado)}>
+          {currentState?.nombre_estado || 'Unknown'}
+        </Tag>
+      </div>
+
+      <ActionButtons
+        record={record}
+        userCanEdit={userCanEdit}
+        showModal={showModal}
+        handleEditContent={handleEditContent}
+        handlePreview={handlePreview}
+        handleDelete={handleDelete}
+        handleComment={handleComment}
+      />
+    </div>
+  );
+});
+
+NewsDetails.displayName = 'NewsDetails';
+
 const NewsManagement = () => {
-  // Estados existentes
   const [news, setNews] = useState([]);
   const [allNews, setAllNews] = useState([]);
   const [editors, setEditors] = useState([]);
@@ -62,12 +323,11 @@ const NewsManagement = () => {
   const [form] = Form.useForm();
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [trabajadorId, setTrabajadorId] = useState(null);
   const [showAllNews, setShowAllNews] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
-
-  // Nuevos estados para optimización
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(INITIAL_PAGE_SIZE);
   const [totalCount, setTotalCount] = useState(0);
@@ -76,72 +336,33 @@ const NewsManagement = () => {
 
   const navigate = useNavigate();
   const screens = useBreakpoint();
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMemo(() => screens.xs && !screens.sm, [screens.xs, screens.sm]);
 
-  // Detect mobile screen
+  // Debounce del término de búsqueda
   useEffect(() => {
-    setIsMobile(screens.xs && !screens.sm);
-  }, [screens]);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, DEBOUNCE_DELAY);
 
-  const CATEGORIAS = [
-    ['Politica', [
-      ['legislativos', 'Legislativos'],
-      ['policiales', 'Policiales'],
-      ['elecciones', 'Elecciones'],
-      ['gobierno', 'Gobierno'],
-      ['provincias', 'Provincias'],
-      ['capital', 'Capital'],
-      ['nacion', 'Nacion'],
-    ]],
-    ['Cultura', [
-      ['cine', 'Cine'],
-      ['literatura', 'Literatura'],
-      ['salud', 'Salud'],
-      ['tecnologia', 'Tecnologia'],
-      ['eventos', 'Eventos'],
-      ['educacion', 'Educacion'],
-      ['efemerides', 'Efemerides'],
-      ['deporte', 'Deporte'],
-    ]],
-    ['Economia', [
-      ['finanzas', 'Finanzas'],
-      ['comercio_internacional', 'Comercio internacional'],
-      ['politica_economica', 'Politica economica'],
-      ['pobreza_e_inflacion', 'Pobreza e inflacion'],
-      ['dolar', 'Dolar'],
-    ]],
-    ['Mundo', [
-      ['estados_unidos', 'Estados Unidos'],
-      ['argentina', 'Argentina'],
-      ['asia', 'Asia'],
-      ['medio_oriente', 'Medio Oriente'],
-      ['internacional', 'Internacional'],
-      ['latinoamerica', 'Latinoamerica'],
-    ]],
-    ['Tipos de notas', [
-      ['de_analisis', 'De analisis'],
-      ['de_opinion', 'De opinion'],
-      ['informativas', 'Informativas'],
-      ['entrevistas', 'Entrevistas'],
-    ]]
-  ];
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  // Funciones de caché (mantenidas igual)
-  const isCacheValid = (timestamp) => {
+  // Funciones de caché optimizadas
+  const isCacheValid = useCallback((timestamp) => {
     if (!timestamp) return false;
     return Date.now() - parseInt(timestamp) < CACHE_DURATION;
-  };
+  }, []);
 
-  const saveToCache = (key, data) => {
+  const saveToCache = useCallback((key, data) => {
     try {
       localStorage.setItem(key, JSON.stringify(data));
       localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
     } catch (error) {
       console.warn('Error saving to cache:', error);
     }
-  };
+  }, []);
 
-  const getFromCache = (key) => {
+  const getFromCache = useCallback((key) => {
     try {
       const cachedData = localStorage.getItem(key);
       const timestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
@@ -153,9 +374,8 @@ const NewsManagement = () => {
       console.warn('Error reading from cache:', error);
     }
     return null;
-  };
+  }, [isCacheValid]);
 
-  // Función optimizada para ordenar noticias
   const sortNewsByDate = useCallback((newsArray) => {
     return [...newsArray].sort((a, b) => {
       const dateA = moment(a.fecha_publicacion);
@@ -164,7 +384,12 @@ const NewsManagement = () => {
     });
   }, []);
 
-  // Función optimizada para obtener noticias con paginación
+  const invalidateNewsCache = useCallback(() => {
+    localStorage.removeItem(CACHE_KEYS.NEWS);
+    localStorage.removeItem(CACHE_KEYS.ALL_NEWS);
+    console.log('Caché de noticias invalidado');
+  }, []);
+
   const fetchPaginatedNews = useCallback(async (page = 1, size = INITIAL_PAGE_SIZE, reset = false) => {
     try {
       if (reset) {
@@ -176,7 +401,6 @@ const NewsManagement = () => {
         setLoadingMore(true);
       }
 
-      // Intentar cargar desde caché primero solo en la primera carga
       if (page === 1 && !reset) {
         const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
         const cachedNews = getFromCache(cacheKey);
@@ -205,14 +429,12 @@ const NewsManagement = () => {
         }
       }
 
-      // Si no hay caché o estamos cargando más páginas, hacer petición a la API
       const response = await api.get(`noticias/?page=${page}&page_size=${size}`);
       
       let newNews = response.data.results || response.data;
       const total = response.data.count || newNews.length;
 
       if (!showAllNews) {
-        // Filtrar noticias del usuario
         newNews = newNews.filter(noticia => 
           noticia.autor === trabajadorId || 
           (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
@@ -222,7 +444,6 @@ const NewsManagement = () => {
       const sortedNews = sortNewsByDate(newNews);
 
       if (page === 1 || reset) {
-        // Primera carga o reset
         if (showAllNews) {
           setAllNews(sortedNews);
           saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
@@ -231,7 +452,6 @@ const NewsManagement = () => {
           saveToCache(CACHE_KEYS.NEWS, sortedNews);
         }
       } else {
-        // Cargar más páginas
         if (showAllNews) {
           setAllNews(prevNews => {
             const combined = [...prevNews, ...sortedNews];
@@ -263,9 +483,8 @@ const NewsManagement = () => {
       setLoadingMore(false);
       setDataLoaded(true);
     }
-  }, [trabajadorId, showAllNews, sortNewsByDate]);
+  }, [trabajadorId, showAllNews, sortNewsByDate, getFromCache, saveToCache]);
 
-  // Función para cargar más noticias
   const loadMoreNews = useCallback(() => {
     if (!loadingMore && hasMore) {
       const nextPage = currentPage + 1;
@@ -273,21 +492,6 @@ const NewsManagement = () => {
     }
   }, [currentPage, pageSize, loadingMore, hasMore, fetchPaginatedNews]);
 
-  // Efecto principal de inicialización
-  useEffect(() => {
-    verifyTrabajador();
-    fetchEditors();
-    fetchPublicationStates();
-  }, []);
-
-  // Efecto para cargar noticias cuando cambie el trabajador o la vista
-  useEffect(() => {
-    if (trabajadorId) {
-      fetchPaginatedNews(1, INITIAL_PAGE_SIZE, true);
-    }
-  }, [trabajadorId, showAllNews, fetchPaginatedNews]);
-
-  // Funciones de datos auxiliares (editores, estados) - optimizadas con caché
   const fetchEditors = useCallback(async () => {
     const cachedEditors = getFromCache(CACHE_KEYS.EDITORS);
     if (cachedEditors && Array.isArray(cachedEditors)) {
@@ -306,7 +510,7 @@ const NewsManagement = () => {
         message.error("No se pudieron cargar los editores");
       }
     }
-  }, []);
+  }, [getFromCache, saveToCache]);
 
   const fetchPublicationStates = useCallback(async () => {
     const cachedStates = getFromCache(CACHE_KEYS.PUBLICATION_STATES);
@@ -326,10 +530,64 @@ const NewsManagement = () => {
         message.error("No se pudieron cargar los estados");
       }
     }
-  }, []);
+  }, [getFromCache, saveToCache]);
 
-  // Función para limpiar caché (mantenida igual)
-  const clearAllCache = async () => {
+  const verifyTrabajador = useCallback(() => {
+    const accessToken = localStorage.getItem('access');
+    if (!accessToken) {
+      navigate('/login');
+      return;
+    }
+
+    const storedTrabajadorId = localStorage.getItem('trabajadorId');
+    if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
+      setTrabajadorId(parseInt(storedTrabajadorId));
+    } else {
+      api.get('user-profile/', {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
+      }).then(response => {
+        console.log("Perfil recibido:", response.data);
+        
+        api.get('trabajadores/')
+          .then(trabajadoresResponse => {
+            const trabajador = trabajadoresResponse.data.find(
+              t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
+            );
+            
+            if (trabajador && trabajador.id > 0) {
+              console.log("Trabajador encontrado:", trabajador);
+              setTrabajadorId(trabajador.id);
+              localStorage.setItem('trabajadorId', trabajador.id.toString());
+            } else {
+              console.error("No se encontró un trabajador válido asociado a este perfil");
+              message.error("No tiene permisos para acceder a esta página");
+              navigate('/login');
+            }
+          })
+          .catch(error => {
+            console.error("Error al obtener trabajadores:", error);
+            navigate('/login');
+          });
+      }).catch(error => {
+        console.error("Error al verificar el perfil:", error);
+        navigate('/login');
+      });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    verifyTrabajador();
+    fetchEditors();
+    fetchPublicationStates();
+  }, [verifyTrabajador, fetchEditors, fetchPublicationStates]);
+
+  useEffect(() => {
+    if (trabajadorId) {
+      fetchPaginatedNews(1, INITIAL_PAGE_SIZE, true);
+    }
+  }, [trabajadorId, showAllNews]);
+
+  const clearAllCache = useCallback(async () => {
     try {
       Modal.confirm({
         title: '¿Borrar todo el caché?',
@@ -374,60 +632,8 @@ const NewsManagement = () => {
       console.error('Error en clearAllCache:', error);
       message.error('Error al intentar borrar el caché');
     }
-  };
-
-  // Función para invalidar caché de noticias
-  const invalidateNewsCache = useCallback(() => {
-    localStorage.removeItem(CACHE_KEYS.NEWS);
-    localStorage.removeItem(CACHE_KEYS.ALL_NEWS);
-    console.log('Caché de noticias invalidado');
   }, []);
 
-  // Verificación de trabajador (mantenida igual)
-  const verifyTrabajador = () => {
-    const accessToken = localStorage.getItem('access');
-    if (!accessToken) {
-      navigate('/login');
-      return;
-    }
-
-    const storedTrabajadorId = localStorage.getItem('trabajadorId');
-    if (storedTrabajadorId && parseInt(storedTrabajadorId) > 0) {
-      setTrabajadorId(parseInt(storedTrabajadorId));
-    } else {
-      api.get('user-profile/', {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      }).then(response => {
-        console.log("Perfil recibido:", response.data);
-        
-        api.get('trabajadores/')
-          .then(trabajadoresResponse => {
-            const trabajador = trabajadoresResponse.data.find(
-              t => t.nombre === response.data.nombre && t.apellido === response.data.apellido
-            );
-            
-            if (trabajador && trabajador.id > 0) {
-              console.log("Trabajador encontrado:", trabajador);
-              setTrabajadorId(trabajador.id);
-              localStorage.setItem('trabajadorId', trabajador.id.toString());
-            } else {
-              console.error("No se encontró un trabajador válido asociado a este perfil");
-              message.error("No tiene permisos para acceder a esta página");
-              navigate('/login');
-            }
-          })
-          .catch(error => {
-            console.error("Error al obtener trabajadores:", error);
-            navigate('/login');
-          });
-      }).catch(error => {
-        console.error("Error al verificar el perfil:", error);
-        navigate('/login');
-      });
-    }
-  };
-
-  // Funciones auxiliares memoizadas
   const canEditNews = useCallback((record) => {
     return record.autor === trabajadorId || 
            (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId));
@@ -443,7 +649,6 @@ const NewsManagement = () => {
     });
   }, [editors]);
 
-  // Funciones de filtrado optimizadas
   const handleStateFilter = useCallback((stateId) => {
     setSelectedStateFilter(stateId);
     console.log('Filtering by state ID:', stateId);
@@ -456,10 +661,8 @@ const NewsManagement = () => {
 
   const handleSearch = useCallback((e) => {
     setSearchTerm(e.target.value);
-    console.log('Search term:', e.target.value);
   }, []);
 
-  // Función para cambiar vista optimizada
   const toggleNewsView = useCallback((showAll) => {
     setShowAllNews(showAll);
     setSelectedStateFilter(null);
@@ -468,11 +671,13 @@ const NewsManagement = () => {
     console.log('Vista cambiada a:', showAll ? 'Todas las noticias' : 'Mis noticias');
   }, []);
 
-  // Datos filtrados memoizados
+  // Filtrado optimizado con useMemo
   const { filteredNews, currentNewsArray } = useMemo(() => {
     const currentArray = showAllNews ? allNews : news;
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    
     const filtered = currentArray.filter(record => {
-      const matchesSearch = record.nombre_noticia.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = !searchLower || record.nombre_noticia.toLowerCase().includes(searchLower);
       const matchesState = selectedStateFilter === null || record.estado === selectedStateFilter;
       return matchesSearch && matchesState;
     });
@@ -481,27 +686,16 @@ const NewsManagement = () => {
       filteredNews: filtered,
       currentNewsArray: currentArray
     };
-  }, [showAllNews, allNews, news, searchTerm, selectedStateFilter]);
+  }, [showAllNews, allNews, news, debouncedSearchTerm, selectedStateFilter]);
 
-  // Función para obtener color del estado
   const getStateColor = useCallback((stateName) => {
-    const colorMap = {
-      'publicado': 'green',
-      'borrador': 'orange',
-      'en_revision': 'blue',
-      'rechazado': 'red',
-      'programado': 'purple',
-      'archivado': 'gray'
-    };
-    return colorMap[stateName?.toLowerCase()] || 'default';
+    return STATE_COLOR_MAP[stateName?.toLowerCase()] || 'default';
   }, []);
 
-  // Función para contar noticias por estado
   const getNewsCountByState = useCallback((stateId) => {
     return currentNewsArray.filter(record => record.estado === stateId).length;
   }, [currentNewsArray]);
 
-  // Funciones de manejo de noticias (mantenidas pero optimizadas)
   const showModal = useCallback((record = null) => {
     if (record) {
       if (showAllNews && !canEditNews(record)) {
@@ -541,8 +735,25 @@ const NewsManagement = () => {
     setIsModalVisible(true);
   }, [showAllNews, canEditNews, form, trabajadorId, publicationStates]);
 
+  const cleanKeywords = useCallback((keywords) => {
+    if (!keywords) return '';
+    
+    let cleaned = keywords.trim();
+    
+    while (cleaned.endsWith(',')) {
+      cleaned = cleaned.slice(0, -1).trim();
+    }
+    
+    cleaned = cleaned.replace(/,+/g, ',');
+    cleaned = cleaned.replace(/\s*,\s*/g, ',');
+    
+    return cleaned;
+  }, []);
+
   const handleOk = useCallback(() => {
     form.validateFields().then(values => {
+      const cleanedKeywords = cleanKeywords(values.Palabras_clave);
+      
       if (!Array.isArray(values.categorias)) {
         values.categorias = values.categorias ? [values.categorias] : [];
       }
@@ -551,11 +762,21 @@ const NewsManagement = () => {
         values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
       }
       
+      const estadoPublicado = publicationStates.find(
+        state => state.nombre_estado.toLowerCase() === 'publicado'
+      );
+      
+      let fechaPublicacion = values.fecha_publicacion;
+      if (estadoPublicado && parseInt(values.estado, 10) === estadoPublicado.id) {
+        fechaPublicacion = moment();
+        console.log('Estado publicado detectado - actualizando fecha a hoy:', fechaPublicacion.format('YYYY-MM-DD'));
+      }
+      
       const noticiaEditada = {
         nombre_noticia: values.nombre_noticia,
-        fecha_publicacion: values.fecha_publicacion.format('YYYY-MM-DD'),
+        fecha_publicacion: fechaPublicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
-        Palabras_clave: values.Palabras_clave || '',
+        Palabras_clave: cleanedKeywords,
         autor: parseInt(values.autor, 10),
         editores_en_jefe: values.editores_en_jefe,
         estado: parseInt(values.estado, 10),
@@ -596,7 +817,6 @@ const NewsManagement = () => {
               )
             );
           } else {
-            // Recargar las noticias después de crear una nueva
             fetchPaginatedNews(1, pageSize, true);
           }
           
@@ -609,7 +829,7 @@ const NewsManagement = () => {
           setIsModalVisible(false);
         });
     });
-  }, [form, editingId, invalidateNewsCache, fetchPaginatedNews, pageSize]);
+  }, [form, editingId, invalidateNewsCache, fetchPaginatedNews, pageSize, publicationStates, cleanKeywords]);
 
   const handleDelete = useCallback((id) => {
     api.delete(`noticias/${id}/`)
@@ -624,12 +844,10 @@ const NewsManagement = () => {
       .catch(error => {
         console.error("Error al eliminar la noticia:", error);
         message.error("Error al eliminar la noticia");
-        // Recargar noticias en caso de error
         fetchPaginatedNews(1, pageSize, true);
       });
   }, [invalidateNewsCache, fetchPaginatedNews, pageSize]);
 
-  // Funciones de navegación (mantenidas igual)
   const handleEditContent = useCallback((id) => {
     navigate(`/edit-content/${id}`);
     console.log('Navigating to edit content for news ID:', id);
@@ -653,228 +871,56 @@ const NewsManagement = () => {
     console.log('Navigating to preview for news ID:', record.id);
   }, [generateNewsUrl, navigate]);
 
-  // Configuración optimizada de la tabla
-  const tableConfig = useMemo(() => ({
-    columns: [
-      { 
-        title: 'Detalles de la Noticia', 
-        dataIndex: 'nombre_noticia', 
-        key: 'nombre_noticia',
-        render: (text, record) => {
-          const authorObj = editors.find(editor => editor.id === record.autor);
-          
-          const editorObjs = Array.isArray(record.editores_en_jefe) 
-            ? record.editores_en_jefe.map(editorId => 
-                editors.find(editor => editor.id === editorId)
-              ).filter(Boolean)
-            : [];
-          
-          const currentState = publicationStates.find(state => state.id === record.estado);
-          const userCanEdit = canEditNews(record);
-          
-          return (
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column',
-              gap: '8px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Título:</strong>
-                <span>{text}</span>
-                {showAllNews && !userCanEdit && (
-                  <Tag color="orange" style={{ marginLeft: 'auto' }}>
-                    Solo lectura
-                  </Tag>
-                )}
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Autor:</strong>
-                <span>
-                  {authorObj
-                    ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
-                    : `Unknown (ID: ${record.autor})`}
-                </span>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px'
-              }}>
-                <strong>Editores:</strong>
-                <div>
-                  {editorObjs.length > 0 
-                    ? editorObjs.map(editor => 
-                        `${editor.nombre} ${editor.apellido} (ID: ${editor.id})`
-                      ).join(', ')
-                    : 'Ninguno asignado'}
-                </div>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Fecha:</strong>
-                <span>{record.fecha_publicacion}</span>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Categorías:</strong>
-                <span>{record.categorias ? record.categorias.join(', ') : ''}</span>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Palabras Clave:</strong>
-                <span>{record.Palabras_clave || 'N/A'}</span>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Suscriptores:</strong>
-                <span>{record.solo_para_subscriptores ? 'Sí' : 'No'}</span>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <strong>Estado:</strong>
-                <Tag color={getStateColor(currentState?.nombre_estado)}>
-                  {currentState?.nombre_estado || 'Unknown'}
-                </Tag>
-              </div>
-
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap',
-                gap: '8px', 
-                width: '100%', 
-                marginTop: '12px' 
-              }}>
-                {userCanEdit && (
-                  <Button 
-                    icon={<EditOutlined />} 
-                    onClick={() => showModal(record)} 
-                    size="small"
-                  >
-                    Editar
-                  </Button>
-                )}
-                {userCanEdit && (
-                  <Button 
-                    icon={<EditOutlined />} 
-                    onClick={() => handleEditContent(record.id)} 
-                    size="small"
-                  >
-                    Contenido
-                  </Button>
-                )}
-                <Button 
-                  icon={<EyeOutlined />} 
-                  onClick={() => handlePreview(record)} 
-                  size="small"
-                  type="default"
-                >
-                  Vista Previa
-                </Button>
-                {userCanEdit && (
-                  <Popconfirm
-                    title="¿Eliminar esta noticia?"
-                    onConfirm={() => handleDelete(record.id)}
-                    okText="Sí"
-                    cancelText="No"
-                  >
-                    <Button 
-                      icon={<DeleteOutlined />} 
-                      danger 
-                      size="small"
-                    >
-                      Eliminar
-                    </Button>
-                  </Popconfirm>
-                )}
-                <Button 
-                  icon={<CommentOutlined />} 
-                  onClick={() => handleComment(record.id)}
-                  size="small"
-                >
-                  Comentar
-                </Button>
-              </div>
-            </div>
-          );
-        }
-      },
-    ],
-    pagination: {
-      current: currentPage,
-      pageSize: pageSize,
-      total: filteredNews.length,
-      showSizeChanger: !isMobile,
-      showQuickJumper: !isMobile,
-      showTotal: (total, range) => 
-        `${range[0]}-${range[1]} de ${total} noticias`,
-      onChange: (page, size) => {
-        setCurrentPage(page);
-        if (size !== pageSize) {
-          setPageSize(size);
-        }
-        // Si necesitamos más datos y estamos cerca del final, cargar más
-        if (page * size > currentNewsArray.length * 0.8 && hasMore) {
-          loadMoreNews();
-        }
-      },
-      onShowSizeChange: (current, size) => {
-        setPageSize(size);
-        setCurrentPage(1);
-      },
-      pageSizeOptions: ['10', '20', '50', '100'],
-      responsive: true,
+  // Configuración de tabla optimizada con memoización
+  const tableColumns = useMemo(() => [
+    { 
+      title: 'Detalles de la Noticia', 
+      dataIndex: 'nombre_noticia', 
+      key: 'nombre_noticia',
+      render: (text, record) => (
+        <NewsDetails
+          text={text}
+          record={record}
+          editors={editors}
+          publicationStates={publicationStates}
+          canEditNews={canEditNews}
+          showAllNews={showAllNews}
+          getStateColor={getStateColor}
+          showModal={showModal}
+          handleEditContent={handleEditContent}
+          handlePreview={handlePreview}
+          handleDelete={handleDelete}
+          handleComment={handleComment}
+        />
+      )
     }
-  }), [
-    editors, 
-    publicationStates, 
-    canEditNews, 
-    showAllNews, 
-    getStateColor, 
-    showModal, 
-    handleEditContent, 
-    handlePreview, 
-    handleDelete, 
-    handleComment,
-    currentPage,
-    pageSize,
-    filteredNews.length,
-    isMobile,
-    currentNewsArray.length,
-    hasMore,
-    loadMoreNews
-  ]);
+  ], [editors, publicationStates, canEditNews, showAllNews, getStateColor, showModal, handleEditContent, handlePreview, handleDelete, handleComment]);
 
-  // Función para renderizar opciones de categorías (mantenida igual)
+  const tablePagination = useMemo(() => ({
+    current: currentPage,
+    pageSize: pageSize,
+    total: filteredNews.length,
+    showSizeChanger: !isMobile,
+    showQuickJumper: !isMobile,
+    showTotal: (total, range) => 
+      `${range[0]}-${range[1]} de ${total} noticias`,
+    onChange: (page, size) => {
+      setCurrentPage(page);
+      if (size !== pageSize) {
+        setPageSize(size);
+      }
+      if (page * size > currentNewsArray.length * 0.8 && hasMore) {
+        loadMoreNews();
+      }
+    },
+    onShowSizeChange: (current, size) => {
+      setPageSize(size);
+      setCurrentPage(1);
+    },
+    pageSizeOptions: ['10', '20', '50', '100'],
+    responsive: true,
+  }), [currentPage, pageSize, filteredNews.length, isMobile, currentNewsArray.length, hasMore, loadMoreNews]);
+
   const renderCategoryOptions = useCallback(() => {
     return CATEGORIAS.map(([value, labelOrSubcats]) => {
       if (Array.isArray(labelOrSubcats)) {
@@ -925,7 +971,6 @@ const NewsManagement = () => {
                 }} 
               />
               
-              {/* Toggle para cambiar entre vistas */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1030,7 +1075,6 @@ const NewsManagement = () => {
             </Space>
           </div>
           
-          {/* Indicador de vista actual y estado de carga */}
           <div style={{
             marginTop: '12px',
             padding: '8px 12px',
@@ -1059,7 +1103,6 @@ const NewsManagement = () => {
               )}
             </span>
             
-            {/* Indicador de más contenido disponible */}
             {hasMore && !loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Button 
@@ -1079,18 +1122,17 @@ const NewsManagement = () => {
 
         <Layout.Content style={{ padding: '20px' }}>
           <Table 
-            columns={tableConfig.columns}
+            columns={tableColumns}
             dataSource={filteredNews} 
             rowKey="id" 
             scroll={{ x: true }} 
-            pagination={tableConfig.pagination}
+            pagination={tablePagination}
             loading={loading}
             locale={{
               emptyText: loading ? 'Cargando noticias...' : 'No hay noticias disponibles'
             }}
           />
           
-          {/* Indicador de carga al final para carga infinita */}
           {loadingMore && (
             <div style={{
               textAlign: 'center',
@@ -1104,7 +1146,6 @@ const NewsManagement = () => {
             </div>
           )}
           
-          {/* Mensaje cuando no hay más contenido */}
           {!hasMore && currentNewsArray.length > 0 && (
             <div style={{
               textAlign: 'center',
@@ -1180,8 +1221,9 @@ const NewsManagement = () => {
             name="fecha_publicacion" 
             label="Fecha de Publicación" 
             rules={[{ required: true, message: '¡Por favor seleccione la fecha de publicación!' }]}
+            extra="Nota: Si selecciona 'Publicado' como estado, la fecha se actualizará automáticamente a hoy"
           >
-            <DatePicker />
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
 
           <Form.Item 
@@ -1216,10 +1258,18 @@ const NewsManagement = () => {
 
           <Form.Item 
             name="Palabras_clave" 
-            label="Categorias (separe cada categoría por una coma ',' y usar guion bajo '_' para separar las palabras en lugar del espacio. Ejemplo: Argentina,Javier_Milei,Opinión)"
-            rules={[{ required: true, message: '¡Por favor seleccione al menos una Categoria!' }]}
+            label="Categorias"
+            rules={[{ required: true, message: '¡Por favor ingrese al menos una categoría!' }]}
+            extra="Separe cada categoría por una coma ',' y use guion bajo '_' para separar palabras. Ejemplo: Argentina,Javier_Milei,Opinión. Las comas finales serán eliminadas automáticamente."
           >
-            <TextArea rows={4} />
+            <TextArea 
+              rows={4} 
+              placeholder="Argentina,Javier_Milei,Opinión"
+              onBlur={(e) => {
+                const cleaned = cleanKeywords(e.target.value);
+                form.setFieldsValue({ Palabras_clave: cleaned });
+              }}
+            />
           </Form.Item>
         </Form>
       </Modal>
