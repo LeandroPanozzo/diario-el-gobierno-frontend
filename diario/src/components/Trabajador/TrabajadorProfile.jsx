@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import api from '../../pages/context/axiosConfig';
-
 const TrabajadorProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -33,7 +32,10 @@ const TrabajadorProfile = () => {
   
       setTrabajador(response.data);
       form.setFieldsValue({
-        descripcion_usuario: descripcion_usuario || '',
+        nombre: nombre || '',
+        apellido: apellido || '',
+        foto_perfil: foto_perfil || '',
+        descripcion_usuario: descripcion_usuario || '',  // Asignar la descripción en el formulario
       });
   
       const imageUrl = foto_perfil
@@ -54,6 +56,7 @@ const TrabajadorProfile = () => {
       }
     }
   };
+  
 
   const handleUpdateProfile = async (values) => {
     const accessToken = localStorage.getItem('access');
@@ -64,8 +67,10 @@ const TrabajadorProfile = () => {
     }
   
     let formData = new FormData();
-    // Solo enviamos la descripción, no nombre ni apellido
-    formData.append('descripcion_usuario', values.descripcion_usuario || '');
+    formData.append('nombre', values.nombre);
+    formData.append('apellido', values.apellido);
+    formData.append('descripcion_usuario', values.descripcion_usuario)  
+  // Enviar la descripción en el formulario
   
     if (profileImage) {
       formData.append('foto_perfil_local', profileImage);
@@ -80,7 +85,7 @@ const TrabajadorProfile = () => {
         },
       });
       message.success('Perfil actualizado correctamente');
-      await fetchTrabajadorProfile();
+      await fetchTrabajadorProfile(); // Actualiza el perfil inmediatamente
     } catch (error) {
       console.error('Error updating profile:', error);
       if (error.response) {
@@ -107,25 +112,48 @@ const TrabajadorProfile = () => {
       }
     } else {
       setProfileImage(null);
-      setImagePreview(trabajador?.foto_perfil);
+      setImagePreview(trabajador?.foto_perfil); // Cambiado a foto_perfil
     }
   };
 
-  const handleMisNoticias = () => {
-    const accessToken = localStorage.getItem('access');
-    console.log('Access token present:', !!accessToken);
-    console.log('Trabajador ID:', trabajador?.id);
-    console.log('Attempting to navigate to /ed');
-    navigate('/ed');
-  };
+  // In your TrabajadorProfile.js
+const handleMisNoticias = () => {
+  const accessToken = localStorage.getItem('access');
+  console.log('Access token present:', !!accessToken);
+  console.log('Trabajador ID:', trabajador?.id);
+  console.log('Attempting to navigate to /ed');
+  navigate('/ed');
+};
 
   return (
-    <section className='section-trabajador' style={{marginTop: "37px"}}>
+    <section className='section-trabajador'>
       <h1>Perfil del Trabajador</h1>
       {trabajador ? (
         <Form form={form} onFinish={handleUpdateProfile} encType="multipart/form-data">
-          {/* Mostrar nombre y apellido pero sin permitir edición */}
-          <div className="author-info" style={{ marginBottom: '24px' }}>
+          <Form.Item
+            name="nombre"
+            label="Nombre"
+            rules={[{ required: true, message: 'Nombre es requerido' }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="apellido"
+            label="Apellido"
+            rules={[{ required: true, message: 'Apellido es requerido' }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="descripcion_usuario"
+            label="Descripción"
+            rules={[{ required: false, message: 'Descripción es opcional' }]}
+          >
+            <Input.TextArea rows={4} />
+          </Form.Item>
+
+          <div className="author-info">
             {imagePreview && (
               <img 
                 src={imagePreview} 
@@ -134,19 +162,9 @@ const TrabajadorProfile = () => {
               />
             )}
             <div className="author-details">
-              <span className="author-name" style={{ fontSize: '18px', fontWeight: 'bold' }}>
-                {trabajador.nombre} {trabajador.apellido}
-              </span>
+              <span className="author-name">{trabajador.nombre} {trabajador.apellido}</span>
             </div>
           </div>
-
-          <Form.Item
-            name="descripcion_usuario"
-            label="Descripción"
-            rules={[{ required: false, message: 'Descripción es opcional' }]}
-          >
-            <Input.TextArea rows={4} placeholder="Escribe una breve descripción sobre ti..." />
-          </Form.Item>
 
           <Form.Item label="Cambiar Foto de Perfil">
             <Upload
@@ -178,3 +196,4 @@ const TrabajadorProfile = () => {
 };
 
 export default TrabajadorProfile;
+
