@@ -1,9 +1,16 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import api from '../../pages/context/axiosConfig';
+
+// Función para remover acentos
+const removerAcentos = (texto) => {
+  if (!texto) return texto;
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
 const TrabajadorProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -35,7 +42,7 @@ const TrabajadorProfile = () => {
         nombre: nombre || '',
         apellido: apellido || '',
         foto_perfil: foto_perfil || '',
-        descripcion_usuario: descripcion_usuario || '',  // Asignar la descripción en el formulario
+        descripcion_usuario: descripcion_usuario || '',
       });
   
       const imageUrl = foto_perfil
@@ -56,7 +63,6 @@ const TrabajadorProfile = () => {
       }
     }
   };
-  
 
   const handleUpdateProfile = async (values) => {
     const accessToken = localStorage.getItem('access');
@@ -66,11 +72,14 @@ const TrabajadorProfile = () => {
       return;
     }
   
+    // Remover acentos de nombre y apellido antes de enviar
+    const nombreSinAcentos = removerAcentos(values.nombre);
+    const apellidoSinAcentos = removerAcentos(values.apellido);
+  
     let formData = new FormData();
-    formData.append('nombre', values.nombre);
-    formData.append('apellido', values.apellido);
-    formData.append('descripcion_usuario', values.descripcion_usuario)  
-  // Enviar la descripción en el formulario
+    formData.append('nombre', nombreSinAcentos);
+    formData.append('apellido', apellidoSinAcentos);
+    formData.append('descripcion_usuario', values.descripcion_usuario);
   
     if (profileImage) {
       formData.append('foto_perfil_local', profileImage);
@@ -112,18 +121,38 @@ const TrabajadorProfile = () => {
       }
     } else {
       setProfileImage(null);
-      setImagePreview(trabajador?.foto_perfil); // Cambiado a foto_perfil
+      setImagePreview(trabajador?.foto_perfil);
     }
   };
 
-  // In your TrabajadorProfile.js
-const handleMisNoticias = () => {
-  const accessToken = localStorage.getItem('access');
-  console.log('Access token present:', !!accessToken);
-  console.log('Trabajador ID:', trabajador?.id);
-  console.log('Attempting to navigate to /ed');
-  navigate('/ed');
-};
+  const handleMisNoticias = () => {
+    const accessToken = localStorage.getItem('access');
+    console.log('Access token present:', !!accessToken);
+    console.log('Trabajador ID:', trabajador?.id);
+    console.log('Attempting to navigate to /ed');
+    navigate('/ed');
+  };
+
+  // Validación personalizada para mostrar advertencia sobre acentos
+  const validateNombre = (_, value) => {
+    if (!value) {
+      return Promise.reject(new Error('Nombre es requerido'));
+    }
+    if (value !== removerAcentos(value)) {
+      message.warning('Los acentos serán removidos automáticamente al guardar');
+    }
+    return Promise.resolve();
+  };
+
+  const validateApellido = (_, value) => {
+    if (!value) {
+      return Promise.reject(new Error('Apellido es requerido'));
+    }
+    if (value !== removerAcentos(value)) {
+      message.warning('Los acentos serán removidos automáticamente al guardar');
+    }
+    return Promise.resolve();
+  };
 
   return (
     <section className='section-trabajador'>
@@ -133,16 +162,23 @@ const handleMisNoticias = () => {
           <Form.Item
             name="nombre"
             label="Nombre"
-            rules={[{ required: true, message: 'Nombre es requerido' }]}
+            rules={[
+              { required: true, message: 'Nombre es requerido' },
+              { validator: validateNombre }
+            ]}
           >
-            <Input />
+            <Input placeholder="Ejemplo: Jose (sin acento)" />
           </Form.Item>
+          
           <Form.Item
             name="apellido"
             label="Apellido"
-            rules={[{ required: true, message: 'Apellido es requerido' }]}
+            rules={[
+              { required: true, message: 'Apellido es requerido' },
+              { validator: validateApellido }
+            ]}
           >
-            <Input />
+            <Input placeholder="Ejemplo: Martinez (sin acento)" />
           </Form.Item>
 
           <Form.Item
@@ -196,4 +232,3 @@ const handleMisNoticias = () => {
 };
 
 export default TrabajadorProfile;
-
