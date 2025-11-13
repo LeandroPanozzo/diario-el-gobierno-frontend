@@ -9,7 +9,7 @@ function Header() {
   const { user, setUser, logout } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
+  // const [activeDropdown, setActiveDropdown] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
@@ -19,67 +19,67 @@ function Header() {
     {
       nombre: 'Politica',
       path: 'Politica',
-      subcategorias: [
-        { nombre: 'Legislativos', path: 'legislativos' },
-        { nombre: 'Policiales', path: 'policiales' },
-        { nombre: 'Elecciones', path: 'elecciones' },
-        { nombre: 'Gobierno', path: 'gobierno' },
-        { nombre: 'Provincias', path: 'provincias' },
-        { nombre: 'Capital', path: 'capital' },
-        { nombre: 'Nacion', path: 'nacion' },
-      ],
+      // subcategorias: [
+      //   { nombre: 'Legislativos', path: 'legislativos' },
+      //   { nombre: 'Policiales', path: 'policiales' },
+      //   { nombre: 'Elecciones', path: 'elecciones' },
+      //   { nombre: 'Gobierno', path: 'gobierno' },
+      //   { nombre: 'Provincias', path: 'provincias' },
+      //   { nombre: 'Capital', path: 'capital' },
+      //   { nombre: 'Nacion', path: 'nacion' },
+      // ],
     },
     {
       nombre: 'Economia',
       path: 'Economia',
-      subcategorias: [
-        { nombre: 'Finanzas', path: 'finanzas' },
-        { nombre: 'Comercio internacional', path: 'comercio_internacional' },
-        { nombre: 'Politica economica', path: 'politica_economica' },
-        { nombre: 'Pobreza e inflacion', path: 'pobreza_e_inflacion' },
-        { nombre: 'Dolar', path: 'dolar' },
-      ],
+      // subcategorias: [
+      //   { nombre: 'Finanzas', path: 'finanzas' },
+      //   { nombre: 'Comercio internacional', path: 'comercio_internacional' },
+      //   { nombre: 'Politica economica', path: 'politica_economica' },
+      //   { nombre: 'Pobreza e inflacion', path: 'pobreza_e_inflacion' },
+      //   { nombre: 'Dolar', path: 'dolar' },
+      // ],
     },
     {
       nombre: 'Cultura',
       path: 'Cultura',
-      subcategorias: [
-        { nombre: 'Cine', path: 'cine' },
-        { nombre: 'Literatura', path: 'literatura' },
-        { nombre: 'Salud', path: 'salud' },
-        { nombre: 'Tecnologia', path: 'tecnologia' },
-        { nombre: 'Eventos', path: 'eventos' },
-        { nombre: 'Educacion', path: 'educacion' },
-        { nombre: 'Efemerides', path: 'efemerides' },
-        { nombre: 'Deporte', path: 'deporte' },
-      ],
+      // subcategorias: [
+      //   { nombre: 'Cine', path: 'cine' },
+      //   { nombre: 'Literatura', path: 'literatura' },
+      //   { nombre: 'Salud', path: 'salud' },
+      //   { nombre: 'Tecnologia', path: 'tecnologia' },
+      //   { nombre: 'Eventos', path: 'eventos' },
+      //   { nombre: 'Educacion', path: 'educacion' },
+      //   { nombre: 'Efemerides', path: 'efemerides' },
+      //   { nombre: 'Deporte', path: 'deporte' },
+      // ],
     },
     {
       nombre: 'Mundo',
       path: 'Mundo',
-      subcategorias: [
-        { nombre: 'Estados Unidos', path: 'estados_unidos' },
-        { nombre: 'Medio Oriente', path: 'medio_oriente' },
-        { nombre: 'Asia', path: 'asia' },
-        { nombre: 'Internacional', path: 'internacional' },
-        { nombre: 'Latinoamerica', path: 'latinoamerica' },
-      ],
+      // subcategorias: [
+      //   { nombre: 'Estados Unidos', path: 'estados_unidos' },
+      //   { nombre: 'Medio Oriente', path: 'medio_oriente' },
+      //   { nombre: 'Asia', path: 'asia' },
+      //   { nombre: 'Internacional', path: 'internacional' },
+      //   { nombre: 'Latinoamerica', path: 'latinoamerica' },
+      // ],
     },
     {
       nombre: 'Tipos de notas',
       path: 'Tipos de notas',
-      subcategorias: [
-        { nombre: 'De analisis', path: 'de_analisis' },
-        { nombre: 'De opinion', path: 'de_opinion' },
-        { nombre: 'Informativas', path: 'informativas' },
-        { nombre: 'Entrevistas', path: 'entrevistas' },
-      ],
+      // subcategorias: [
+      //   { nombre: 'De analisis', path: 'de_analisis' },
+      //   { nombre: 'De opinion', path: 'de_opinion' },
+      //   { nombre: 'Informativas', path: 'informativas' },
+      //   { nombre: 'Entrevistas', path: 'entrevistas' },
+      // ],
     },
     {
       nombre: 'Revista Sociedad',
       path: 'https://diarioelgobierno.pe/revista-sociedad-lifestyle/',
       external: true,
-      subcategorias: [],
+      // subcategorias: [],
     },
   ];
 
@@ -165,13 +165,13 @@ function Header() {
     };
   }, [isSearchOpen]);
 
-  const toggleDropdown = (index) => {
-    setActiveDropdown(activeDropdown === index ? null : index);
-  };
+  // const toggleDropdown = (index) => {
+  //   setActiveDropdown(activeDropdown === index ? null : index);
+  // };
 
   const closeMenu = () => {
     setIsMenuOpen(false);
-    setActiveDropdown(null);
+    // setActiveDropdown(null);
   };
   
   const SocialIcons = () => (
@@ -327,27 +327,28 @@ function Header() {
                     {categoria.nombre}
                   </a>
                 ) : (
-                  <div key={categoria.path} className="section-with-subcategorias">
+                  // <div key={categoria.path} className="section-with-subcategorias">
                     <Link
+                      key={categoria.path}
                       to={`/seccion/${categoria.path}`}
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {categoria.nombre}
                     </Link>
-                    {categoria.subcategorias.length > 0 && (
-                      <div className="subcategorias">
-                        {categoria.subcategorias.map((subcat) => (
-                          <Link
-                            key={subcat.path}
-                            to={`/subcategoria/${subcat.path}`}
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            {subcat.nombre}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    // {categoria.subcategorias.length > 0 && (
+                    //   <div className="subcategorias">
+                    //     {categoria.subcategorias.map((subcat) => (
+                    //       <Link
+                    //         key={subcat.path}
+                    //         to={`/subcategoria/${subcat.path}`}
+                    //         onClick={() => setIsMenuOpen(false)}
+                    //       >
+                    //         {subcat.nombre}
+                    //       </Link>
+                    //     ))}
+                    //   </div>
+                    // )}
+                  // </div>
                 )
               ))}
             </div>
@@ -401,32 +402,40 @@ function Header() {
                   {categoria.nombre}
                 </a>
               ) : (
-                <div key={categoria.path} className="mobile-section-with-subcategorias">
-                  <div 
-                    className="mobile-section-link"
-                    onClick={() => toggleDropdown(index)}
-                    style={{cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
-                  >
-                    <span>{categoria.nombre}</span>
-                    {categoria.subcategorias.length > 0 && (
-                      <span>{activeDropdown === index ? '▲' : '▼'}</span>
-                    )}
-                  </div>
-                  {categoria.subcategorias.length > 0 && (
-                    <div className={`mobile-subcategorias ${activeDropdown === index ? 'open' : ''}`}>
-                      {categoria.subcategorias.map((subcat) => (
-                        <Link
-                          key={subcat.path}
-                          to={`/subcategoria/${subcat.path}`}
-                          onClick={closeMenu}
-                          className="mobile-subcategoria-link"
-                        >
-                          {subcat.nombre}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                // <div key={categoria.path} className="mobile-section-with-subcategorias">
+                //   <div 
+                //     className="mobile-section-link"
+                //     onClick={() => toggleDropdown(index)}
+                //     style={{cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
+                //   >
+                //     <span>{categoria.nombre}</span>
+                //     {categoria.subcategorias.length > 0 && (
+                //       <span>{activeDropdown === index ? '▲' : '▼'}</span>
+                //     )}
+                //   </div>
+                //   {categoria.subcategorias.length > 0 && (
+                //     <div className={`mobile-subcategorias ${activeDropdown === index ? 'open' : ''}`}>
+                //       {categoria.subcategorias.map((subcat) => (
+                //         <Link
+                //           key={subcat.path}
+                //           to={`/subcategoria/${subcat.path}`}
+                //           onClick={closeMenu}
+                //           className="mobile-subcategoria-link"
+                //         >
+                //           {subcat.nombre}
+                //         </Link>
+                //       ))}
+                //     </div>
+                //   )}
+                // </div>
+                <Link
+                  key={categoria.path}
+                  to={`/seccion/${categoria.path}`}
+                  onClick={closeMenu}
+                  className="mobile-section-link"
+                >
+                  {categoria.nombre}
+                </Link>
               )
             ))}
 
