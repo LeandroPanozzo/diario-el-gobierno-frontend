@@ -240,7 +240,7 @@ export const EditNewsContent = () => {
         }
       } else if (error.request) {
         console.error('Request:', error.request);
-        message.error('No response received from server');
+        message.error('No response received from server: Imagen no compatible');
       } else {
         console.error('Error:', error.message);
         message.error('Request failed to send');
