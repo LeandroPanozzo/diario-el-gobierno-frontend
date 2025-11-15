@@ -266,55 +266,53 @@ const getFirstParagraphContent = useCallback((content) => {
     };
   }, []);
 
-  // Configuración de secciones
+  // Configuración de secciones (sin "Tipos de notas")
   const mainSections = useMemo(() => ({
     'Politica': ['nacion','legislativos', 'policiales', 'elecciones', 'gobierno', 'provincias', 'capital'],
     'Cultura': ['cine', 'literatura', 'salud', 'tecnologia', 'eventos', 'educacion', 'efemerides','deporte'],
     'Economia': ['finanzas', 'comercio_internacional', 'politica_economica', 'dolar', 'pobreza_e_inflacion'],
-    'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica'],
-    'Tipos de notas': ['de_analisis', 'de_opinion','informativas','entrevistas']
+    'Mundo': ['estados_unidos', 'asia', 'medio_oriente', 'internacional','latinoamerica']
   }), []);
 
   // Optimización: Fetch prioritario para contenido crítico
-  // En fetchFeaturedNews, cambia el limit de 12 a 16
-const fetchFeaturedNews = useCallback(async (signal) => {
-  try {
-    const response = await api.get('noticias/destacadas/', {
-      params: { limit: 16 }, // Cambiado de 12 a 16
-      signal,
-      priority: 'high'
-    });
-    
-    const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
-    
-    // Optimización: Procesar inmediatamente las primeras 3 para LCP
-    const criticalNews = filteredNews.slice(0, 3);
-    const remainingNews = filteredNews.slice(3);
-    
-    // Procesar y precargar contenido crítico inmediatamente
-    const processedCritical = await processNewsWithImages(criticalNews, true);
-    
-    setFeaturedNews(processedCritical);
-    setLoadingStates(prev => ({ ...prev, featured: false }));
-    
-    // Procesar el resto en background
-    setTimeout(async () => {
-      const processedRemaining = await processNewsWithImages(remainingNews);
-      const allProcessed = [...processedCritical, ...processedRemaining];
+  const fetchFeaturedNews = useCallback(async (signal) => {
+    try {
+      const response = await api.get('noticias/destacadas/', {
+        params: { limit: 16 },
+        signal,
+        priority: 'high'
+      });
       
-      setFeaturedNews(allProcessed);
+      const filteredNews = response.data.filter(newsItem => newsItem.estado === 3);
       
-      // Fetch autores en background
-      fetchAuthorsAndEditors(filteredNews);
-    }, 0);
-    
-  } catch (error) {
-    if (!signal.aborted) {
-      console.error('Failed to fetch featured news:', error);
+      // Optimización: Procesar inmediatamente las primeras 3 para LCP
+      const criticalNews = filteredNews.slice(0, 3);
+      const remainingNews = filteredNews.slice(3);
+      
+      // Procesar y precargar contenido crítico inmediatamente
+      const processedCritical = await processNewsWithImages(criticalNews, true);
+      
+      setFeaturedNews(processedCritical);
       setLoadingStates(prev => ({ ...prev, featured: false }));
+      
+      // Procesar el resto en background
+      setTimeout(async () => {
+        const processedRemaining = await processNewsWithImages(remainingNews);
+        const allProcessed = [...processedCritical, ...processedRemaining];
+        
+        setFeaturedNews(allProcessed);
+        
+        // Fetch autores en background
+        fetchAuthorsAndEditors(filteredNews);
+      }, 0);
+      
+    } catch (error) {
+      if (!signal.aborted) {
+        console.error('Failed to fetch featured news:', error);
+        setLoadingStates(prev => ({ ...prev, featured: false }));
+      }
     }
-  }
-}, [processNewsWithImages, fetchAuthorsAndEditors]);
+  }, [processNewsWithImages, fetchAuthorsAndEditors]);
 
   // Optimización: Fetch diferido para secciones no críticas
   const fetchSectionNews = useCallback(async (signal) => {
@@ -400,7 +398,7 @@ const fetchFeaturedNews = useCallback(async (signal) => {
       await new Promise(resolve => setTimeout(resolve, 250));
       
       const response = await api.get('noticias/mas_vistas/', {
-        params: { limit: 10 },
+        params: { limit: 6 },
         signal
       });
       
@@ -513,7 +511,7 @@ const fetchFeaturedNews = useCallback(async (signal) => {
     );
   }, []);
 
-  // Componentes de skeleton memoizados (sin cambios)
+  // Componentes de skeleton memoizados
   const MainArticleSkeleton = useMemo(() => (
     <div className="main-article skeleton">
       <div className="recent-new skeleton-img"></div>
@@ -553,7 +551,7 @@ const fetchFeaturedNews = useCallback(async (signal) => {
     return (
       <div className="news-section" key={sectionTitle}>
         <h2 className="section-title">{sectionTitle.toUpperCase()}</h2>
-        <div className="section-title-line"></div>  {/* Nueva línea */}
+        <div className="section-title-line"></div>
         <div className="news-grid">
           {isLoading ? (
             <>
@@ -628,7 +626,7 @@ const fetchFeaturedNews = useCallback(async (signal) => {
     return (
       <div className="recent-news-section">
         <h2 className="section-titleNR">NOTICIAS RECIENTES</h2>
-        <div className="section-title-line"></div>  {/* Nueva línea */}
+        <div className="section-title-line"></div>
         <div className="recent-news-list">
           {isLoading ? (
             [...Array(5)].map((_, idx) => (
@@ -668,7 +666,7 @@ const fetchFeaturedNews = useCallback(async (signal) => {
     return (
       <div className="recent-news-section">
         <h2 className="section-titleNR">MÁS LEÍDAS</h2>
-        <div className="section-title-line"></div>  {/* Nueva línea */}
+        <div className="section-title-line"></div>
 
         <div className="recent-news-list">
           {isLoading ? (
@@ -713,146 +711,111 @@ const fetchFeaturedNews = useCallback(async (signal) => {
     return `${day}/${month}/${year}`;
   }, []);
 
-  // Optimización: Carrusel con prioridad en imágenes críticas
-  // En la función renderFeaturedCarousel, modifica esta parte:
-const renderFeaturedCarousel = useCallback(() => {
-  const isLoading = loadingStates.featured;
-  
-  if (isLoading) {
-    return (
-      <div className="carousel-wrapper">
-        <div className="carousel-container skeleton-carousel">
-          <div className="slide active">
-            <div className="featured-left skeleton">
-              <div className="skeleton-img"></div>
-              <div className="overlay">
-                <div className="skeleton-line title"></div>
-                <div className="skeleton-line meta"></div>
-              </div>
-            </div>
-            <div className="featured-right">
-              <div className="carousel-item skeleton">
+  // Carrusel de noticias destacadas
+  const renderFeaturedCarousel = useCallback(() => {
+    const isLoading = loadingStates.featured;
+    
+    if (isLoading) {
+      return (
+        <div className="carousel-wrapper">
+          <div className="carousel-container skeleton-carousel">
+            <div className="slide active">
+              <div className="featured-left skeleton">
                 <div className="skeleton-img"></div>
-                <div className="carousel-caption">
+                <div className="overlay">
                   <div className="skeleton-line title"></div>
                   <div className="skeleton-line meta"></div>
                 </div>
               </div>
-              <div className="carousel-bottom-row">
-                {[...Array(2)].map((_, idx) => (
-                  <div key={idx} className="carousel-item skeleton">
-                    <div className="skeleton-img"></div>
-                    <div className="carousel-caption">
-                      <div className="skeleton-line title"></div>
-                      <div className="skeleton-line meta"></div>
-                    </div>
+              <div className="featured-right">
+                <div className="carousel-item skeleton">
+                  <div className="skeleton-img"></div>
+                  <div className="carousel-caption">
+                    <div className="skeleton-line title"></div>
+                    <div className="skeleton-line meta"></div>
                   </div>
-                ))}
+                </div>
+                <div className="carousel-bottom-row">
+                  {[...Array(2)].map((_, idx) => (
+                    <div key={idx} className="carousel-item skeleton">
+                      <div className="skeleton-img"></div>
+                      <div className="carousel-caption">
+                        <div className="skeleton-line title"></div>
+                        <div className="skeleton-line meta"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-  
-  if (!featuredNews || featuredNews.length === 0) return null;
-  
-  // Asegurarse de que tenemos exactamente 16 noticias (rellenar si es necesario)
-  const displayNews = featuredNews.length >= 16 
-    ? featuredNews.slice(0, 16) 
-    : [...featuredNews, ...Array(16 - featuredNews.length).fill(null)];
-  
-  return (
-    <div className="carousel-wrapper">
-      <button 
-        className="carousel-arrow carousel-arrow-prev" 
-        onClick={handlePrevSlide}
-        aria-label="Anterior"
-      >
-        &#10094;
-      </button>
-      
-      <button 
-        className="carousel-arrow carousel-arrow-next" 
-        onClick={handleNextSlide}
-        aria-label="Siguiente"
-      >
-        &#10095;
-      </button>
+      );
+    }
+    
+    if (!featuredNews || featuredNews.length === 0) return null;
+    
+    // Asegurarse de que tenemos exactamente 16 noticias (rellenar si es necesario)
+    const displayNews = featuredNews.length >= 16 
+      ? featuredNews.slice(0, 16) 
+      : [...featuredNews, ...Array(16 - featuredNews.length).fill(null)];
+    
+    return (
+      <div className="carousel-wrapper">
+        <button 
+          className="carousel-arrow carousel-arrow-prev" 
+          onClick={handlePrevSlide}
+          aria-label="Anterior"
+        >
+          &#10094;
+        </button>
+        
+        <button 
+          className="carousel-arrow carousel-arrow-next" 
+          onClick={handleNextSlide}
+          aria-label="Siguiente"
+        >
+          &#10095;
+        </button>
 
-      <div className="carousel-container">
-        {Array.from({ length: totalSlides }).map((_, slideIndex) => {
-          const startIdx = slideIndex * 4;
-          const slideNews = displayNews.slice(startIdx, startIdx + 4);
-          
-          const isActive = slideIndex === currentSlide;
-          const isCriticalSlide = slideIndex === 0;
+        <div className="carousel-container">
+          {Array.from({ length: totalSlides }).map((_, slideIndex) => {
+            const startIdx = slideIndex * 4;
+            const slideNews = displayNews.slice(startIdx, startIdx + 4);
+            
+            const isActive = slideIndex === currentSlide;
+            const isCriticalSlide = slideIndex === 0;
 
-          return (
-            <div 
-              key={`slide-${slideIndex}`} 
-              className={`slide ${isActive ? 'active' : ''}`}
-              style={{ 
-                transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
-                opacity: isActive ? 1 : 0.5,
-                transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-              }}
-            >
-              {/* Noticia principal izquierda */}
+            return (
               <div 
-                className="featured-left" 
-                onClick={() => slideNews[0] && navigate(generateNewsUrl(slideNews[0]))}
+                key={`slide-${slideIndex}`} 
+                className={`slide ${isActive ? 'active' : ''}`}
+                style={{ 
+                  transform: `translateX(${(slideIndex - currentSlide) * 100}%)`,
+                  opacity: isActive ? 1 : 0.5,
+                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+                }}
               >
-                {slideNews[0] ? (
-                  <>
-                    <OptimizedImage 
-                      src={slideNews[0].contentImage} 
-                      alt={slideNews[0].nombre_noticia}
-                      isCritical={isCriticalSlide}
-                    />
-                    <div className="overlay">
-                      <h1 style={{ color: '#ffff' }}>{slideNews[0].nombre_noticia}</h1>
-                      <p style={{ color: '#ffff', marginBottom: '8px' }}>
-                        {formatDate(slideNews[0].fecha_publicacion)}
-                      </p>
-                      {slideNews[0].autorData && (
-                        <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
-                          por {slideNews[0].autorData.nombre} {slideNews[0].autorData.apellido}
-                        </p>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <div className="placeholder-news">
-                    <div className="placeholder-image"></div>
-                    <div className="placeholder-content">
-                      <p>Noticia no disponible</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="featured-right">
-                {/* Noticia superior derecha */}
-                <div
-                  className="carousel-item carousel-item-top"
-                  onClick={() => slideNews[1] && navigate(generateNewsUrl(slideNews[1]))}
+                {/* Noticia principal izquierda */}
+                <div 
+                  className="featured-left" 
+                  onClick={() => slideNews[0] && navigate(generateNewsUrl(slideNews[0]))}
                 >
-                  {slideNews[1] ? (
+                  {slideNews[0] ? (
                     <>
                       <OptimizedImage 
-                        src={slideNews[1].contentImage} 
-                        alt={slideNews[1].nombre_noticia} 
-                        className="carousel-image"
+                        src={slideNews[0].contentImage} 
+                        alt={slideNews[0].nombre_noticia}
                         isCritical={isCriticalSlide}
                       />
-                      <div className="carousel-caption">
-                        <h3>{slideNews[1].nombre_noticia}</h3>
-                        <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
-                        {slideNews[1].autorData && (
-                          <p className="author">
-                            por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
+                      <div className="overlay">
+                        <h1 style={{ color: '#ffff' }}>{slideNews[0].nombre_noticia}</h1>
+                        <p style={{ color: '#ffff', marginBottom: '8px' }}>
+                          {formatDate(slideNews[0].fecha_publicacion)}
+                        </p>
+                        {slideNews[0].autorData && (
+                          <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
+                            por {slideNews[0].autorData.nombre} {slideNews[0].autorData.apellido}
                           </p>
                         )}
                       </div>
@@ -866,67 +829,102 @@ const renderFeaturedCarousel = useCallback(() => {
                     </div>
                   )}
                 </div>
-                
-                {/* Fila inferior con 2 noticias lado a lado */}
-                <div className="carousel-bottom-row">
-                  {slideNews.slice(2, 4).map((newsItem, idx) => (
-                    <div
-                      key={newsItem ? newsItem.id : `placeholder-${idx}`}
-                      className="carousel-item carousel-item-bottom"
-                      onClick={() => newsItem && navigate(generateNewsUrl(newsItem))}
-                    >
-                      {newsItem ? (
-                        <>
-                          <OptimizedImage 
-                            src={newsItem.contentImage} 
-                            alt={newsItem.nombre_noticia} 
-                            className="carousel-image"
-                            isCritical={isCriticalSlide && idx < 1}
-                          />
-                          <div className="carousel-caption">
-                            <h3>
-                              {newsItem.nombre_noticia.length > 45 
-                                ? newsItem.nombre_noticia.slice(0, 45) + '...' 
-                                : newsItem.nombre_noticia}
-                            </h3>
-                            <p>{formatDate(newsItem.fecha_publicacion)}</p>
-                            {newsItem.autorData && (
-                              <p className="author">
-                                por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                              </p>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="placeholder-news">
-                          <div className="placeholder-image"></div>
-                          <div className="placeholder-content">
-                            <p>Noticia no disponible</p>
-                          </div>
+
+                <div className="featured-right">
+                  {/* Noticia superior derecha */}
+                  <div
+                    className="carousel-item carousel-item-top"
+                    onClick={() => slideNews[1] && navigate(generateNewsUrl(slideNews[1]))}
+                  >
+                    {slideNews[1] ? (
+                      <>
+                        <OptimizedImage 
+                          src={slideNews[1].contentImage} 
+                          alt={slideNews[1].nombre_noticia} 
+                          className="carousel-image"
+                          isCritical={isCriticalSlide}
+                        />
+                        <div className="carousel-caption">
+                          <h3>{slideNews[1].nombre_noticia}</h3>
+                          <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
+                          {slideNews[1].autorData && (
+                            <p className="author">
+                              por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
+                            </p>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </>
+                    ) : (
+                      <div className="placeholder-news">
+                        <div className="placeholder-image"></div>
+                        <div className="placeholder-content">
+                          <p>Noticia no disponible</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Fila inferior con 2 noticias lado a lado */}
+                  <div className="carousel-bottom-row">
+                    {slideNews.slice(2, 4).map((newsItem, idx) => (
+                      <div
+                        key={newsItem ? newsItem.id : `placeholder-${idx}`}
+                        className="carousel-item carousel-item-bottom"
+                        onClick={() => newsItem && navigate(generateNewsUrl(newsItem))}
+                      >
+                        {newsItem ? (
+                          <>
+                            <OptimizedImage 
+                              src={newsItem.contentImage} 
+                              alt={newsItem.nombre_noticia} 
+                              className="carousel-image"
+                              isCritical={isCriticalSlide && idx < 1}
+                            />
+                            <div className="carousel-caption">
+                              <h3>
+                                {newsItem.nombre_noticia.length > 45 
+                                  ? newsItem.nombre_noticia.slice(0, 45) + '...' 
+                                  : newsItem.nombre_noticia}
+                              </h3>
+                              <p>{formatDate(newsItem.fecha_publicacion)}</p>
+                              {newsItem.autorData && (
+                                <p className="author">
+                                  por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                                </p>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="placeholder-news">
+                            <div className="placeholder-image"></div>
+                            <div className="placeholder-content">
+                              <p>Noticia no disponible</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        
+        <div className="carousel-dots">
+          {Array.from({ length: totalSlides }).map((_, index) => (
+            <span 
+              key={`dot-${index}`}
+              className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+              onClick={() => handleDotClick(index)}
+              aria-label={`Ir a la diapositiva ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
-      
-      <div className="carousel-dots">
-        {Array.from({ length: totalSlides }).map((_, index) => (
-          <span 
-            key={`dot-${index}`}
-            className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
-            onClick={() => handleDotClick(index)}
-            aria-label={`Ir a la diapositiva ${index + 1}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
+    );
+  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
+
   // Optimización: Estilos mejorados con transformaciones CSS para mejor rendimiento
   const SkeletonStyles = useMemo(() => (
     <style>{`
