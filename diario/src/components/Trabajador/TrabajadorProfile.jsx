@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, message, Badge } from 'antd';
+import { Form, Input, Button, message, Badge, Alert } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { BellOutlined } from '@ant-design/icons';
+import { BellOutlined, CheckCircleOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import api from '../../pages/context/axiosConfig';
 
 const TrabajadorProfile = () => {
@@ -9,16 +9,72 @@ const TrabajadorProfile = () => {
   const [loading, setLoading] = useState(false);
   const [trabajador, setTrabajador] = useState(null);
   const [cantidadMensajes, setCantidadMensajes] = useState(0);
+  const [cloudflareStatus, setCloudflareStatus] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchTrabajadorProfile();
     fetchCantidadMensajes();
+    fetchCloudflareStatus();
     
     // Actualizar cantidad de mensajes cada 30 segundos
     const interval = setInterval(fetchCantidadMensajes, 30000);
-    return () => clearInterval(interval);
+    // Actualizar status de Cloudflare cada 5 minutos
+    const statusInterval = setInterval(fetchCloudflareStatus, 300000);
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(statusInterval);
+    };
   }, []);
+
+  const fetchCloudflareStatus = async () => {
+    try {
+      setStatusLoading(true);
+      const response = await fetch('https://www.cloudflarestatus.com/api/v2/status.json');
+      const data = await response.json();
+      setCloudflareStatus(data.status);
+    } catch (error) {
+      console.error('Error fetching Cloudflare status:', error);
+      setCloudflareStatus(null);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const getStatusConfig = () => {
+    if (!cloudflareStatus) return null;
+    
+    const statusMap = {
+      'none': {
+        type: 'success',
+        message: 'Todos los sistemas operativos',
+        description: 'Cloudflare está funcionando correctamente',
+        icon: <CheckCircleOutlined />
+      },
+      'minor': {
+        type: 'warning',
+        message: 'Incidente menor',
+        description: 'Cloudflare está experimentando problemas menores',
+        icon: <WarningOutlined />
+      },
+      'major': {
+        type: 'error',
+        message: 'Incidente mayor',
+        description: 'Cloudflare está experimentando problemas importantes',
+        icon: <CloseCircleOutlined />
+      },
+      'critical': {
+        type: 'error',
+        message: 'Incidente crítico',
+        description: 'Cloudflare está experimentando problemas críticos',
+        icon: <CloseCircleOutlined />
+      }
+    };
+
+    return statusMap[cloudflareStatus.indicator] || statusMap['none'];
+  };
 
   const fetchCantidadMensajes = async () => {
     const accessToken = localStorage.getItem('access');
@@ -113,6 +169,8 @@ const TrabajadorProfile = () => {
     navigate('/mensajes-globales');
   };
 
+  const statusConfig = getStatusConfig();
+
   return (
     <section className='section-trabajador'>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -133,6 +191,31 @@ const TrabajadorProfile = () => {
           </Button>
         </Badge>
       </div>
+
+      {/* Status de Cloudflare */}
+      {!statusLoading && statusConfig && (
+        <Alert
+          message={statusConfig.message}
+          description={
+            <div>
+              {statusConfig.description}
+              <a 
+                href="https://www.cloudflarestatus.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ marginLeft: '8px', textDecoration: 'underline' }}
+              >
+                Ver detalles
+              </a>
+            </div>
+          }
+          type={statusConfig.type}
+          icon={statusConfig.icon}
+          showIcon
+          style={{ marginBottom: '20px' }}
+          closable
+        />
+      )}
       
       {trabajador ? (
         <Form form={form} onFinish={handleUpdateProfile}>
@@ -146,7 +229,6 @@ const TrabajadorProfile = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            
           }}>
             <span style={{ fontSize: '16px' }}>ℹ️</span>
             <span>
