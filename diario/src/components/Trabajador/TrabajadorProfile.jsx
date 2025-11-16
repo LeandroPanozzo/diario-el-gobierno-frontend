@@ -105,8 +105,7 @@ const TrabajadorProfile = () => {
           }}>
             <span style={{ fontSize: '16px' }}>ℹ️</span>
             <span>
-              <strong>Nota:</strong> El nombre y apellido solo pueden ser editados por un administrador 
-              desde el panel de administración de Django.
+              <strong>Nota:</strong> El nombre y apellido solo pueden ser editados por un coordinador.
             </span>
           </div>
 
