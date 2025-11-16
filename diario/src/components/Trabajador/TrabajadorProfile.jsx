@@ -32,9 +32,22 @@ const TrabajadorProfile = () => {
   const fetchCloudflareStatus = async () => {
     try {
       setStatusLoading(true);
-      const response = await fetch('https://www.cloudflarestatus.com/api/v2/status.json');
+      
+      // Usar el endpoint summary que es más preciso
+      const response = await fetch('https://www.cloudflarestatus.com/api/v2/summary.json');
       const data = await response.json();
-      setCloudflareStatus(data.status);
+      
+      // Verificar si hay incidentes reales (no mantenimientos programados)
+      const realIncidents = (data.incidents || []).filter(incident => 
+        incident.impact !== 'none' && 
+        incident.status !== 'resolved' &&
+        incident.status !== 'postmortem'
+      );
+      
+      // Si no hay incidentes reales, forzar "none"
+      const indicator = realIncidents.length === 0 ? 'none' : data.status.indicator;
+      
+      setCloudflareStatus({ indicator });
     } catch (error) {
       console.error('Error fetching Cloudflare status:', error);
       setCloudflareStatus(null);
