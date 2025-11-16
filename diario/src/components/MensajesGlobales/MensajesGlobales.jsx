@@ -257,7 +257,7 @@ const MensajesGlobales = () => {
       <Card 
         title={
           <span style={{ fontSize: screens.xs ? '16px' : '18px' }}>
-            ✍️ Crear Nuevo Mensaje
+            Crear Nuevo Mensaje
           </span>
         } 
         style={{ marginBottom: '30px' }}
