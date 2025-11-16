@@ -1,0 +1,156 @@
+/* MensajesGlobales.css */
+.mensajes-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 60vh;
+  margin-top: 10px;
+}
+
+/* Animación suave para las cards */
+.mensaje-card {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.mensaje-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Animación para respuestas */
+.respuesta-item {
+  animation: fadeInUp 0.3s ease-in;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Badge personalizado para tiempo restante */
+.tiempo-badge {
+  display: inline-block;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.tiempo-badge.activo {
+  background-color: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.tiempo-badge.expirado {
+  background-color: #fff1f0;
+  color: #cf1322;
+  border: 1px solid #ffa39e;
+}
+
+/* Mejorar apariencia de los avatares */
+.ant-avatar {
+  border: 2px solid #f0f0f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón de volver */
+.btn-volver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-volver:hover {
+  transform: translateX(-5px);
+}
+
+/* Estilos responsive */
+@media (max-width: 768px) {
+  .mensajes-container {
+    padding: 15px;
+    margin-top: 5px;
+  }
+  
+  .mensaje-card {
+    margin-bottom: 15px;
+  }
+  
+  .ant-space {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  .ant-card-actions {
+    padding: 0 8px !important;
+  }
+  
+  .ant-card-actions > li {
+    margin: 4px 0 !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .mensajes-container {
+    padding: 10px;
+  }
+  
+  .ant-card {
+    margin-bottom: 12px;
+  }
+  
+  .ant-card-head {
+    padding: 0 12px !important;
+  }
+  
+  .ant-card-body {
+    padding: 12px !important;
+  }
+  
+  .btn-volver {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Mejoras para tablets */
+@media (min-width: 577px) and (max-width: 768px) {
+  .mensajes-container {
+    padding: 20px 15px;
+  }
+}
+
+/* Ajustes para textos largos en móviles */
+@media (max-width: 480px) {
+  .ant-card-meta-detail {
+    min-width: 0;
+  }
+  
+  .ant-card-meta-title {
+    white-space: normal !important;
+    word-break: break-word;
+  }
+  
+  .ant-card-meta-description {
+    white-space: normal !important;
+  }
+}
+
+/* Mejora de accesibilidad en focus */
+.ant-btn:focus,
+.ant-input:focus,
+.ant-select:focus {
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Loading spinner responsive */
+@media (max-width: 576px) {
+  .ant-spin-container {
+    padding: 20px 0;
+  }
+}

@@ -6,7 +6,7 @@ import Login from './pages/auth/login';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import VerifyToken from './pages/auth/VerifyToken';
 import ResetPassword from './pages/auth/ResetPassword';
-import {Register } from './pages/auth/register';
+import { Register } from './pages/auth/register';
 import Rol from './pages/workers/rol';
 import Trabajadores from './pages/workers/Trabajadores'
 import NewsArticleEditor from './pages/news/NewsArticleEditor';
@@ -22,7 +22,8 @@ import UserProfile from './components/User/UserProfile';
 import TrabajadorNoticias from './components/Trabajador/TrabajadorNoticias';
 import TerminosYCondiciones from './pages/legal/TerminosYCondiciones';
 import ComoAnunciar from './pages/instrucciones/ComoAnunciar';
-import Donaciones from './pages/donaciones/Donaciones'; // AGREGAR ESTA LÍNEA
+import Donaciones from './pages/donaciones/Donaciones';
+import MensajesGlobales from './components/MensajesGlobales/MensajesGlobales'; // ⬅️ NUEVO IMPORT
 import ScrollToTop from './ScrollToTop';
 import SearchResultsPage from './components/Search/SearchResultsPage';
 
@@ -58,7 +59,8 @@ function App() {
           <Route path="/trabajador/:trabajadorId/noticias" element={<TrabajadorNoticias />} />
           <Route path="/terminos-y-condiciones" element={<TerminosYCondiciones />} />
           <Route path="/anunciar" element={<ComoAnunciar />} />
-          <Route path="/donaciones" element={<Donaciones />} /> {/* AGREGAR ESTA LÍNEA */}
+          <Route path="/donaciones" element={<Donaciones />} />
+          <Route path="/mensajes-globales" element={<MensajesGlobales />} /> {/* ⬅️ NUEVA RUTA */}
         </Routes>
         <Footer />
       </BrowserRouter>

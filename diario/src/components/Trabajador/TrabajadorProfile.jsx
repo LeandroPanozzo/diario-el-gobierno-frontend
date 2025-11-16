@@ -1,17 +1,40 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, message } from 'antd';
+import { Form, Input, Button, message, Badge } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { BellOutlined } from '@ant-design/icons';
 import api from '../../pages/context/axiosConfig';
 
 const TrabajadorProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [trabajador, setTrabajador] = useState(null);
+  const [cantidadMensajes, setCantidadMensajes] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchTrabajadorProfile();
+    fetchCantidadMensajes();
+    
+    // Actualizar cantidad de mensajes cada 30 segundos
+    const interval = setInterval(fetchCantidadMensajes, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchCantidadMensajes = async () => {
+    const accessToken = localStorage.getItem('access');
+    if (!accessToken) return;
+    
+    try {
+      const response = await api.get('mensajes-globales/', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      setCantidadMensajes(response.data.length);
+    } catch (error) {
+      console.error('Error fetching mensajes:', error);
+    }
+  };
 
   const fetchTrabajadorProfile = async () => {
     const accessToken = localStorage.getItem('access');
@@ -52,7 +75,6 @@ const TrabajadorProfile = () => {
       return;
     }
   
-    // Solo enviamos descripción - NO nombre ni apellido
     let formData = new FormData();
     formData.append('descripcion_usuario', values.descripcion_usuario || '');
     
@@ -65,7 +87,7 @@ const TrabajadorProfile = () => {
         },
       });
       message.success('Perfil actualizado correctamente');
-      await fetchTrabajadorProfile(); // Actualiza el perfil inmediatamente
+      await fetchTrabajadorProfile();
     } catch (error) {
       console.error('Error updating profile:', error);
       if (error.response) {
@@ -87,9 +109,31 @@ const TrabajadorProfile = () => {
     navigate('/ed');
   };
 
+  const handleMensajesGlobales = () => {
+    navigate('/mensajes-globales');
+  };
+
   return (
     <section className='section-trabajador'>
-      <h1>Perfil del Trabajador</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1>Perfil del Trabajador</h1>
+        <Badge count={cantidadMensajes} overflowCount={99}>
+          <Button 
+            type="primary" 
+            icon={<BellOutlined />}
+            size="large"
+            onClick={handleMensajesGlobales}
+            style={{ 
+              backgroundColor: '#1890ff',
+              borderColor: '#1890ff',
+              marginTop: '90px'
+            }}
+          >
+            Alertas del Equipo
+          </Button>
+        </Badge>
+      </div>
+      
       {trabajador ? (
         <Form form={form} onFinish={handleUpdateProfile}>
           {/* Mensaje informativo */}
@@ -101,7 +145,8 @@ const TrabajadorProfile = () => {
             marginBottom: '16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            
           }}>
             <span style={{ fontSize: '16px' }}>ℹ️</span>
             <span>
