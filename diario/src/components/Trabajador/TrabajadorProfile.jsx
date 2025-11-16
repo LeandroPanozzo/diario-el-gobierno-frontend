@@ -1,22 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Form, Input, Button, message, Upload } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import { Form, Input, Button, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../pages/context/axiosConfig';
-
-// Función para remover acentos
-const removerAcentos = (texto) => {
-  if (!texto) return texto;
-  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-};
 
 const TrabajadorProfile = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [trabajador, setTrabajador] = useState(null);
-  const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,25 +24,15 @@ const TrabajadorProfile = () => {
         },
       });
   
-      const { foto_perfil, descripcion_usuario, nombre, apellido } = response.data;
-      const timestamp = new Date().getTime();
+      const { descripcion_usuario, nombre, apellido } = response.data;
   
       setTrabajador(response.data);
       form.setFieldsValue({
         nombre: nombre || '',
         apellido: apellido || '',
-        foto_perfil: foto_perfil || '',
         descripcion_usuario: descripcion_usuario || '',
       });
   
-      const imageUrl = foto_perfil
-        ? foto_perfil.startsWith('http')
-          ? `${foto_perfil}?t=${timestamp}`
-          : `http://127.0.0.1:8000${foto_perfil}?t=${timestamp}`
-        : null;
-  
-      console.log('Imagen URL:', imageUrl);
-      setImagePreview(imageUrl);
     } catch (error) {
       console.error('Error fetching profile:', error);
       message.error('Error al cargar el perfil');
@@ -72,18 +52,9 @@ const TrabajadorProfile = () => {
       return;
     }
   
-    // Remover acentos de nombre y apellido antes de enviar
-    const nombreSinAcentos = removerAcentos(values.nombre);
-    const apellidoSinAcentos = removerAcentos(values.apellido);
-  
+    // Solo enviamos descripción - NO nombre ni apellido
     let formData = new FormData();
-    formData.append('nombre', nombreSinAcentos);
-    formData.append('apellido', apellidoSinAcentos);
-    formData.append('descripcion_usuario', values.descripcion_usuario);
-  
-    if (profileImage) {
-      formData.append('foto_perfil_local', profileImage);
-    }
+    formData.append('descripcion_usuario', values.descripcion_usuario || '');
     
     try {
       setLoading(true);
@@ -108,23 +79,6 @@ const TrabajadorProfile = () => {
     }
   };
 
-  const handleImageChange = (info) => {
-    const file = info.file.originFileObj || info.file;
-    if (file) {
-      if (['image/jpeg', 'image/png'].includes(file.type)) {
-        setProfileImage(file);
-        const reader = new FileReader();
-        reader.onload = (e) => setImagePreview(e.target.result);
-        reader.readAsDataURL(file);
-      } else {
-        message.error('El archivo debe ser una imagen JPEG o PNG.');
-      }
-    } else {
-      setProfileImage(null);
-      setImagePreview(trabajador?.foto_perfil);
-    }
-  };
-
   const handleMisNoticias = () => {
     const accessToken = localStorage.getItem('access');
     console.log('Access token present:', !!accessToken);
@@ -133,99 +87,112 @@ const TrabajadorProfile = () => {
     navigate('/ed');
   };
 
-  // Validación personalizada para mostrar advertencia sobre acentos
-  const validateNombre = (_, value) => {
-    if (!value) {
-      return Promise.reject(new Error('Nombre es requerido'));
-    }
-    if (value !== removerAcentos(value)) {
-      message.warning('Los acentos serán removidos automáticamente al guardar');
-    }
-    return Promise.resolve();
-  };
-
-  const validateApellido = (_, value) => {
-    if (!value) {
-      return Promise.reject(new Error('Apellido es requerido'));
-    }
-    if (value !== removerAcentos(value)) {
-      message.warning('Los acentos serán removidos automáticamente al guardar');
-    }
-    return Promise.resolve();
-  };
-
   return (
     <section className='section-trabajador'>
       <h1>Perfil del Trabajador</h1>
       {trabajador ? (
-        <Form form={form} onFinish={handleUpdateProfile} encType="multipart/form-data">
+        <Form form={form} onFinish={handleUpdateProfile}>
+          {/* Mensaje informativo */}
+          <div style={{
+            backgroundColor: '#e6f7ff',
+            border: '1px solid #91d5ff',
+            borderRadius: '4px',
+            padding: '12px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '16px' }}>ℹ️</span>
+            <span>
+              <strong>Nota:</strong> El nombre y apellido solo pueden ser editados por un administrador 
+              desde el panel de administración de Django.
+            </span>
+          </div>
+
+          {/* Campo Nombre - Solo lectura */}
           <Form.Item
             name="nombre"
             label="Nombre"
-            rules={[
-              { required: true, message: 'Nombre es requerido' },
-              { validator: validateNombre }
-            ]}
           >
-            <Input placeholder="Ejemplo: Jose (sin acento)" />
+            <Input 
+              disabled 
+              placeholder="Solo lectura"
+              style={{ 
+                backgroundColor: '#f5f5f5', 
+                cursor: 'not-allowed',
+                color: '#595959'
+              }}
+            />
           </Form.Item>
           
+          {/* Campo Apellido - Solo lectura */}
           <Form.Item
             name="apellido"
             label="Apellido"
-            rules={[
-              { required: true, message: 'Apellido es requerido' },
-              { validator: validateApellido }
-            ]}
           >
-            <Input placeholder="Ejemplo: Martinez (sin acento)" />
+            <Input 
+              disabled 
+              placeholder="Solo lectura"
+              style={{ 
+                backgroundColor: '#f5f5f5', 
+                cursor: 'not-allowed',
+                color: '#595959'
+              }}
+            />
           </Form.Item>
 
+          {/* Campo Descripción - Editable */}
           <Form.Item
             name="descripcion_usuario"
             label="Descripción"
             rules={[{ required: false, message: 'Descripción es opcional' }]}
           >
-            <Input.TextArea rows={4} />
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Escribe una breve descripción sobre ti..."
+            />
           </Form.Item>
 
-          <div className="author-info">
-            {imagePreview && (
-              <img 
-                src={imagePreview} 
-                alt={`${trabajador.nombre} ${trabajador.apellido}`} 
-                className="profile-image" 
-              />
-            )}
+          {/* Información del trabajador */}
+          <div className="author-info" style={{ marginBottom: '20px' }}>
             <div className="author-details">
-              <span className="author-name">{trabajador.nombre} {trabajador.apellido}</span>
+              <span className="author-name" style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold',
+                display: 'block'
+              }}>
+                {trabajador.nombre} {trabajador.apellido}
+              </span>
             </div>
           </div>
 
-          <Form.Item label="Cambiar Foto de Perfil">
-            <Upload
-              name="foto_perfil_local"
-              listType="picture"
-              maxCount={1}
-              onChange={handleImageChange}
-              beforeUpload={() => false}
-            >
-              <Button icon={<UploadOutlined />}>Seleccionar Nueva Imagen</Button>
-            </Upload>
+          {/* Botones de acción */}
+          <Form.Item style={{ marginTop: '24px' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                loading={loading}
+                size="large"
+              >
+                {loading ? 'Actualizando...' : 'Actualizar Perfil'}
+              </Button>
+              
+              <Button 
+                type="default" 
+                onClick={handleMisNoticias}
+                size="large"
+              >
+                Mis Noticias
+              </Button>
+            </div>
           </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Actualizar Perfil
-            </Button>
-          </Form.Item>
-
-          <Button type="default" onClick={handleMisNoticias}>
-            Mis Noticias
-          </Button>
         </Form>
       ) : (
-        <p>Cargando perfil...</p>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <p>Cargando perfil...</p>
+        </div>
       )}
     </section>
   );

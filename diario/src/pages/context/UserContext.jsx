@@ -4,10 +4,8 @@ import axios from './axiosConfig';
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    // ✅ NO usar localStorage inicial - siempre cargar desde el servidor
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,7 +17,8 @@ export const UserProvider = ({ children }) => {
                     // Configure axios with the token
                     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                     
-                    // Get current user information
+                    // ✅ SIEMPRE hacer petición fresca al servidor
+                    console.log('🔄 Cargando datos del usuario desde el servidor...');
                     const response = await axios.get('current-user/');
                     
                     // Process the user data - ensure trabajador flag is set
@@ -28,10 +27,13 @@ export const UserProvider = ({ children }) => {
                         trabajador: response.data.isWorker === true
                     };
                     
+                    console.log('✅ Datos del usuario recibidos:', userData);
                     setUser(userData);
-                    localStorage.setItem('user', JSON.stringify(userData));
+                    
+                    // ❌ NO guardar en localStorage para que siempre recargue datos frescos
+                    // localStorage.setItem('user', JSON.stringify(userData));
                 } catch (error) {
-                    console.error("Failed to fetch user data:", error);
+                    console.error("❌ Failed to fetch user data:", error);
                     // Clear invalid tokens
                     localStorage.removeItem('access');
                     localStorage.removeItem('refresh');
@@ -39,6 +41,7 @@ export const UserProvider = ({ children }) => {
                     setUser(null);
                 }
             } else {
+                console.log('⚠️ No hay token de acceso');
                 setUser(null);
             }
             setLoading(false);
@@ -61,9 +64,12 @@ export const UserProvider = ({ children }) => {
                     try {
                         const refreshToken = localStorage.getItem('refresh');
                         if (!refreshToken) {
+                            console.log('⚠️ No hay refresh token disponible');
                             logout();
                             return Promise.reject(error);
                         }
+                        
+                        console.log('🔄 Intentando refrescar el token...');
                         
                         // Attempt to refresh the token
                         const refreshResponse = await axios.post('token/refresh/', {
@@ -74,6 +80,8 @@ export const UserProvider = ({ children }) => {
                         const newAccessToken = refreshResponse.data.access;
                         localStorage.setItem('access', newAccessToken);
                         
+                        console.log('✅ Token refrescado correctamente');
+                        
                         // Update authorization header
                         axios.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
                         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
@@ -82,6 +90,7 @@ export const UserProvider = ({ children }) => {
                         return axios(originalRequest);
                     } catch (refreshError) {
                         // If refresh fails, log out the user
+                        console.error('❌ Error al refrescar token:', refreshError);
                         logout();
                         return Promise.reject(refreshError);
                     }
@@ -98,6 +107,8 @@ export const UserProvider = ({ children }) => {
     }, []);
 
     const logout = () => {
+        console.log('🚪 Cerrando sesión...');
+        
         localStorage.removeItem('access');
         localStorage.removeItem('refresh');
         localStorage.removeItem('user');
@@ -106,10 +117,36 @@ export const UserProvider = ({ children }) => {
         delete axios.defaults.headers.common['Authorization'];
         
         setUser(null);
+        
+        console.log('✅ Sesión cerrada');
+    };
+
+    // ✅ Función para refrescar datos del usuario manualmente
+    const refreshUser = async () => {
+        const token = localStorage.getItem('access');
+        if (token) {
+            try {
+                console.log('🔄 Refrescando datos del usuario...');
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                
+                const response = await axios.get('current-user/');
+                const userData = {
+                    ...response.data,
+                    trabajador: response.data.isWorker === true
+                };
+                
+                console.log('✅ Usuario refrescado:', userData);
+                setUser(userData);
+                return userData;
+            } catch (error) {
+                console.error('❌ Error al refrescar usuario:', error);
+                throw error;
+            }
+        }
     };
 
     return (
-        <UserContext.Provider value={{ user, setUser, loading, logout }}>
+        <UserContext.Provider value={{ user, setUser, loading, logout, refreshUser }}>
             {children}
         </UserContext.Provider>
     );
