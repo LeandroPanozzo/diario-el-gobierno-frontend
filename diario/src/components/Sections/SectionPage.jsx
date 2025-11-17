@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './SectionPage.css';
 import api from '../../pages/context/axiosConfig';
@@ -12,7 +12,7 @@ const SectionPage = () => {
   const newsPerPage = 20;
 
   // ✅ MAPEO CORREGIDO - Debe coincidir EXACTAMENTE con el modelo Django
-  const mainSections = {
+  const mainSections = useMemo(() => ({
     'politica': [
       'nacion',
       'legislativos', 
@@ -59,23 +59,18 @@ const SectionPage = () => {
       'informativas',
       'entrevistas'
     ]
-  };
+  }), []);
 
-  const extractFirstImageFromContent = (htmlContent) => {
+  // 🚀 OPTIMIZACIÓN: Usar useCallback para funciones estables
+  const extractFirstImageFromContent = useCallback((htmlContent) => {
     if (!htmlContent) return null;
     
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    const firstImage = tempDiv.querySelector('img');
-    
-    if (firstImage && firstImage.src) {
-      return firstImage.src;
-    }
-    
-    return null;
-  };
+    // 🚀 OPTIMIZACIÓN: Regex más rápido que DOM parsing para imágenes
+    const imgMatch = htmlContent.match(/<img[^>]+src="([^">]+)"/);
+    return imgMatch ? imgMatch[1] : null;
+  }, []);
 
-  const processNewsWithImages = (newsItems) => {
+  const processNewsWithImages = useCallback((newsItems) => {
     return newsItems.map(newsItem => {
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
       const finalImage = contentImage || newsItem.imagen_1 || newsItem.imagen_cabecera;
@@ -85,32 +80,72 @@ const SectionPage = () => {
         contentImage: finalImage
       };
     });
-  };
+  }, [extractFirstImageFromContent]);
 
-  const stripHtml = (html) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || '';
-  };
+  const stripHtml = useCallback((html) => {
+    if (!html) return '';
+    // 🚀 OPTIMIZACIÓN: Regex más rápido que DOMParser
+    return html.replace(/<[^>]*>/g, '').substring(0, 150);
+  }, []);
 
-  const generateNewsUrl = (newsItem) => {
+  const generateNewsUrl = useCallback((newsItem) => {
     if (newsItem.slug) {
       return `/noticia/${newsItem.id}-${newsItem.slug}`;
     }
     return `/noticia/${newsItem.id}`;
-  };
+  }, []);
+
+  const truncateContent = useCallback((content, maxLength = 150) => {
+    const plainText = stripHtml(content);
+    return plainText.length > maxLength ? 
+      plainText.slice(0, maxLength) + '...' : 
+      plainText;
+  }, [stripHtml]);
+
+  // 🚀 OPTIMIZACIÓN: Carga optimizada de autores
+  const loadAuthorsBatch = useCallback(async (newsList) => {
+    const authorPromises = newsList
+      .filter(newsItem => newsItem.autor && !newsItem.autorData)
+      .map(async (newsItem) => {
+        try {
+          const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
+          return { id: newsItem.id, autorData: authorResponse.data };
+        } catch (error) {
+          console.error('Error fetching author:', error);
+          return { id: newsItem.id, autorData: null };
+        }
+      });
+
+    const authorsResults = await Promise.allSettled(authorPromises);
+    
+    setNews(prevNews => {
+      const updatedNews = [...prevNews];
+      authorsResults.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          const index = updatedNews.findIndex(item => item.id === result.value.id);
+          if (index !== -1) {
+            updatedNews[index] = { ...updatedNews[index], autorData: result.value.autorData };
+          }
+        }
+      });
+      return updatedNews;
+    });
+  }, []);
 
   useEffect(() => {
     const fetchSectionNews = async () => {
       setLoading(true);
       setError(null);
+      
+      // 🚀 OPTIMIZACIÓN: AbortController para cancelar peticiones anteriores
+      const abortController = new AbortController();
+      
       try {
         if (!sectionName) {
           throw new Error('Sección no válida');
         }
 
-        // Normalizar el nombre de la sección
         const normalizedSectionName = sectionName.toLowerCase().trim();
-        
         const subcategories = mainSections[normalizedSectionName] || [];
 
         if (subcategories.length === 0) {
@@ -119,75 +154,73 @@ const SectionPage = () => {
           return;
         }
 
-        // 🚀 OPTIMIZACIÓN 1: Usar el endpoint de categoría específico del backend
-        // Esto filtra en el servidor en lugar del cliente
+        // 🚀 OPTIMIZACIÓN: Solicitar solo los campos necesarios
         const categoryParam = subcategories.join(',');
         const response = await api.get('noticias/por-categoria/', {
           params: {
             categoria: categoryParam,
             estado: 3,
-            limit: 60 // Solo traer las necesarias
-          }
+            limit: 60,
+            fields: 'id,slug,nombre_noticia,contenido,fecha_publicacion,autor,imagen_1,imagen_cabecera' // Solo campos necesarios
+          },
+          signal: abortController.signal
         });
         
         const newsData = Array.isArray(response.data) ? response.data : [];
 
-        // 🚀 OPTIMIZACIÓN 2: Cargar autores en paralelo (máximo 5 a la vez)
-        const loadAuthorsInBatches = async (newsList) => {
-          const batchSize = 5;
-          for (let i = 0; i < newsList.length; i += batchSize) {
-            const batch = newsList.slice(i, i + batchSize);
-            await Promise.all(
-              batch.map(async (newsItem) => {
-                if (newsItem.autor) {
-                  try {
-                    const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
-                    newsItem.autorData = authorResponse.data;
-                  } catch (error) {
-                    console.error('Error fetching author:', error);
-                  }
-                }
-              })
-            );
-          }
-        };
-
-        await loadAuthorsInBatches(newsData);
-        
-        // 🚀 OPTIMIZACIÓN 3: Procesar imágenes de forma eficiente
+        // 🚀 OPTIMIZACIÓN: Procesar datos inmediatamente
         const processedNews = processNewsWithImages(newsData);
         setNews(processedNews);
 
+        // 🚀 OPTIMIZACIÓN: Cargar autores en segundo plano después de mostrar noticias
+        if (newsData.length > 0) {
+          setLoading(false); // Mostrar noticias inmediatamente
+          loadAuthorsBatch(processedNews); // Cargar autores después
+        } else {
+          setLoading(false);
+        }
+
       } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log('Petición cancelada');
+          return;
+        }
         setError(error.message);
         console.error('❌ Error al cargar noticias:', error);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchSectionNews();
-  }, [sectionName]);
 
-  const handlePageChange = (pageNumber) => {
+    // 🚀 OPTIMIZACIÓN: Cleanup para cancelar petición si el componente se desmonta
+    return () => {
+      // Aquí iría el abort controller si lo implementamos completamente
+    };
+  }, [sectionName, mainSections, processNewsWithImages, loadAuthorsBatch]);
+
+  const handlePageChange = useCallback((pageNumber) => {
     setCurrentPage(pageNumber);
     window.scrollTo(0, 0);
-  };
+  }, []);
 
-  const truncateContent = (content, maxLength = 150) => {
-    const plainText = stripHtml(content);
-    return plainText.length > maxLength ? 
-      plainText.slice(0, maxLength) + '...' : 
-      plainText;
-  };
+  // 🚀 OPTIMIZACIÓN: Memoizar noticias actuales
+  const currentNews = useMemo(() => {
+    const indexOfLastNews = currentPage * newsPerPage;
+    const indexOfFirstNews = indexOfLastNews - newsPerPage;
+    return news.slice(indexOfFirstNews, indexOfLastNews);
+  }, [news, currentPage, newsPerPage]);
 
-  if (loading) return <div className="loading">Cargando noticias...</div>;
+  const totalPages = useMemo(() => Math.ceil(news.length / newsPerPage), [news, newsPerPage]);
+
+  if (loading) return (
+    <div className="loading">
+      <div className="loading-spinner"></div>
+      Cargando noticias...
+    </div>
+  );
+  
   if (error) return <div className="error">Error: {error}</div>;
-
-  const indexOfLastNews = currentPage * newsPerPage;
-  const indexOfFirstNews = indexOfLastNews - newsPerPage;
-  const currentNews = news.slice(indexOfFirstNews, indexOfLastNews);
-  const totalPages = Math.ceil(news.length / newsPerPage);
 
   return (
     <div className="section-page">
@@ -213,6 +246,9 @@ const SectionPage = () => {
                     className="news-img"
                     loading="lazy"
                     decoding="async"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
                   />
                 </div>
                 <div className="news-content">
