@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './SectionPage.css';
 import api from '../../pages/context/axiosConfig';
-import AdSenseAd from '../News/AdSenseAd';
 
 const SectionPage = () => {
   const { sectionName } = useParams();
@@ -182,20 +181,7 @@ const SectionPage = () => {
       plainText;
   };
 
-  const AdAsNews = ({ adConfig, index }) => {
-    return (
-      <div key={`ad-${index}`} className="news-item ad-news-item">
-        <div className="news-img-container">
-          <div className="ad-placeholder">
-            <AdSenseAd {...adConfig} />
-          </div>
-        </div>
-        <div className="news-content">
-          <div className="ad-label">Publicidad</div>
-        </div>
-      </div>
-    );
-  };
+
 
   const mixNewsWithAds = (newsItems) => {
     const items = [];
