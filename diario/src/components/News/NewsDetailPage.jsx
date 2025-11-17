@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
@@ -7,7 +6,6 @@ import './NewsDetail.css';
 import NewsReactions from './NewsReactions';
 import api from '../../pages/context/axiosConfig';
 import TwitterEmbed from './TwitterEmbed';
-import AdSenseAd from './AdSenseAd';
 
 // Imagen por defecto para usuarios sin foto de perfil
 const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -520,11 +518,6 @@ const NewsDetail = () => {
         {renderNewsContent()}
       </div>
       
-      {/* Anuncio después del contenido */}
-      <div className="ad-section">
-        <AdSenseAd />
-      </div>
-      
       {/* Palabras clave */}
       <div className="tags-section">
         <h3 className="tags-title">Palabras clave</h3>
@@ -543,11 +536,6 @@ const NewsDetail = () => {
           <h3 className="reactions-title">Reacciones</h3>
           <NewsReactions noticiaId={newsId} />
         </div>
-      </div>
-
-      {/* Anuncio antes de comentarios */}
-      <div className="ad-section">
-        <AdSenseAd />
       </div>
 
       {/* Comentarios */}
@@ -591,11 +579,6 @@ const NewsDetail = () => {
             </Link>
           ))}
         </div>
-      </div>
-      
-      {/* Anuncio final */}
-      <div className="ad-section">
-        <AdSenseAd />
       </div>
 
       {/* Reproductor Sticky */}
