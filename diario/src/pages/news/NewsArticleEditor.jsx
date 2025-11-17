@@ -391,100 +391,100 @@ const NewsManagement = () => {
   }, []);
 
   const fetchPaginatedNews = useCallback(async (page = 1, size = INITIAL_PAGE_SIZE, reset = false) => {
-    try {
-      if (reset) {
-        setLoading(true);
-        setCurrentPage(1);
-        setNews([]);
-        setAllNews([]);
-      } else {
-        setLoadingMore(true);
-      }
-
-      if (page === 1 && !reset) {
-        const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
-        const cachedNews = getFromCache(cacheKey);
-        
-        if (cachedNews && Array.isArray(cachedNews)) {
-          const sortedNews = sortNewsByDate(cachedNews);
-          const paginatedNews = sortedNews.slice(0, size);
-          
-          if (showAllNews) {
-            setAllNews(paginatedNews);
-          } else {
-            const filteredNews = cachedNews.filter(noticia => 
-              noticia.autor === trabajadorId || 
-              (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
-            );
-            const sortedFilteredNews = sortNewsByDate(filteredNews);
-            setNews(sortedFilteredNews.slice(0, size));
-          }
-          
-          setTotalCount(cachedNews.length);
-          setHasMore(cachedNews.length > size);
-          setLoading(false);
-          setLoadingMore(false);
-          console.log('Noticias cargadas desde caché (paginadas)');
-          return;
-        }
-      }
-
-      const response = await api.get(`noticias/?page=${page}&page_size=${size}`);
-      
-      let newNews = response.data.results || response.data;
-      const total = response.data.count || newNews.length;
-
-      if (!showAllNews) {
-        newNews = newNews.filter(noticia => 
-          noticia.autor === trabajadorId || 
-          (Array.isArray(noticia.editores_en_jefe) && noticia.editores_en_jefe.includes(trabajadorId))
-        );
-      }
-
-      const sortedNews = sortNewsByDate(newNews);
-
-      if (page === 1 || reset) {
-        if (showAllNews) {
-          setAllNews(sortedNews);
-          saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
-        } else {
-          setNews(sortedNews);
-          saveToCache(CACHE_KEYS.NEWS, sortedNews);
-        }
-      } else {
-        if (showAllNews) {
-          setAllNews(prevNews => {
-            const combined = [...prevNews, ...sortedNews];
-            const unique = combined.filter((news, index, self) => 
-              index === self.findIndex(n => n.id === news.id)
-            );
-            return sortNewsByDate(unique);
-          });
-        } else {
-          setNews(prevNews => {
-            const combined = [...prevNews, ...sortedNews];
-            const unique = combined.filter((news, index, self) => 
-              index === self.findIndex(n => n.id === news.id)
-            );
-            return sortNewsByDate(unique);
-          });
-        }
-      }
-
-      setTotalCount(total);
-      setHasMore(newNews.length === size);
-      setCurrentPage(page);
-
-    } catch (error) {
-      console.error("Error al obtener noticias:", error);
-      message.error("Error al cargar las noticias");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      setDataLoaded(true);
+  try {
+    if (reset) {
+      setLoading(true);
+      setCurrentPage(1);
+      setNews([]);
+      setAllNews([]);
+    } else {
+      setLoadingMore(true);
     }
-  }, [trabajadorId, showAllNews, sortNewsByDate, getFromCache, saveToCache]);
 
+    // ✅ CORRECCIÓN: Usar endpoint diferente según showAllNews
+    let endpoint;
+    if (showAllNews) {
+      endpoint = `noticias/?page=${page}&page_size=${size}`;
+    } else {
+      // ✅ Usar el nuevo endpoint optimizado para noticias del trabajador
+      endpoint = `noticias/por-trabajador/?trabajador_id=${trabajadorId}&page=${page}&page_size=${size}`;
+    }
+
+    if (page === 1 && !reset) {
+      const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
+      const cachedNews = getFromCache(cacheKey);
+      
+      if (cachedNews && Array.isArray(cachedNews)) {
+        const sortedNews = sortNewsByDate(cachedNews);
+        const paginatedNews = sortedNews.slice(0, size);
+        
+        if (showAllNews) {
+          setAllNews(paginatedNews);
+        } else {
+          setNews(paginatedNews);
+        }
+        
+        setTotalCount(cachedNews.length);
+        setHasMore(cachedNews.length > size);
+        setLoading(false);
+        setLoadingMore(false);
+        console.log('Noticias cargadas desde caché (paginadas)');
+        return;
+      }
+    }
+
+    console.log('Fetching from:', endpoint); // Debug
+
+    const response = await api.get(endpoint);
+    
+    // ✅ El backend ya filtra, no necesitamos filtrar aquí
+    let newNews = response.data.results || response.data;
+    const total = response.data.count || newNews.length;
+
+    const sortedNews = sortNewsByDate(newNews);
+
+    if (page === 1 || reset) {
+      if (showAllNews) {
+        setAllNews(sortedNews);
+        saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
+      } else {
+        setNews(sortedNews);
+        saveToCache(CACHE_KEYS.NEWS, sortedNews);
+      }
+    } else {
+      if (showAllNews) {
+        setAllNews(prevNews => {
+          const combined = [...prevNews, ...sortedNews];
+          const unique = combined.filter((news, index, self) => 
+            index === self.findIndex(n => n.id === news.id)
+          );
+          return sortNewsByDate(unique);
+        });
+      } else {
+        setNews(prevNews => {
+          const combined = [...prevNews, ...sortedNews];
+          const unique = combined.filter((news, index, self) => 
+            index === self.findIndex(n => n.id === news.id)
+          );
+          return sortNewsByDate(unique);
+        });
+      }
+    }
+
+    setTotalCount(total);
+    setHasMore(newNews.length === size);
+    setCurrentPage(page);
+
+  } catch (error) {
+    console.error("Error al obtener noticias:", error);
+    console.error("Detalles del error:", error.response?.data); // ✅ Más info de debug
+    message.error("Error al cargar las noticias");
+  } finally {
+    setLoading(false);
+    setLoadingMore(false);
+    setDataLoaded(true);
+  }
+}, [trabajadorId, showAllNews, sortNewsByDate, getFromCache, saveToCache]);
   const loadMoreNews = useCallback(() => {
     if (!loadingMore && hasMore) {
       const nextPage = currentPage + 1;
