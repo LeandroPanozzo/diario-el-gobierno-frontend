@@ -12,7 +12,56 @@ const SectionPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
 
-  // Función para extraer la primera imagen del contenido HTML
+  // ✅ MAPEO CORREGIDO - Debe coincidir EXACTAMENTE con el modelo Django
+  const mainSections = {
+    'politica': [
+      'nacion',
+      'legislativos', 
+      'judiciales',
+      'conurbano',
+      'provincias',
+      'municipios',
+      'policiales',
+      'elecciones',
+      'gobierno',
+      'capital'
+    ],
+    'cultura': [
+      'cine',
+      'literatura',
+      'moda',
+      'tecnologia',
+      'eventos',
+      'salud',
+      'educacion',
+      'efemerides',
+      'deporte'
+    ],
+    'economia': [
+      'finanzas',
+      'negocios',
+      'empresas',
+      'dolar',
+      'comercio_internacional',
+      'politica_economica',
+      'pobreza_e_inflacion'
+    ],
+    'mundo': [
+      'estados_unidos',
+      'politica_exterior',
+      'medio_oriente',
+      'asia',
+      'internacional',
+      'latinoamerica'
+    ],
+    'tipos de notas': [
+      'de_analisis',
+      'de_opinion',
+      'informativas',
+      'entrevistas'
+    ]
+  };
+
   const extractFirstImageFromContent = (htmlContent) => {
     if (!htmlContent) return null;
     
@@ -27,7 +76,6 @@ const SectionPage = () => {
     return null;
   };
 
-  // Procesar los datos de noticias para extraer imágenes del contenido
   const processNewsWithImages = (newsItems) => {
     return newsItems.map(newsItem => {
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
@@ -40,22 +88,11 @@ const SectionPage = () => {
     });
   };
 
-  // Definir las categorías principales y sus subcategorías
-  const mainSections = {
-    'portada': ['portada'],
-    'politica': ['nacion','legislativos', 'judiciales', 'conurbano', 'provincias', 'municipios', 'policiales', 'elecciones', 'gobierno', 'capital'],
-    'cultura': ['cine', 'literatura', 'moda', 'tecnologia', 'eventos', 'salud', 'educacion', 'efemerides', 'deporte'],
-    'economia': ['finanzas', 'negocios', 'empresas', 'dolar', 'comercio_internacional', 'politica_economica', 'pobreza_e_inflacion'],
-    'mundo': ['estados_unidos', 'politica_exterior', 'medio_oriente', 'asia', 'internacional', 'latinoamerica']
-  };
-
-  // Función para eliminar etiquetas HTML
   const stripHtml = (html) => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return doc.body.textContent || '';
   };
 
-  // Función para generar la URL con slug para las noticias
   const generateNewsUrl = (newsItem) => {
     if (newsItem.slug) {
       return `/noticia/${newsItem.id}-${newsItem.slug}`;
@@ -72,50 +109,61 @@ const SectionPage = () => {
           throw new Error('Sección no válida');
         }
 
-        const response = await api.get('noticias/');
+        // Normalizar el nombre de la sección
         const normalizedSectionName = sectionName.toLowerCase().trim();
         
         const subcategories = mainSections[normalizedSectionName] || [];
 
-        const filteredNews = response.data
-          .filter(newsItem => {
-            if (newsItem.estado !== 3) return false;
-            
-            const categoriesArray = Array.isArray(newsItem.categorias) 
-              ? newsItem.categorias 
-              : (typeof newsItem.categorias === 'string' && newsItem.categorias 
-                 ? newsItem.categorias.split(',').map(cat => cat.trim().toLowerCase())
-                 : []);
-            
-            return categoriesArray.some(category => 
-              subcategories.includes(category.toLowerCase())
-            );
-          })
-          .sort((a, b) => new Date(b.fecha_publicacion) - new Date(a.fecha_publicacion));
+        if (subcategories.length === 0) {
+          setNews([]);
+          setLoading(false);
+          return;
+        }
 
-        await fetchAuthors(filteredNews);
+        // 🚀 OPTIMIZACIÓN 1: Usar el endpoint de categoría específico del backend
+        // Esto filtra en el servidor en lugar del cliente
+        const categoryParam = subcategories.join(',');
+        const response = await api.get('noticias/por-categoria/', {
+          params: {
+            categoria: categoryParam,
+            estado: 3,
+            limit: 60 // Solo traer las necesarias
+          }
+        });
         
-        const processedNews = processNewsWithImages(filteredNews);
+        const newsData = Array.isArray(response.data) ? response.data : [];
+
+        // 🚀 OPTIMIZACIÓN 2: Cargar autores en paralelo (máximo 5 a la vez)
+        const loadAuthorsInBatches = async (newsList) => {
+          const batchSize = 5;
+          for (let i = 0; i < newsList.length; i += batchSize) {
+            const batch = newsList.slice(i, i + batchSize);
+            await Promise.all(
+              batch.map(async (newsItem) => {
+                if (newsItem.autor) {
+                  try {
+                    const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
+                    newsItem.autorData = authorResponse.data;
+                  } catch (error) {
+                    console.error('Error fetching author:', error);
+                  }
+                }
+              })
+            );
+          }
+        };
+
+        await loadAuthorsInBatches(newsData);
+        
+        // 🚀 OPTIMIZACIÓN 3: Procesar imágenes de forma eficiente
+        const processedNews = processNewsWithImages(newsData);
         setNews(processedNews);
 
       } catch (error) {
         setError(error.message);
-        console.error('Failed to fetch section news:', error);
+        console.error('❌ Error al cargar noticias:', error);
       } finally {
         setLoading(false);
-      }
-    };
-
-    const fetchAuthors = async (newsList) => {
-      for (const newsItem of newsList) {
-        if (newsItem.autor) {
-          try {
-            const authorResponse = await api.get(`trabajadores/${newsItem.autor}/`);
-            newsItem.autorData = authorResponse.data;
-          } catch (error) {
-            console.error('Error fetching author data:', error);
-          }
-        }
       }
     };
 
@@ -134,7 +182,6 @@ const SectionPage = () => {
       plainText;
   };
 
-  // Componente para renderizar un anuncio como noticia
   const AdAsNews = ({ adConfig, index }) => {
     return (
       <div key={`ad-${index}`} className="news-item ad-news-item">
@@ -150,24 +197,11 @@ const SectionPage = () => {
     );
   };
 
-  // Función para mezclar noticias con anuncios
   const mixNewsWithAds = (newsItems) => {
     const items = [];
     const adConfigs = [
       {
         slot: "9072042757",
-        format: "fluid",
-        layoutKey: "-6t+ed+2i-1n-4w",
-        style: { display: 'block', width: '100%', height: '200px' }
-      },
-      {
-        slot: "1234567890", // Cambia por tu slot ID
-        format: "fluid",
-        layoutKey: "-6t+ed+2i-1n-4w",
-        style: { display: 'block', width: '100%', height: '200px' }
-      },
-      {
-        slot: "0987654321", // Cambia por tu slot ID
         format: "fluid",
         layoutKey: "-6t+ed+2i-1n-4w",
         style: { display: 'block', width: '100%', height: '200px' }
@@ -177,7 +211,6 @@ const SectionPage = () => {
     let adIndex = 0;
 
     newsItems.forEach((newsItem, index) => {
-      // Agregar noticia
       items.push(
         <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
           <div className="news-img-container">
@@ -185,6 +218,8 @@ const SectionPage = () => {
               src={newsItem.contentImage} 
               alt={newsItem.nombre_noticia} 
               className="news-img"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div className="news-content">
@@ -199,25 +234,11 @@ const SectionPage = () => {
                   Por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
                 </p>
               )}
-              <p className="news-category">
-                {Array.isArray(newsItem.categorias) 
-                  ? newsItem.categorias
-                      .filter(cat => mainSections[sectionName.toLowerCase()]?.includes(cat.toLowerCase()))
-                      .join(', ')
-                  : (typeof newsItem.categorias === 'string' && newsItem.categorias
-                      ? newsItem.categorias
-                          .split(',')
-                          .map(cat => cat.trim())
-                          .filter(cat => mainSections[sectionName.toLowerCase()]?.includes(cat.toLowerCase()))
-                          .join(', ')
-                      : '')}
-              </p>
             </div>
           </div>
         </Link>
       );
 
-      // Insertar anuncio después de cada 6 noticias, pero no al final
       if ((index + 1) % 6 === 0 && index < newsItems.length - 1 && adIndex < adConfigs.length) {
         items.push(
           <AdAsNews 
@@ -243,10 +264,16 @@ const SectionPage = () => {
 
   return (
     <div className="section-page">
-      <h1>{sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}</h1>
+      <h1>{sectionName ? sectionName.charAt(0).toUpperCase() + sectionName.slice(1) : 'Sección'}</h1>
       
       {news.length === 0 ? (
-        <p className="no-news">No hay noticias disponibles en esta sección.</p>
+        <div className="no-news">
+          <p>No hay noticias disponibles en esta sección.</p>
+          <p>Verifica que las noticias tengan las categorías correctas en el panel de administración.</p>
+          <button onClick={() => window.location.reload()} className="reload-button">
+            Reintentar
+          </button>
+        </div>
       ) : (
         <>
           <div className="news-grid">
