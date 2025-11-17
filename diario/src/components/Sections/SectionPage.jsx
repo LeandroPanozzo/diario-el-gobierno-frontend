@@ -181,65 +181,6 @@ const SectionPage = () => {
       plainText;
   };
 
-
-
-  const mixNewsWithAds = (newsItems) => {
-    const items = [];
-    const adConfigs = [
-      {
-        slot: "9072042757",
-        format: "fluid",
-        layoutKey: "-6t+ed+2i-1n-4w",
-        style: { display: 'block', width: '100%', height: '200px' }
-      }
-    ];
-
-    let adIndex = 0;
-
-    newsItems.forEach((newsItem, index) => {
-      items.push(
-        <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
-          <div className="news-img-container">
-            <img 
-              src={newsItem.contentImage} 
-              alt={newsItem.nombre_noticia} 
-              className="news-img"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-          <div className="news-content">
-            <h3 className="news-title">{newsItem.nombre_noticia}</h3>
-            <p className="news-excerpt">{truncateContent(newsItem.contenido)}</p>
-            <div className="news-meta">
-              <p className="news-date">
-                {new Date(newsItem.fecha_publicacion).toLocaleDateString()}
-              </p>
-              {newsItem.autorData && (
-                <p className="news-author">
-                  Por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                </p>
-              )}
-            </div>
-          </div>
-        </Link>
-      );
-
-      if ((index + 1) % 6 === 0 && index < newsItems.length - 1 && adIndex < adConfigs.length) {
-        items.push(
-          <AdAsNews 
-            key={`ad-${adIndex}`} 
-            adConfig={adConfigs[adIndex]} 
-            index={adIndex}
-          />
-        );
-        adIndex++;
-      }
-    });
-
-    return items;
-  };
-
   if (loading) return <div className="loading">Cargando noticias...</div>;
   if (error) return <div className="error">Error: {error}</div>;
 
@@ -263,7 +204,33 @@ const SectionPage = () => {
       ) : (
         <>
           <div className="news-grid">
-            {mixNewsWithAds(currentNews)}
+            {currentNews.map((newsItem) => (
+              <Link to={generateNewsUrl(newsItem)} key={newsItem.id} className="news-item">
+                <div className="news-img-container">
+                  <img 
+                    src={newsItem.contentImage} 
+                    alt={newsItem.nombre_noticia} 
+                    className="news-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div className="news-content">
+                  <h3 className="news-title">{newsItem.nombre_noticia}</h3>
+                  <p className="news-excerpt">{truncateContent(newsItem.contenido)}</p>
+                  <div className="news-meta">
+                    <p className="news-date">
+                      {new Date(newsItem.fecha_publicacion).toLocaleDateString()}
+                    </p>
+                    {newsItem.autorData && (
+                      <p className="news-author">
+                        Por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
 
           {totalPages > 1 && (
