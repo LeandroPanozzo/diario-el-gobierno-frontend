@@ -129,15 +129,64 @@ function Header() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
-    localStorage.removeItem('access');
-    localStorage.removeItem('refresh');
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsMenuOpen(false);
-    navigate('/login');
+  const clearAllCache = async () => {
+    try {
+      // Limpiar localStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Limpiar cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      // Limpiar Cache API si está disponible
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          );
+        } catch (error) {
+          console.log('Error al borrar Cache API:', error);
+        }
+      }
+      
+      console.log('Caché y datos borrados exitosamente');
+    } catch (error) {
+      console.error('Error al borrar el caché:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Ejecutar la limpieza completa de caché y datos
+      await clearAllCache();
+      
+      // Limpieza específica de tokens y usuario
+      localStorage.removeItem('access');
+      localStorage.removeItem('refresh');
+      localStorage.removeItem('user');
+      localStorage.removeItem('trabajadorId');
+      
+      // Limpiar el contexto del usuario
+      setUser(null);
+      
+      // Cerrar menús
+      setIsMenuOpen(false);
+      
+      // Redirigir al login
+      navigate('/login');
+      
+      console.log('Sesión cerrada y datos limpiados exitosamente');
+    } catch (error) {
+      console.error('Error durante el logout:', error);
+      // Forzar la limpieza incluso si hay error
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      navigate('/login');
+    }
   };
 
   // Función para manejar la búsqueda
@@ -327,28 +376,13 @@ function Header() {
                     {categoria.nombre}
                   </a>
                 ) : (
-                  // <div key={categoria.path} className="section-with-subcategorias">
-                    <Link
-                      key={categoria.path}
-                      to={`/seccion/${categoria.path}`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {categoria.nombre}
-                    </Link>
-                    // {categoria.subcategorias.length > 0 && (
-                    //   <div className="subcategorias">
-                    //     {categoria.subcategorias.map((subcat) => (
-                    //       <Link
-                    //         key={subcat.path}
-                    //         to={`/subcategoria/${subcat.path}`}
-                    //         onClick={() => setIsMenuOpen(false)}
-                    //       >
-                    //         {subcat.nombre}
-                    //       </Link>
-                    //     ))}
-                    //   </div>
-                    // )}
-                  // </div>
+                  <Link
+                    key={categoria.path}
+                    to={`/seccion/${categoria.path}`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {categoria.nombre}
+                  </Link>
                 )
               ))}
             </div>
@@ -389,7 +423,7 @@ function Header() {
               </form>
             </div>
 
-            {categorias.map((categoria, index) => (
+            {categorias.map((categoria) => (
               categoria.external ? (
                 <a
                   key={categoria.path}
@@ -402,32 +436,6 @@ function Header() {
                   {categoria.nombre}
                 </a>
               ) : (
-                // <div key={categoria.path} className="mobile-section-with-subcategorias">
-                //   <div 
-                //     className="mobile-section-link"
-                //     onClick={() => toggleDropdown(index)}
-                //     style={{cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
-                //   >
-                //     <span>{categoria.nombre}</span>
-                //     {categoria.subcategorias.length > 0 && (
-                //       <span>{activeDropdown === index ? '▲' : '▼'}</span>
-                //     )}
-                //   </div>
-                //   {categoria.subcategorias.length > 0 && (
-                //     <div className={`mobile-subcategorias ${activeDropdown === index ? 'open' : ''}`}>
-                //       {categoria.subcategorias.map((subcat) => (
-                //         <Link
-                //           key={subcat.path}
-                //           to={`/subcategoria/${subcat.path}`}
-                //           onClick={closeMenu}
-                //           className="mobile-subcategoria-link"
-                //         >
-                //           {subcat.nombre}
-                //         </Link>
-                //       ))}
-                //     </div>
-                //   )}
-                // </div>
                 <Link
                   key={categoria.path}
                   to={`/seccion/${categoria.path}`}
