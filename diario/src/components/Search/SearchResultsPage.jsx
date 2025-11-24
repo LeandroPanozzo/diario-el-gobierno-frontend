@@ -59,27 +59,24 @@ function SearchResultsPage() {
     return plainText.length > maxLength ? plainText.slice(0, maxLength) + '...' : plainText;
   }, [stripHtml]);
 
-  // 🚀 OPTIMIZACIÓN 3: Búsqueda con cancel token para abortar requests anteriores
+  // 🚀 OPTIMIZACIÓN 3: Búsqueda con cancel token
   const searchNews = useCallback(async (searchQuery) => {
     setLoading(true);
     
-    // Crear un controller para cancelar la request anterior
     const controller = new AbortController();
     
     try {
-      // 🚀 OPTIMIZACIÓN 4: Reducir el límite para cargar más rápido
       const response = await api.get('/noticias/buscar/', {
         params: {
           q: searchQuery,
-          limit: 30,  // Reducido de 50 a 30 para cargar más rápido
-          type: 'title'  // Buscar solo en título es más rápido
+          limit: 30,
+          type: 'all'  // Buscar en título, subtítulo y palabras clave
         },
         signal: controller.signal
       });
 
       if (response.data.results) {
-        // 🚀 OPTIMIZACIÓN 5: Procesar imágenes de forma lazy
-        // Solo procesar las primeras 10 noticias inmediatamente
+        // Procesar las primeras 10 noticias inmediatamente
         const firstBatch = response.data.results.slice(0, 10);
         const processedBatch = processNewsWithImages(firstBatch);
         
@@ -114,7 +111,6 @@ function SearchResultsPage() {
       setLoading(false);
     }
 
-    // Limpiar en caso de que el componente se desmonte
     return () => controller.abort();
   }, [processNewsWithImages]);
 
@@ -124,76 +120,78 @@ function SearchResultsPage() {
 
   return (
     <div className="search-results-page">
-      <div className="search-results-container">
-        <div className="search-results-header">
-          <h1 className="search-results-title">Resultados de búsqueda</h1>
-          {query && (
-            <p className="search-query-display">
-              Buscando contenido con la palabra clave: "{query}"
-            </p>
-          )}
-          {searchInfo && (
-            <p className="search-results-count">
-              {searchInfo.resultsCount} {searchInfo.resultsCount === 1 ? 'resultado encontrado' : 'resultados encontrados'}
-            </p>
-          )}
-        </div>
-
-        <div className="search-results-content">
-          {loading ? (
-            <div className="search-loading">
-              <p>Buscando noticias...</p>
-            </div>
-          ) : results.length > 0 ? (
-            <div className="search-results-grid">
-              {results.map(newsItem => (
-                <Link 
-                  key={newsItem.id} 
-                  to={generateNewsUrl(newsItem)} 
-                  className="search-result-card"
-                >
-                  {newsItem.contentImage && (
-                    <div className="search-result-image">
-                      <img 
-                        src={newsItem.contentImage} 
-                        alt={newsItem.nombre_noticia}
-                        loading="lazy"  // 🚀 Lazy loading para imágenes
-                      />
-                    </div>
-                  )}
-                  <div className="search-result-content">
-                    <h3 className="search-result-title">{newsItem.nombre_noticia}</h3>
-                    <p className="search-result-excerpt">
-                      {truncateContent(newsItem.contenido)}
-                    </p>
-                    <div className="search-result-meta">
-                      <span className="search-result-date">
-                        {new Date(newsItem.fecha_publicacion).toLocaleDateString('es-PE', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </span>
-                      {newsItem.categorias && newsItem.categorias.length > 0 && (
-                        <span className="search-result-category">
-                          {Array.isArray(newsItem.categorias) 
-                            ? newsItem.categorias[0].replace(/_/g, ' ').toUpperCase()
-                            : newsItem.categorias.split(',')[0].trim().replace(/_/g, ' ').toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="search-no-results">
-              <h2>No se encontraron resultados</h2>
-              <p>Intenta con otros términos de búsqueda o palabras clave diferentes.</p>
-            </div>
-          )}
-        </div>
+      <div className="search-results-header">
+        <h1>Resultados de búsqueda</h1>
+        {query && (
+          <p className="search-query">
+            Buscando: <strong>"{query}"</strong>
+          </p>
+        )}
+        {searchInfo && !loading && (
+          <p className="search-count">
+            {searchInfo.resultsCount} {searchInfo.resultsCount === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+          </p>
+        )}
       </div>
+
+      {loading ? (
+        <div className="loading-container">
+          <div className="modern-spinner">
+            <div className="spinner-circle"></div>
+            <div className="spinner-circle"></div>
+            <div className="spinner-circle"></div>
+          </div>
+          <p className="loading-text">Buscando noticias...</p>
+        </div>
+      ) : results.length > 0 ? (
+        <div className="search-results">
+          {results.map(newsItem => (
+            <Link 
+              key={newsItem.id} 
+              to={generateNewsUrl(newsItem)} 
+              className="search-result-item"
+            >
+              {newsItem.contentImage && (
+                <div className="result-image">
+                  <img 
+                    src={newsItem.contentImage} 
+                    alt={newsItem.nombre_noticia}
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div className="result-text">
+                <h3 className="result-title">{newsItem.nombre_noticia}</h3>
+                <p className="result-subtitle">
+                  {truncateContent(newsItem.contenido)}
+                </p>
+                <div className="result-meta">
+                  <span className="result-date">
+                    {new Date(newsItem.fecha_publicacion).toLocaleDateString('es-PE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                  {newsItem.categorias && newsItem.categorias.length > 0 && (
+                    <span className="result-category">
+                      {Array.isArray(newsItem.categorias) 
+                        ? newsItem.categorias[0].replace(/_/g, ' ').toUpperCase()
+                        : newsItem.categorias.split(',')[0].trim().replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="no-results">
+          <i className="ri-search-line"></i>
+          <h2>No se encontraron resultados</h2>
+          <p>Intenta con otros términos de búsqueda o palabras clave diferentes.</p>
+        </div>
+      )}
     </div>
   );
 }
