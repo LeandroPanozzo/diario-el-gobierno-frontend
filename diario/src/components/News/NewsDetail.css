@@ -23,7 +23,7 @@
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #0066cc;
+  border-top: 4px solid #156AA2;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -42,7 +42,7 @@
 .back-home-btn {
   display: inline-block;
   padding: 10px 20px;
-  background-color: #0066cc;
+  background-color: #156AA2;
   color: white;
   text-decoration: none;
   border-radius: 5px;
@@ -67,13 +67,14 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 15px;
+  align-items: center;
 }
 
 .news-section-link {
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #0066b2;
+  color: #156AA2;
   text-decoration: none;
   position: relative;
   padding-left: 15px;
@@ -103,6 +104,31 @@
   padding-left: 0;
 }
 
+/* ✅ BADGE DE CONTENIDO EXCLUSIVO EN CATEGORÍAS */
+.exclusive-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+}
+
+.exclusive-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.exclusive-text {
+  line-height: 1;
+}
+
 .title-container {
   margin-bottom: 20px;
 }
@@ -114,6 +140,37 @@
   margin: 10px 0;
   color: #000000;
   line-height: 1.2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 15px;
+}
+
+/* ✅ INDICADOR DE CONTENIDO EXCLUSIVO JUNTO AL TÍTULO */
+.exclusive-indicator-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 10px rgba(0, 102, 204, 0.4);
+  white-space: nowrap;
+}
+
+.exclusive-indicator-title svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.exclusive-label {
+  line-height: 1;
 }
 
 .news-subtitle {
@@ -141,6 +198,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .header-image {
@@ -151,54 +209,168 @@
   object-fit: cover;
 }
 
-/* Información de autor y editores */
-.author-editor-info {
+/* ✅ OVERLAY DE CONTENIDO EXCLUSIVO EN IMAGEN */
+.exclusive-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.exclusive-image-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.exclusive-image-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ✅ BANNER DE CONTENIDO EXCLUSIVO */
+.exclusive-content-banner {
+  margin: 30px 0;
+  background: linear-gradient(135deg, #0066cc 0%, #156AA2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.2);
+}
+
+.exclusive-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  color: white;
+}
+
+.exclusive-banner-content svg {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.exclusive-banner-text h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+}
+
+.exclusive-banner-text p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* ✅ NUEVO CONTENEDOR DE AUTORES Y EDITORES - DISEÑO COMPACTO */
+.authors-editors-container {
+  margin: 20px 0;
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  margin: 10px 0;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  align-items: flex-start;
 }
 
-.author-info, .editor-info {
+.authors-section,
+.editors-section {
   flex: 1;
-  min-width: 200px;
+  min-width: 250px;
 }
 
-.author-title, .editors-title {
-  font-size: 16px;
+.section-title {
+  font-size: 14px;
   font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #333;
+  margin: 0 0 10px 0;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.author-details, .editor-details {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ESTILOS ACTUALIZADOS PARA LOS NOMBRES - Mismo estilo que los títulos */
-.author-name, .editor-name {
-  font-size: 16px; /* Mismo tamaño que los títulos */
-  font-weight: 600; /* Mismo peso de fuente */
-  color: #333; /* Mismo color que los títulos */
-  text-decoration: none; /* Sin subrayado */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Misma fuente base */
-  transition: color 0.3s; /* Transición suave para hover */
-}
-
-/* Efecto hover sutil para indicar que son enlaces */
-.author-name:hover, .editor-name:hover {
-  color: #0066cc; /* Color azul al hacer hover */
-  text-decoration: none; /* Mantener sin subrayado */
-}
-
+.authors-list,
 .editors-list {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.author-item,
+.editor-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.author-avatar,
+.editor-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #e0e0e0;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author-details,
+.editor-details {
+  display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
+}
+
+.author-name-link,
+.editor-name-link {
+  text-decoration: none;
+}
+
+.author-name,
+.editor-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  transition: color 0.3s;
+  line-height: 1.2;
+}
+
+.author-name-link:hover .author-name,
+.editor-name-link:hover .editor-name {
+  color: #0066cc;
+}
+
+.author-bio {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  line-height: 1.3;
+  max-width: 300px;
 }
 
 /* CONTENIDO DE LA NOTICIA - FORMATOS CONSISTENTES */
@@ -331,7 +503,7 @@
   background-color: #f8f9fa !important;
   padding: 15px;
   margin: 20px 0;
-  border-left: 4px solid #0066cc;
+  border-left: 4px solid #156AA2;
   font-style: italic !important;
 }
 
@@ -417,7 +589,7 @@
   background-color: #f8f9fa !important;
   margin: 20px 0;
   padding: 20px;
-  border-left: 4px solid #0066cc;
+  border-left: 4px solid #156AA2;
   font-style: italic !important;
 }
 
@@ -872,15 +1044,88 @@
   
   .news-title {
     font-size: 26px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .exclusive-indicator-title {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .exclusive-indicator-title svg {
+    width: 16px;
+    height: 16px;
   }
   
   .news-subtitle {
     font-size: 18px;
   }
   
-  .author-editor-info {
+  .authors-editors-container {
+    padding: 12px 15px;
     flex-direction: column;
     gap: 15px;
+  }
+  
+  .authors-section,
+  .editors-section {
+    min-width: 100%;
+  }
+  
+  .author-item,
+  .editor-item {
+    gap: 8px;
+  }
+  
+  .author-avatar,
+  .editor-avatar {
+    width: 38px;
+    height: 38px;
+  }
+  
+  .author-name,
+  .editor-name {
+    font-size: 14px;
+  }
+  
+  .author-bio {
+    font-size: 12px;
+    max-width: 100%;
+  }
+  
+  .exclusive-content-banner {
+    padding: 15px;
+  }
+  
+  .exclusive-banner-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .exclusive-banner-content svg {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .exclusive-banner-text h4 {
+    font-size: 16px;
+  }
+  
+  .exclusive-banner-text p {
+    font-size: 14px;
+  }
+  
+  .exclusive-image-badge {
+    top: 15px;
+    right: 15px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  
+  .exclusive-image-badge svg {
+    width: 16px;
+    height: 16px;
   }
   
   .most-read-news-container {
@@ -1013,6 +1258,16 @@
     font-size: 22px;
   }
   
+  .exclusive-indicator-title {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+  
+  .exclusive-indicator-title svg {
+    width: 14px;
+    height: 14px;
+  }
+  
   .news-subtitle {
     font-size: 16px;
   }
@@ -1025,6 +1280,69 @@
     font-size: 12px;
     padding-left: 12px;
     margin-right: 8px;
+  }
+  
+  .exclusive-badge {
+    padding: 5px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  
+  .exclusive-badge svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .authors-editors-container {
+    padding: 10px 12px;
+  }
+  
+  .section-title {
+    font-size: 13px;
+  }
+  
+  .author-avatar,
+  .editor-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .author-name,
+  .editor-name {
+    font-size: 14px;
+  }
+  
+  .author-bio {
+    font-size: 12px;
+  }
+  
+  .exclusive-content-banner {
+    padding: 12px;
+  }
+  
+  .exclusive-banner-content svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .exclusive-banner-text h4 {
+    font-size: 15px;
+  }
+  
+  .exclusive-banner-text p {
+    font-size: 13px;
+  }
+  
+  .exclusive-image-badge {
+    top: 10px;
+    right: 10px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  
+  .exclusive-image-badge svg {
+    width: 14px;
+    height: 14px;
   }
   
   .tags-section, .reactions-section, .comments-section, .most-read-section {

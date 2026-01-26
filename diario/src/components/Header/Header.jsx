@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
 import './Header.css';
@@ -9,79 +9,74 @@ function Header() {
   const { user, setUser, logout } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  // const [activeDropdown, setActiveDropdown] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showTiposDropdown, setShowTiposDropdown] = useState(false);
+  const dropdownTimeoutRef = useRef(null);
   const navigate = useNavigate();
 
-  // Definir las categorías y subcategorías
+  // Subcategorías solo para "Tipos de notas"
+  const tiposDeNotasSubcategorias = [
+    { nombre: 'De análisis', path: 'de_analisis' },
+    { nombre: 'De opinión', path: 'de_opinion' },
+    { nombre: 'Informativas', path: 'informativas' },
+    { nombre: 'Entrevistas', path: 'entrevistas' },
+  ];
+
+  // Categorías principales (solo enlaces directos excepto Tipos de notas)
   const categorias = [
     {
       nombre: 'Politica',
       path: 'Politica',
-      // subcategorias: [
-      //   { nombre: 'Legislativos', path: 'legislativos' },
-      //   { nombre: 'Policiales', path: 'policiales' },
-      //   { nombre: 'Elecciones', path: 'elecciones' },
-      //   { nombre: 'Gobierno', path: 'gobierno' },
-      //   { nombre: 'Provincias', path: 'provincias' },
-      //   { nombre: 'Capital', path: 'capital' },
-      //   { nombre: 'Nacion', path: 'nacion' },
-      // ],
     },
     {
       nombre: 'Economia',
       path: 'Economia',
-      // subcategorias: [
-      //   { nombre: 'Finanzas', path: 'finanzas' },
-      //   { nombre: 'Comercio internacional', path: 'comercio_internacional' },
-      //   { nombre: 'Politica economica', path: 'politica_economica' },
-      //   { nombre: 'Pobreza e inflacion', path: 'pobreza_e_inflacion' },
-      //   { nombre: 'Dolar', path: 'dolar' },
-      // ],
     },
     {
       nombre: 'Cultura',
       path: 'Cultura',
-      // subcategorias: [
-      //   { nombre: 'Cine', path: 'cine' },
-      //   { nombre: 'Literatura', path: 'literatura' },
-      //   { nombre: 'Salud', path: 'salud' },
-      //   { nombre: 'Tecnologia', path: 'tecnologia' },
-      //   { nombre: 'Eventos', path: 'eventos' },
-      //   { nombre: 'Educacion', path: 'educacion' },
-      //   { nombre: 'Efemerides', path: 'efemerides' },
-      //   { nombre: 'Deporte', path: 'deporte' },
-      // ],
     },
     {
       nombre: 'Mundo',
       path: 'Mundo',
-      // subcategorias: [
-      //   { nombre: 'Estados Unidos', path: 'estados_unidos' },
-      //   { nombre: 'Medio Oriente', path: 'medio_oriente' },
-      //   { nombre: 'Asia', path: 'asia' },
-      //   { nombre: 'Internacional', path: 'internacional' },
-      //   { nombre: 'Latinoamerica', path: 'latinoamerica' },
-      // ],
     },
     {
       nombre: 'Tipos de notas',
       path: 'Tipos de notas',
-      // subcategorias: [
-      //   { nombre: 'De analisis', path: 'de_analisis' },
-      //   { nombre: 'De opinion', path: 'de_opinion' },
-      //   { nombre: 'Informativas', path: 'informativas' },
-      //   { nombre: 'Entrevistas', path: 'entrevistas' },
-      // ],
+      hasDropdown: true,
     },
     {
       nombre: 'Revista Sociedad',
       path: 'https://diarioelgobierno.pe/revista-sociedad-lifestyle/',
       external: true,
-      // subcategorias: [],
     },
   ];
+
+  // Funciones para manejar el delay del dropdown
+  const handleMouseEnter = () => {
+    // Cancelar cualquier timeout pendiente
+    if (dropdownTimeoutRef.current) {
+      clearTimeout(dropdownTimeoutRef.current);
+    }
+    setShowTiposDropdown(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Agregar un delay de 300ms antes de ocultar el dropdown
+    dropdownTimeoutRef.current = setTimeout(() => {
+      setShowTiposDropdown(false);
+    }, 300);
+  };
+
+  // Limpiar timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (dropdownTimeoutRef.current) {
+        clearTimeout(dropdownTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const accessToken = localStorage.getItem('access');
@@ -106,7 +101,6 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Cerrar búsqueda al hacer scroll
   useEffect(() => {
     if (isSearchOpen) {
       setIsSearchOpen(false);
@@ -131,16 +125,13 @@ function Header() {
 
   const clearAllCache = async () => {
     try {
-      // Limpiar localStorage
       localStorage.clear();
       sessionStorage.clear();
       
-      // Limpiar cookies
       document.cookie.split(";").forEach(function(c) { 
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
       });
       
-      // Limpiar Cache API si está disponible
       if ('caches' in window) {
         try {
           const cacheNames = await caches.keys();
@@ -160,28 +151,20 @@ function Header() {
 
   const handleLogout = async () => {
     try {
-      // Ejecutar la limpieza completa de caché y datos
       await clearAllCache();
       
-      // Limpieza específica de tokens y usuario
       localStorage.removeItem('access');
       localStorage.removeItem('refresh');
       localStorage.removeItem('user');
       localStorage.removeItem('trabajadorId');
       
-      // Limpiar el contexto del usuario
       setUser(null);
-      
-      // Cerrar menús
       setIsMenuOpen(false);
-      
-      // Redirigir al login
       navigate('/login');
       
       console.log('Sesión cerrada y datos limpiados exitosamente');
     } catch (error) {
       console.error('Error durante el logout:', error);
-      // Forzar la limpieza incluso si hay error
       localStorage.clear();
       sessionStorage.clear();
       setUser(null);
@@ -189,7 +172,6 @@ function Header() {
     }
   };
 
-  // Función para manejar la búsqueda
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -200,7 +182,6 @@ function Header() {
     }
   };
 
-  // Función para cerrar la búsqueda al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isSearchOpen && !event.target.closest('.search-container')) {
@@ -214,13 +195,9 @@ function Header() {
     };
   }, [isSearchOpen]);
 
-  // const toggleDropdown = (index) => {
-  //   setActiveDropdown(activeDropdown === index ? null : index);
-  // };
-
   const closeMenu = () => {
     setIsMenuOpen(false);
-    // setActiveDropdown(null);
+    setShowTiposDropdown(false);
   };
   
   const SocialIcons = () => (
@@ -333,15 +310,12 @@ function Header() {
       <div className="header-spacer" />
       <header className={`header ${isScrolled ? 'scrolled' : ''}`}>
         <div className="container">
-          {/* Parte superior con logo centrado y todo a la derecha */}
           <div className="header-top">
-            {/* Logo centrado */}
             <Link to="/home" className="logo" onClick={closeMenu}>
               <img src={logo} alt="Logo Diario El Gobierno" className="logo-image" />
               DIARIO EL GOBIERNO
             </Link>
             
-            {/* Contenedor DERECHO (redes sociales + botones) */}
             <div className="header-right">
               <div className="header-actions">
                 <div className="social-icons-wrapper">
@@ -362,38 +336,77 @@ function Header() {
             </button>
           </div>
 
-          {/* Navegación centrada debajo del logo con búsqueda a la derecha */}
-          <nav className="nav-menu">
-            <div className="nav-links">
-              {categorias.map((categoria) => (
-                categoria.external ? (
-                  <a
-                    key={categoria.path}
-                    href={categoria.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {categoria.nombre}
-                  </a>
-                ) : (
-                  <Link
-                    key={categoria.path}
-                    to={`/seccion/${categoria.path}`}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {categoria.nombre}
-                  </Link>
-                )
-              ))}
-            </div>
-            
-            {/* Botón de búsqueda a la derecha de las secciones */}
-            <div className="nav-search-button">
-              <SearchButton />
-            </div>
-          </nav>
+          {/* Navegación principal con dropdown solo en Tipos de notas */}
 
-          {/* Barra de búsqueda */}
+<nav className="nav-menu">
+  <div className="nav-search-button">
+    <SearchButton />
+  </div>
+  
+  <div className="nav-links">
+    {categorias.map((categoria) => {
+      // Si es un enlace externo
+      if (categoria.external) {
+        return (
+          <a
+            key={categoria.path}
+            href={categoria.path}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {categoria.nombre}
+          </a>
+        );
+      }
+      
+      // Si tiene dropdown (Tipos de notas)
+      if (categoria.hasDropdown) {
+        return (
+          <div 
+            key={categoria.path}
+            className="section-with-subcategorias"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            <Link to={`/seccion/${categoria.path}`}>
+              {categoria.nombre}
+            </Link>
+            
+            {showTiposDropdown && (
+              <div 
+                className="subcategorias"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {tiposDeNotasSubcategorias.map((sub) => (
+                  <Link
+                    key={sub.path}
+                    to={`/subcategoria/${sub.path}`}
+                    onClick={() => setShowTiposDropdown(false)}
+                  >
+                    {sub.nombre}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+      
+      // Enlace normal a sección
+      return (
+        <Link
+          key={categoria.path}
+          to={`/seccion/${categoria.path}`}
+          onClick={() => setIsMenuOpen(false)}
+        >
+          {categoria.nombre}
+        </Link>
+      );
+    })}
+  </div>
+</nav>
+
           <SearchBar />
 
           {/* Menú móvil */}
@@ -403,7 +416,6 @@ function Header() {
           />
 
           <nav className={`navv-menu ${isMenuOpen ? 'open' : ''}`}>
-            {/* Barra de búsqueda móvil */}
             <div className="mobile-search-container">
               <h3 className="mobile-search-title">Buscar noticias</h3>
               <form onSubmit={handleSearch} className="mobile-search-form">
@@ -423,19 +435,51 @@ function Header() {
               </form>
             </div>
 
-            {categorias.map((categoria) => (
-              categoria.external ? (
-                <a
-                  key={categoria.path}
-                  href={categoria.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={closeMenu}
-                  className="mobile-section-link"
-                >
-                  {categoria.nombre}
-                </a>
-              ) : (
+            {/* Menú móvil con subcategorías expandibles solo para Tipos de notas */}
+            {categorias.map((categoria) => {
+              if (categoria.external) {
+                return (
+                  <a
+                    key={categoria.path}
+                    href={categoria.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closeMenu}
+                    className="mobile-section-link"
+                  >
+                    {categoria.nombre}
+                  </a>
+                );
+              }
+              
+              if (categoria.hasDropdown) {
+                return (
+                  <div key={categoria.path}>
+                    <div 
+                      className="mobile-section-link mobile-section-with-dropdown"
+                      onClick={() => setShowTiposDropdown(!showTiposDropdown)}
+                    >
+                      {categoria.nombre}
+                      <i className={`ri-arrow-${showTiposDropdown ? 'up' : 'down'}-s-line`}></i>
+                    </div>
+                    
+                    <div className={`mobile-subcategorias ${showTiposDropdown ? 'open' : ''}`}>
+                      {tiposDeNotasSubcategorias.map((sub) => (
+                        <Link
+                          key={sub.path}
+                          to={`/subcategoria/${sub.path}`}
+                          onClick={closeMenu}
+                          className="mobile-subcategoria-link"
+                        >
+                          {sub.nombre}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
                 <Link
                   key={categoria.path}
                   to={`/seccion/${categoria.path}`}
@@ -444,8 +488,8 @@ function Header() {
                 >
                   {categoria.nombre}
                 </Link>
-              )
-            ))}
+              );
+            })}
 
             <div className="mobile-social-icons">
               <SocialIcons />

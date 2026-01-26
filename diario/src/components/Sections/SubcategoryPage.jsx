@@ -12,7 +12,6 @@ const AdSenseAd = ({
   style = { display: 'block' }
 }) => {
   useEffect(() => {
-    // Cargar el script de AdSense si no está cargado
     if (!window.adsbygoogle) {
       const script = document.createElement('script');
       script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
@@ -21,7 +20,6 @@ const AdSenseAd = ({
       document.head.appendChild(script);
     }
 
-    // Inicializar el anuncio después de que el componente se monte
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch (err) {
@@ -43,7 +41,6 @@ const AdSenseAd = ({
   );
 };
 
-// Componente para mostrar un anuncio como una "noticia"
 const AdNewsItem = ({ adConfig }) => {
   return (
     <div className="news-item ad-news-item">
@@ -65,7 +62,6 @@ const SubcategoryPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const newsPerPage = 20;
 
-  // Configuraciones de anuncios (puedes personalizarlas)
   const adConfigs = [
     {
       client: "ca-pub-5718334909043793",
@@ -75,24 +71,22 @@ const SubcategoryPage = () => {
     },
     {
       client: "ca-pub-5718334909043793",
-      slot: "9072042757", // Cambia por otro slot si tienes más
+      slot: "9072042757",
       format: "fluid",
       layoutKey: "-6t+ed+2i-1n-4w"
     }
   ];
 
-  // Función para insertar anuncios entre las noticias
   const insertAdsIntoNews = (newsArray, adsConfigs) => {
     if (newsArray.length === 0) return [];
     
     const result = [];
-    const adFrequency = 6; // Mostrar un anuncio cada 6 noticias
+    const adFrequency = 6;
     let adIndex = 0;
     
     newsArray.forEach((newsItem, index) => {
       result.push(newsItem);
       
-      // Insertar anuncio después de cada 'adFrequency' noticias
       if ((index + 1) % adFrequency === 0 && adIndex < adsConfigs.length) {
         result.push({
           id: `ad-${adIndex}`,
@@ -106,7 +100,6 @@ const SubcategoryPage = () => {
     return result;
   };
 
-  // Función para extraer la primera imagen del contenido HTML
   const extractFirstImageFromContent = (htmlContent) => {
     if (!htmlContent) return null;
     
@@ -121,7 +114,6 @@ const SubcategoryPage = () => {
     return null;
   };
 
-  // Procesar los datos de noticias para extraer imágenes del contenido
   const processNewsWithImages = (newsItems) => {
     return newsItems.map(newsItem => {
       const contentImage = extractFirstImageFromContent(newsItem.contenido);
@@ -134,7 +126,6 @@ const SubcategoryPage = () => {
     });
   };
 
-  // Map of subcategories to their parent categories for better navigation
   const categoryMapping = {
     'legislativos': 'Política',
     'judiciales': 'Política',
@@ -189,9 +180,21 @@ const SubcategoryPage = () => {
         }
 
         const response = await api.get('noticias/');
+        
+        // ✅ FIX: Manejar respuesta paginada
+        let newsData = [];
+        if (Array.isArray(response.data)) {
+          newsData = response.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          newsData = response.data.results;
+        } else {
+          console.error('Formato de respuesta inesperado:', response.data);
+          throw new Error('Formato de datos inválido');
+        }
+
         const normalizedSubcategory = subcategory.toLowerCase().trim();
         
-        const filteredNews = response.data
+        const filteredNews = newsData
           .filter(newsItem => {
             if (newsItem.estado !== 3) return false;
             
@@ -208,8 +211,6 @@ const SubcategoryPage = () => {
         await fetchAuthors(filteredNews);
         
         const processedNews = processNewsWithImages(filteredNews);
-        
-        // Insertar anuncios entre las noticias
         const newsWithAds = insertAdsIntoNews(processedNews, adConfigs);
         setNews(newsWithAds);
 
@@ -286,12 +287,10 @@ const SubcategoryPage = () => {
         <>
           <div className="news-grid">
             {currentNews.map((item) => {
-              // Si es un anuncio, renderizar el componente de anuncio
               if (item.isAd) {
                 return <AdNewsItem key={item.id} adConfig={item.adConfig} />;
               }
               
-              // Si es una noticia normal, renderizar como antes
               return (
                 <Link to={generateNewsUrl(item)} key={item.id} className="news-item">
                   <div className="news-img-container">

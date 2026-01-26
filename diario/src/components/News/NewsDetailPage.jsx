@@ -1,3 +1,4 @@
+//actualizacion de la pagina
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useUser } from '../../pages/context/UserContext';
@@ -9,6 +10,13 @@ import TwitterEmbed from './TwitterEmbed';
 
 // Imagen por defecto para usuarios sin foto de perfil
 const DEFAULT_AVATAR = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+
+// Ícono de contenido exclusivo (puedes usar una imagen o SVG)
+const ExclusiveIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#FFD700" stroke="#D4AF37" strokeWidth="2">
+    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+  </svg>
+);
 
 // Función para extraer la primera imagen del contenido HTML
 const extractFirstImageFromContent = (htmlContent) => {
@@ -42,7 +50,7 @@ const processNewsWithImages = (newsItems) => {
 const NewsDetail = () => {
   const params = useParams();
   const [newsData, setNewsData] = useState(null);
-  const [authorData, setAuthorData] = useState(null);
+  const [authorsData, setAuthorsData] = useState([]); // Cambiado de authorData a authorsData (array)
   const [editorsData, setEditorsData] = useState([]);
   const [palabrasClave, setPalabrasClave] = useState([]);
   const { user } = useUser();
@@ -337,9 +345,32 @@ const NewsDetail = () => {
           setPalabrasClave(processedKeywords);
         }
     
-        if (news.autor) {
-          const authorResponse = await api.get(`trabajadores/${news.autor}/`);
-          setAuthorData(authorResponse.data);
+        // ✅ ACTUALIZADO: Cargar múltiples autores
+        const authorsToLoad = [];
+        
+        // Sistema nuevo: autores (array)
+        if (news.autores && Array.isArray(news.autores) && news.autores.length > 0) {
+          authorsToLoad.push(...news.autores);
+        } 
+        // Sistema antiguo: autor (solo uno)
+        else if (news.autor) {
+          authorsToLoad.push(news.autor);
+        }
+        
+        // Cargar datos de todos los autores
+        if (authorsToLoad.length > 0) {
+          const authorPromises = authorsToLoad.map(async (authorId) => {
+            try {
+              const authorResponse = await api.get(`trabajadores/${authorId}/`);
+              return authorResponse.data;
+            } catch (error) {
+              console.error(`Error fetching author with ID ${authorId}:`, error);
+              return null;
+            }
+          });
+          
+          const authorsDataArray = (await Promise.all(authorPromises)).filter(a => a !== null);
+          setAuthorsData(authorsDataArray);
         }
         
         // Handle multiple editors
@@ -427,7 +458,7 @@ const NewsDetail = () => {
     );
   }
 
-  const { nombre_noticia, subtitulo, categorias, fecha_publicacion, imagen_cabecera, contenido } = newsData;
+  const { nombre_noticia, subtitulo, categorias, fecha_publicacion, imagen_cabecera, contenido, es_contenido_exclusivo } = newsData;
   const subcategories = Array.isArray(categorias) ? categorias : (categorias || '').split(',').filter(Boolean);
 
   return (
@@ -445,12 +476,28 @@ const NewsDetail = () => {
               <span className="news-section">{category.replace(/_/g, ' ')}</span>
             </Link>
           ))}
+          
+          {/* ✅ Indicador de contenido exclusivo */}
+          {es_contenido_exclusivo && (
+            <div className="exclusive-badge">
+              <ExclusiveIcon />
+              <span className="exclusive-text">EXCLUSIVO</span>
+            </div>
+          )}
         </div>
 
         {/* Título y subtítulo */}
         <div className="title-container">
           <h1 className="news-title">
             {nombre_noticia}
+            
+            {/* ✅ Indicador de contenido exclusivo junto al título */}
+            {es_contenido_exclusivo && (
+              <span className="exclusive-indicator-title">
+                <ExclusiveIcon />
+                <span className="exclusive-label">Contenido Exclusivo</span>
+              </span>
+            )}
           </h1>
 
           {subtitulo !== "default content" && (
@@ -478,31 +525,86 @@ const NewsDetail = () => {
               alt={nombre_noticia}
               className="header-image"
             />
+            
+            {/* ✅ Overlay para contenido exclusivo en imagen */}
+            {es_contenido_exclusivo && (
+              <div className="exclusive-image-overlay">
+                <div className="exclusive-image-badge">
+                  <ExclusiveIcon />
+                  <span>EXCLUSIVO</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Información de autor y editores */}
-        <div className="author-editor-info">
-          {authorData && (
-            <div className="author-info">
-              <h3 className="author-title">Redactor/es:</h3>
-              <div className="author-details">
-                <Link to={`/trabajador/${authorData.id}/noticias`} className="author-name">
-                  {authorData.nombre} {authorData.apellido}
-                </Link>
+        {/* ✅ ACTUALIZADO: Información de autores y editores */}
+        <div className="authors-editors-container">
+          {/* Sección de Autores */}
+          {authorsData.length > 0 && (
+            <div className="authors-section">
+              <h3 className="section-title">
+                {authorsData.length === 1 ? 'Redactor/a:' : 'Redactores/as:'}
+              </h3>
+              <div className="authors-list">
+                {authorsData.map((author, index) => (
+                  <div key={index} className="author-item">
+                    <div className="author-avatar">
+                      <img 
+                        src={author.foto_perfil || DEFAULT_AVATAR} 
+                        alt={`${author.nombre} ${author.apellido}`}
+                        className="avatar-image"
+                        onError={(e) => {
+                          e.target.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                    </div>
+                    <div className="author-details">
+                      <Link 
+                        to={`/trabajador/${author.id}/noticias`} 
+                        className="author-name-link"
+                      >
+                        <span className="author-name">
+                          {author.nombre} {author.apellido}
+                        </span>
+                      </Link>
+                      {author.descripcion_usuario && (
+                        <p className="author-bio">{author.descripcion_usuario}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
           
+          {/* Sección de Editores */}
           {editorsData.length > 0 && (
-            <div className="editor-info">
-              <h3 className="editors-title">Editor/es:</h3>
+            <div className="editors-section">
+              <h3 className="section-title">
+                {editorsData.length === 1 ? 'Editor/a:' : 'Editores/as:'}
+              </h3>
               <div className="editors-list">
                 {editorsData.map((editor, index) => (
                   <div key={index} className="editor-item">
+                    <div className="editor-avatar">
+                      <img 
+                        src={editor.foto_perfil || DEFAULT_AVATAR} 
+                        alt={`${editor.nombre} ${editor.apellido}`}
+                        className="avatar-image"
+                        onError={(e) => {
+                          e.target.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                    </div>
                     <div className="editor-details">
-                      <Link to={`/trabajador/${editor.id}/noticias`} className="editor-name">
-                        {editor.nombre} {editor.apellido}
+                      <Link 
+                        to={`/trabajador/${editor.id}/noticias`} 
+                        className="editor-name-link"
+                      >
+                        <span className="editor-name">
+                          {editor.nombre} {editor.apellido}
+                        </span>
                       </Link>
                     </div>
                   </div>
@@ -512,6 +614,22 @@ const NewsDetail = () => {
           )}
         </div>
       </div>
+      
+      {/* ✅ Banner de contenido exclusivo */}
+      {es_contenido_exclusivo && (
+        <div className="exclusive-content-banner">
+          <div className="exclusive-banner-content">
+            <ExclusiveIcon />
+            <div className="exclusive-banner-text">
+              <h4>Contenido Exclusivo</h4>
+              <p>
+                Esta nota contiene información, reportajes o entrevistas exclusivas 
+                realizadas por nuestro equipo de periodistas.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Contenido de la noticia */}
       <div className="news-content" ref={contentRef}>

@@ -1,7 +1,15 @@
+//nueva version
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 import api from '../context/axiosConfig';
+
+// Ícono de contenido exclusivo
+const ExclusiveIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#FFD700" stroke="#D4AF37" strokeWidth="2">
+    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+  </svg>
+);
 
 // Optimización: Precargar imágenes críticas
 const preloadImage = (src) => {
@@ -198,7 +206,7 @@ const getFirstParagraphContent = useCallback((content) => {
     return processedNews;
   }, []);
 
-  // Optimización: Fetch de autores en chunks más pequeños
+  // ✅ ACTUALIZADO: Fetch de autores múltiples en chunks
   const fetchAuthorsAndEditors = useCallback(async (newsList) => {
     if (!newsList || newsList.length === 0) return;
     
@@ -206,9 +214,19 @@ const getFirstParagraphContent = useCallback((content) => {
     const uniqueEditorIds = new Set();
     
     newsList.forEach(newsItem => {
-      if (newsItem.autor && !authorCache.has(newsItem.autor)) {
+      // Sistema nuevo: autores (array)
+      if (newsItem.autores && Array.isArray(newsItem.autores)) {
+        newsItem.autores.forEach(authorId => {
+          if (!authorCache.has(authorId)) {
+            uniqueAuthorIds.add(authorId);
+          }
+        });
+      } 
+      // Sistema antiguo: autor (solo uno)
+      else if (newsItem.autor && !authorCache.has(newsItem.autor)) {
         uniqueAuthorIds.add(newsItem.autor);
       }
+      
       if (newsItem.editor_en_jefe && !editorCache.has(newsItem.editor_en_jefe)) {
         uniqueEditorIds.add(newsItem.editor_en_jefe);
       }
@@ -244,11 +262,25 @@ const getFirstParagraphContent = useCallback((content) => {
       fetchInChunks(uniqueEditorIds, editorCache)
     ]);
     
-    // Aplicar datos de cache a las noticias
+    // ✅ Aplicar datos de cache a las noticias con soporte para múltiples autores
     newsList.forEach(newsItem => {
-      if (newsItem.autor && authorCache.has(newsItem.autor)) {
-        newsItem.autorData = authorCache.get(newsItem.autor);
+      const authorsData = [];
+      
+      // Sistema nuevo: autores (array)
+      if (newsItem.autores && Array.isArray(newsItem.autores)) {
+        newsItem.autores.forEach(authorId => {
+          if (authorCache.has(authorId)) {
+            authorsData.push(authorCache.get(authorId));
+          }
+        });
+      } 
+      // Sistema antiguo: autor (solo uno)
+      else if (newsItem.autor && authorCache.has(newsItem.autor)) {
+        authorsData.push(authorCache.get(newsItem.autor));
       }
+      
+      newsItem.authorsData = authorsData;
+      
       if (newsItem.editor_en_jefe && editorCache.has(newsItem.editor_en_jefe)) {
         newsItem.editorData = editorCache.get(newsItem.editor_en_jefe);
       }
@@ -465,6 +497,26 @@ const getFirstParagraphContent = useCallback((content) => {
     };
   }, [loadingStates, criticalImagesLoaded]);
 
+  // ✅ NUEVO: Función helper para renderizar autores
+  const renderAuthors = useCallback((authorsData, maxAuthors = 2) => {
+    if (!authorsData || authorsData.length === 0) return null;
+    
+    const displayAuthors = authorsData.slice(0, maxAuthors);
+    const hasMore = authorsData.length > maxAuthors;
+    
+    return (
+      <p className="author">
+        por {displayAuthors.map((author, idx) => (
+          <span key={author.id || idx}>
+            {author.nombre} {author.apellido}
+            {idx < displayAuthors.length - 1 ? ', ' : ''}
+          </span>
+        ))}
+        {hasMore && '...'}
+      </p>
+    );
+  }, []);
+
   // Componente de imagen optimizada
   const OptimizedImage = useCallback(({ 
     src, 
@@ -570,16 +622,20 @@ const getFirstParagraphContent = useCallback((content) => {
                     src={newsArray[0].contentImage} 
                     alt={newsArray[0].nombre_noticia}
                   />
+                  {/* ✅ Badge de contenido exclusivo en imagen */}
+                  {newsArray[0].es_contenido_exclusivo && (
+                    <div className="exclusive-badge-img">
+                      <ExclusiveIcon />
+                      <span>EXCLUSIVO</span>
+                    </div>
+                  )}
                 </div>
                 <div className="main-article-content">
                   <h3>{truncateTitle(newsArray[0].nombre_noticia, 60)}</h3>
                   <div>
-                  {newsArray[0].autorData && (
-                    <p className="author">
-                      por {newsArray[0].autorData.nombre} {newsArray[0].autorData.apellido}
-                    </p>
-                  )}
-                  <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
+                    {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
+                    {renderAuthors(newsArray[0].authorsData, 2)}
+                    <p className="date">{new Date(newsArray[0].fecha_publicacion).toLocaleDateString()}</p>
                   </div>
                   <p className="article-preview description">
                     {getFirstParagraphContent(newsArray[0].contenido)}
@@ -598,14 +654,17 @@ const getFirstParagraphContent = useCallback((content) => {
                         src={newsItem.contentImage} 
                         alt={newsItem.nombre_noticia}
                       />
+                      {/* ✅ Badge de contenido exclusivo en imagen */}
+                      {newsItem.es_contenido_exclusivo && (
+                        <div className="exclusive-badge-img-small">
+                          <ExclusiveIcon />
+                        </div>
+                      )}
                     </div>
                     <div className="secondary-article-content">
                       <h4>{newsItem.nombre_noticia}</h4>
-                      {newsItem.autorData && (
-                        <p className="author">
-                          por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                        </p>
-                      )}
+                      {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
+                      {renderAuthors(newsItem.authorsData, 2)}
                       <p className="date">{new Date(newsItem.fecha_publicacion).toLocaleDateString()}</p>
                     </div>
                   </div>
@@ -618,7 +677,7 @@ const getFirstParagraphContent = useCallback((content) => {
         </div>
       </div>
     );
-  }, [loadingStates.sections, navigate, truncateTitle, getFirstParagraphContent, MainArticleSkeleton, SecondaryArticleSkeleton, OptimizedImage]);
+  }, [loadingStates.sections, navigate, truncateTitle, getFirstParagraphContent, MainArticleSkeleton, SecondaryArticleSkeleton, OptimizedImage, renderAuthors]);
 
   const renderRecentNews = useCallback((recentNewsArray) => {
     const isLoading = loadingStates.recent;
@@ -645,6 +704,12 @@ const getFirstParagraphContent = useCallback((content) => {
                     alt={newsItem.nombre_noticia} 
                     className="recent-news-image"
                   />
+                  {/* ✅ Badge de contenido exclusivo */}
+                  {newsItem.es_contenido_exclusivo && (
+                    <div className="exclusive-badge-img-small">
+                      <ExclusiveIcon />
+                    </div>
+                  )}
                 </div>
                 <div className="recent-news-content">
                   <h4>{newsItem.nombre_noticia}</h4>
@@ -686,6 +751,12 @@ const getFirstParagraphContent = useCallback((content) => {
                     alt={newsItem.nombre_noticia} 
                     className="recent-news-image"
                   />
+                  {/* ✅ Badge de contenido exclusivo */}
+                  {newsItem.es_contenido_exclusivo && (
+                    <div className="exclusive-badge-img-small">
+                      <ExclusiveIcon />
+                    </div>
+                  )}
                 </div>
                 <div className="recent-news-content">
                   <h4>{newsItem.nombre_noticia}</h4>
@@ -808,16 +879,20 @@ const getFirstParagraphContent = useCallback((content) => {
                         alt={slideNews[0].nombre_noticia}
                         isCritical={isCriticalSlide}
                       />
+                      {/* ✅ Badge de contenido exclusivo en carousel principal */}
+                      {slideNews[0].es_contenido_exclusivo && (
+                        <div className="exclusive-badge-carousel">
+                          <ExclusiveIcon />
+                          <span>EXCLUSIVO</span>
+                        </div>
+                      )}
                       <div className="overlay">
                         <h1 style={{ color: '#ffff' }}>{slideNews[0].nombre_noticia}</h1>
                         <p style={{ color: '#ffff', marginBottom: '8px' }}>
                           {formatDate(slideNews[0].fecha_publicacion)}
                         </p>
-                        {slideNews[0].autorData && (
-                          <p className="author" style={{ color: '#ffff', marginBottom: '0' }}>
-                            por {slideNews[0].autorData.nombre} {slideNews[0].autorData.apellido}
-                          </p>
-                        )}
+                        {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
+                        {renderAuthors(slideNews[0].authorsData, 2)}
                       </div>
                     </>
                   ) : (
@@ -844,14 +919,17 @@ const getFirstParagraphContent = useCallback((content) => {
                           className="carousel-image"
                           isCritical={isCriticalSlide}
                         />
+                        {/* ✅ Badge de contenido exclusivo */}
+                        {slideNews[1].es_contenido_exclusivo && (
+                          <div className="exclusive-badge-carousel-small">
+                            <ExclusiveIcon />
+                          </div>
+                        )}
                         <div className="carousel-caption">
                           <h3>{slideNews[1].nombre_noticia}</h3>
                           <p>{formatDate(slideNews[1].fecha_publicacion)}</p>
-                          {slideNews[1].autorData && (
-                            <p className="author">
-                              por {slideNews[1].autorData.nombre} {slideNews[1].autorData.apellido}
-                            </p>
-                          )}
+                          {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
+                          {renderAuthors(slideNews[1].authorsData, 2)}
                         </div>
                       </>
                     ) : (
@@ -880,6 +958,12 @@ const getFirstParagraphContent = useCallback((content) => {
                               className="carousel-image"
                               isCritical={isCriticalSlide && idx < 1}
                             />
+                            {/* ✅ Badge de contenido exclusivo */}
+                            {newsItem.es_contenido_exclusivo && (
+                              <div className="exclusive-badge-carousel-small">
+                                <ExclusiveIcon />
+                              </div>
+                            )}
                             <div className="carousel-caption">
                               <h3>
                                 {newsItem.nombre_noticia.length > 45 
@@ -887,11 +971,8 @@ const getFirstParagraphContent = useCallback((content) => {
                                   : newsItem.nombre_noticia}
                               </h3>
                               <p>{formatDate(newsItem.fecha_publicacion)}</p>
-                              {newsItem.autorData && (
-                                <p className="author">
-                                  por {newsItem.autorData.nombre} {newsItem.autorData.apellido}
-                                </p>
-                              )}
+                              {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
+                              {renderAuthors(newsItem.authorsData, 2)}
                             </div>
                           </>
                         ) : (
@@ -923,7 +1004,7 @@ const getFirstParagraphContent = useCallback((content) => {
         </div>
       </div>
     );
-  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage]);
+  }, [loadingStates.featured, featuredNews, currentSlide, handlePrevSlide, handleNextSlide, navigate, formatDate, handleDotClick, OptimizedImage, renderAuthors]);
 
   // Optimización: Estilos mejorados con transformaciones CSS para mejor rendimiento
   const SkeletonStyles = useMemo(() => (

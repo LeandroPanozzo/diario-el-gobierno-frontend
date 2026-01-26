@@ -18,6 +18,95 @@ body{
   background-color: #ffffff;
 }
 
+/* ========== BADGES DE CONTENIDO EXCLUSIVO ========== */
+/* Badge grande para carousel principal */
+.exclusive-badge-carousel {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  letter-spacing: 0.5px;
+}
+
+.exclusive-badge-carousel svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Badge pequeño para items del carousel */
+.exclusive-badge-carousel-small {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  padding: 6px 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+.exclusive-badge-carousel-small svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Badge para imágenes de artículos principales */
+.exclusive-badge-img {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  letter-spacing: 0.5px;
+}
+
+.exclusive-badge-img svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Badge pequeño para artículos secundarios y noticias recientes */
+.exclusive-badge-img-small {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #156AA2 0%, #156AA2 100%);
+  padding: 5px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.3);
+  z-index: 5;
+}
+
+.exclusive-badge-img-small svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* ========== CAROUSEL ========== */
 .carousel-wrapper {
   position: relative;
@@ -97,8 +186,8 @@ body{
 
 .featured-left .overlay .author {
   font-size: 12px;
-  font-style: normal;
-  display: none;
+  font-style: italic;
+  color: #fff;
 }
 
 .featured-right {
@@ -178,6 +267,7 @@ body{
 .carousel-caption .author {
   font-size: 11px;
   font-style: italic;
+  color: #fff;
 }
 
 /* Carousel Controls */
@@ -323,6 +413,7 @@ body{
   width: 100%;
   height: 300px;
   overflow: hidden;
+  position: relative;
 }
 
 .main-article .recent-new img {
@@ -400,6 +491,7 @@ body{
   height: 90px;
   overflow: hidden;
   border-radius: 6px;
+  position: relative;
 }
 
 .secondary-article-img img {
@@ -432,7 +524,10 @@ body{
 }
 
 .secondary-article-content .author {
-  display: none;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  margin-bottom: 2px;
 }
 
 .secondary-article-content .date {
@@ -499,6 +594,7 @@ body{
   height: 100px;
   overflow: hidden;
   border-radius: 6px;
+  position: relative;
 }
 
 .recent-news-item .recent-new img {
@@ -618,6 +714,22 @@ body{
     padding: 20px 15px 0 15px;
   }
 
+  /* BADGES RESPONSIVE */
+  .exclusive-badge-carousel {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  
+  .exclusive-badge-carousel svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .exclusive-badge-img {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
   /* CARRUSEL */
   .carousel-container {
     height: 600px;
@@ -719,6 +831,38 @@ body{
 @media (max-width: 768px) {
   .home-container {
     padding: 10px 8px 0 8px;
+  }
+  
+  /* BADGES MÓVIL */
+  .exclusive-badge-carousel {
+    top: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    font-size: 10px;
+    gap: 4px;
+  }
+  
+  .exclusive-badge-carousel svg {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .exclusive-badge-img {
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+  
+  .exclusive-badge-img-small {
+    top: 6px;
+    right: 6px;
+    padding: 4px 5px;
+  }
+  
+  .exclusive-badge-img-small svg {
+    width: 10px;
+    height: 10px;
   }
   
   /* CARRUSEL MÓVIL - SOLO UNA NOTICIA GRANDE */
@@ -903,6 +1047,17 @@ body{
     padding: 8px 6px 0 6px;
   }
   
+  /* BADGES MÓVIL PEQUEÑO */
+  .exclusive-badge-carousel {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+  
+  .exclusive-badge-carousel svg {
+    width: 10px;
+    height: 10px;
+  }
+  
   /* CARRUSEL MÓVIL PEQUEÑO */
   .carousel-container {
     height: 350px;
@@ -1057,4 +1212,51 @@ img.loaded {
   html {
     scroll-behavior: smooth;
   }
+}
+
+/* ========== ANIMACIONES Y TRANSICIONES PARA BADGES ========== */
+.exclusive-badge-carousel,
+.exclusive-badge-carousel-small,
+.exclusive-badge-img,
+.exclusive-badge-img-small {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.carousel-item:hover .exclusive-badge-carousel-small,
+.carousel-item:hover .exclusive-badge-carousel,
+.main-article:hover .exclusive-badge-img,
+.secondary-article:hover .exclusive-badge-img-small,
+.recent-news-item:hover .exclusive-badge-img-small {
+  transform: scale(1.05);
+  box-shadow: 0 3px 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Efecto de brillo sutil en los badges */
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.exclusive-badge-carousel::before,
+.exclusive-badge-img::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+  border-radius: inherit;
+  pointer-events: none;
 }

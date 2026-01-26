@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { 
   Table, 
   Form, 
@@ -26,7 +26,8 @@ import {
   ClearOutlined, 
   FilterOutlined,
   GlobalOutlined,
-  UserOutlined
+  UserOutlined,
+  StarOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
@@ -51,7 +52,6 @@ const { Option } = Select;
 const { TextArea } = Input;
 const { useBreakpoint } = Grid;
 
-// Categorías constantes (no necesitan recrearse)
 const CATEGORIAS = [
   ['Politica', [
     ['legislativos', 'Legislativos'],
@@ -95,7 +95,6 @@ const CATEGORIAS = [
   ]]
 ];
 
-// Mapa de colores constante
 const STATE_COLOR_MAP = {
   'publicado': 'green',
   'borrador': 'orange',
@@ -105,7 +104,6 @@ const STATE_COLOR_MAP = {
   'archivado': 'gray'
 };
 
-// Componente memoizado para los botones de acción
 const ActionButtons = memo(({ 
   record, 
   userCanEdit, 
@@ -176,7 +174,6 @@ const ActionButtons = memo(({
 
 ActionButtons.displayName = 'ActionButtons';
 
-// Componente memoizado para los detalles de la noticia
 const NewsDetails = memo(({ 
   text, 
   record, 
@@ -191,7 +188,23 @@ const NewsDetails = memo(({
   handleDelete,
   handleComment
 }) => {
-  const authorObj = editors.find(editor => editor.id === record.autor);
+  // ✅ ACTUALIZADO: Obtener múltiples autores (soporta ambos sistemas)
+  const getAutores = () => {
+    // Sistema nuevo (múltiples autores)
+    if (record.autores && Array.isArray(record.autores) && record.autores.length > 0) {
+      return record.autores.map(autorId => 
+        editors.find(editor => editor.id === autorId)
+      ).filter(Boolean);
+    }
+    // Sistema antiguo (un solo autor)
+    if (record.autor) {
+      const autorObj = editors.find(editor => editor.id === record.autor);
+      return autorObj ? [autorObj] : [];
+    }
+    return [];
+  };
+
+  const autores = getAutores();
   
   const editorObjs = Array.isArray(record.editores_en_jefe) 
     ? record.editores_en_jefe.map(editorId => 
@@ -211,7 +224,8 @@ const NewsDetails = memo(({
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '10px'
+        gap: '10px',
+        flexWrap: 'wrap'
       }}>
         <strong>Título:</strong>
         <span>{text}</span>
@@ -220,19 +234,31 @@ const NewsDetails = memo(({
             Solo lectura
           </Tag>
         )}
+        {/* ✅ NUEVO: Badge de contenido exclusivo */}
+        {record.es_contenido_exclusivo && (
+          <Tag color="gold" icon={<StarOutlined />}>
+            Contenido Exclusivo
+          </Tag>
+        )}
       </div>
 
+      {/* ✅ ACTUALIZADO: Mostrar múltiples autores */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: '10px'
       }}>
-        <strong>Autor:</strong>
-        <span>
-          {authorObj
-            ? `${authorObj.nombre} ${authorObj.apellido} (ID: ${authorObj.id})`
-            : `Unknown (ID: ${record.autor})`}
-        </span>
+        <strong>{autores.length > 1 ? 'Autores:' : 'Autor:'}</strong>
+        <div>
+          {autores.length > 0 
+            ? autores.map((autor, index) => (
+                <span key={autor.id}>
+                  {`${autor.nombre} ${autor.apellido} (ID: ${autor.id})`}
+                  {index < autores.length - 1 ? ', ' : ''}
+                </span>
+              ))
+            : 'Sin autor asignado'}
+        </div>
       </div>
 
       <div style={{
@@ -338,7 +364,6 @@ const NewsManagement = () => {
   const screens = useBreakpoint();
   const isMobile = useMemo(() => screens.xs && !screens.sm, [screens.xs, screens.sm]);
 
-  // Debounce del término de búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -347,7 +372,6 @@ const NewsManagement = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Funciones de caché optimizadas
   const isCacheValid = useCallback((timestamp) => {
     if (!timestamp) return false;
     return Date.now() - parseInt(timestamp) < CACHE_DURATION;
@@ -391,100 +415,95 @@ const NewsManagement = () => {
   }, []);
 
   const fetchPaginatedNews = useCallback(async (page = 1, size = INITIAL_PAGE_SIZE, reset = false) => {
-  try {
-    if (reset) {
-      setLoading(true);
-      setCurrentPage(1);
-      setNews([]);
-      setAllNews([]);
-    } else {
-      setLoadingMore(true);
-    }
+    try {
+      if (reset) {
+        setLoading(true);
+        setCurrentPage(1);
+        setNews([]);
+        setAllNews([]);
+      } else {
+        setLoadingMore(true);
+      }
 
-    // ✅ CORRECCIÓN: Usar endpoint diferente según showAllNews
-    let endpoint;
-    if (showAllNews) {
-      endpoint = `noticias/?page=${page}&page_size=${size}`;
-    } else {
-      // ✅ Usar el nuevo endpoint optimizado para noticias del trabajador
-      endpoint = `noticias/por-trabajador/?trabajador_id=${trabajadorId}&page=${page}&page_size=${size}`;
-    }
+      let endpoint;
+      if (showAllNews) {
+        endpoint = `noticias/?page=${page}&page_size=${size}`;
+      } else {
+        endpoint = `noticias/por-trabajador/?trabajador_id=${trabajadorId}&page=${page}&page_size=${size}`;
+      }
 
-    if (page === 1 && !reset) {
-      const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
-      const cachedNews = getFromCache(cacheKey);
-      
-      if (cachedNews && Array.isArray(cachedNews)) {
-        const sortedNews = sortNewsByDate(cachedNews);
-        const paginatedNews = sortedNews.slice(0, size);
+      if (page === 1 && !reset) {
+        const cacheKey = showAllNews ? CACHE_KEYS.ALL_NEWS : CACHE_KEYS.NEWS;
+        const cachedNews = getFromCache(cacheKey);
         
-        if (showAllNews) {
-          setAllNews(paginatedNews);
-        } else {
-          setNews(paginatedNews);
+        if (cachedNews && Array.isArray(cachedNews)) {
+          const sortedNews = sortNewsByDate(cachedNews);
+          const paginatedNews = sortedNews.slice(0, size);
+          
+          if (showAllNews) {
+            setAllNews(paginatedNews);
+          } else {
+            setNews(paginatedNews);
+          }
+          
+          setTotalCount(cachedNews.length);
+          setHasMore(cachedNews.length > size);
+          setLoading(false);
+          setLoadingMore(false);
+          console.log('Noticias cargadas desde caché (paginadas)');
+          return;
         }
-        
-        setTotalCount(cachedNews.length);
-        setHasMore(cachedNews.length > size);
-        setLoading(false);
-        setLoadingMore(false);
-        console.log('Noticias cargadas desde caché (paginadas)');
-        return;
       }
-    }
 
-    console.log('Fetching from:', endpoint); // Debug
+      const response = await api.get(endpoint);
+      
+      let newNews = response.data.results || response.data;
+      const total = response.data.count || newNews.length;
 
-    const response = await api.get(endpoint);
-    
-    // ✅ El backend ya filtra, no necesitamos filtrar aquí
-    let newNews = response.data.results || response.data;
-    const total = response.data.count || newNews.length;
+      const sortedNews = sortNewsByDate(newNews);
 
-    const sortedNews = sortNewsByDate(newNews);
-
-    if (page === 1 || reset) {
-      if (showAllNews) {
-        setAllNews(sortedNews);
-        saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
+      if (page === 1 || reset) {
+        if (showAllNews) {
+          setAllNews(sortedNews);
+          saveToCache(CACHE_KEYS.ALL_NEWS, sortedNews);
+        } else {
+          setNews(sortedNews);
+          saveToCache(CACHE_KEYS.NEWS, sortedNews);
+        }
       } else {
-        setNews(sortedNews);
-        saveToCache(CACHE_KEYS.NEWS, sortedNews);
+        if (showAllNews) {
+          setAllNews(prevNews => {
+            const combined = [...prevNews, ...sortedNews];
+            const unique = combined.filter((news, index, self) => 
+              index === self.findIndex(n => n.id === news.id)
+            );
+            return sortNewsByDate(unique);
+          });
+        } else {
+          setNews(prevNews => {
+            const combined = [...prevNews, ...sortedNews];
+            const unique = combined.filter((news, index, self) => 
+              index === self.findIndex(n => n.id === news.id)
+            );
+            return sortNewsByDate(unique);
+          });
+        }
       }
-    } else {
-      if (showAllNews) {
-        setAllNews(prevNews => {
-          const combined = [...prevNews, ...sortedNews];
-          const unique = combined.filter((news, index, self) => 
-            index === self.findIndex(n => n.id === news.id)
-          );
-          return sortNewsByDate(unique);
-        });
-      } else {
-        setNews(prevNews => {
-          const combined = [...prevNews, ...sortedNews];
-          const unique = combined.filter((news, index, self) => 
-            index === self.findIndex(n => n.id === news.id)
-          );
-          return sortNewsByDate(unique);
-        });
-      }
+
+      setTotalCount(total);
+      setHasMore(newNews.length === size);
+      setCurrentPage(page);
+
+    } catch (error) {
+      console.error("Error al obtener noticias:", error);
+      message.error("Error al cargar las noticias");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setDataLoaded(true);
     }
+  }, [trabajadorId, showAllNews, sortNewsByDate, getFromCache, saveToCache]);
 
-    setTotalCount(total);
-    setHasMore(newNews.length === size);
-    setCurrentPage(page);
-
-  } catch (error) {
-    console.error("Error al obtener noticias:", error);
-    console.error("Detalles del error:", error.response?.data); // ✅ Más info de debug
-    message.error("Error al cargar las noticias");
-  } finally {
-    setLoading(false);
-    setLoadingMore(false);
-    setDataLoaded(true);
-  }
-}, [trabajadorId, showAllNews, sortNewsByDate, getFromCache, saveToCache]);
   const loadMoreNews = useCallback(() => {
     if (!loadingMore && hasMore) {
       const nextPage = currentPage + 1;
@@ -634,9 +653,23 @@ const NewsManagement = () => {
     }
   }, []);
 
+  // ✅ ACTUALIZADO: Soporta múltiples autores
   const canEditNews = useCallback((record) => {
-    return record.autor === trabajadorId || 
-           (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId));
+    // Sistema nuevo (múltiples autores)
+    if (record.autores && Array.isArray(record.autores)) {
+      if (record.autores.includes(trabajadorId)) {
+        return true;
+      }
+    }
+    // Sistema antiguo (un solo autor)
+    if (record.autor === trabajadorId) {
+      return true;
+    }
+    // Verificar si es editor
+    if (Array.isArray(record.editores_en_jefe) && record.editores_en_jefe.includes(trabajadorId)) {
+      return true;
+    }
+    return false;
   }, [trabajadorId]);
 
   const getSortedEditors = useMemo(() => {
@@ -671,7 +704,6 @@ const NewsManagement = () => {
     console.log('Vista cambiada a:', showAll ? 'Todas las noticias' : 'Mis noticias');
   }, []);
 
-  // Filtrado optimizado con useMemo
   const { filteredNews, currentNewsArray } = useMemo(() => {
     const currentArray = showAllNews ? allNews : news;
     const searchLower = debouncedSearchTerm.toLowerCase();
@@ -696,6 +728,7 @@ const NewsManagement = () => {
     return currentNewsArray.filter(record => record.estado === stateId).length;
   }, [currentNewsArray]);
 
+  // ✅ ACTUALIZADO: Maneja múltiples autores
   const showModal = useCallback((record = null) => {
     if (record) {
       if (showAllNews && !canEditNews(record)) {
@@ -707,12 +740,24 @@ const NewsManagement = () => {
         ? record.editores_en_jefe 
         : (record.editores_en_jefe ? [record.editores_en_jefe] : []);
       
+      // ✅ NUEVO: Obtener autores (soporta ambos sistemas)
+      let autoresArray = [];
+      if (record.autores && Array.isArray(record.autores) && record.autores.length > 0) {
+        // Sistema nuevo
+        autoresArray = record.autores;
+      } else if (record.autor) {
+        // Sistema antiguo
+        autoresArray = [record.autor];
+      }
+      
       form.setFieldsValue({
         ...record,
         fecha_publicacion: moment(record.fecha_publicacion),
         solo_para_subscriptores: record.solo_para_subscriptores || false,
+        es_contenido_exclusivo: record.es_contenido_exclusivo || false, // ✅ NUEVO
         Palabras_clave: record.Palabras_clave || '',
         categorias: record.categorias || [],
+        autores: autoresArray, // ✅ NUEVO: Campo de múltiples autores
         editores_en_jefe: editoresEnJefe,
         estado: record.estado ? parseInt(record.estado, 10) : undefined,
       });
@@ -726,8 +771,9 @@ const NewsManagement = () => {
     } else {
       form.resetFields();
       form.setFieldsValue({
-        autor: trabajadorId,
-        editores_en_jefe: [6, 27]
+        autores: [trabajadorId], // ✅ NUEVO: Usar array de autores
+        editores_en_jefe: [6, 27],
+        es_contenido_exclusivo: false // ✅ NUEVO
       });
       setEditingId(null);
       setFilteredPublicationStates(publicationStates.filter(state => state.nombre_estado !== 'publicado'));
@@ -750,6 +796,7 @@ const NewsManagement = () => {
     return cleaned;
   }, []);
 
+  // ✅ ACTUALIZADO: Envía múltiples autores
   const handleOk = useCallback(() => {
     form.validateFields().then(values => {
       const cleanedKeywords = cleanKeywords(values.Palabras_clave);
@@ -760,6 +807,17 @@ const NewsManagement = () => {
       
       if (!Array.isArray(values.editores_en_jefe)) {
         values.editores_en_jefe = values.editores_en_jefe ? [values.editores_en_jefe] : [];
+      }
+
+      // ✅ NUEVO: Validar que autores sea un array
+      if (!Array.isArray(values.autores)) {
+        values.autores = values.autores ? [values.autores] : [];
+      }
+
+      // Validar que haya al menos un autor
+      if (values.autores.length === 0) {
+        message.error('Debe seleccionar al menos un autor');
+        return;
       }
       
       const estadoPublicado = publicationStates.find(
@@ -777,10 +835,11 @@ const NewsManagement = () => {
         fecha_publicacion: fechaPublicacion.format('YYYY-MM-DD'),
         categorias: values.categorias.join(','),
         Palabras_clave: cleanedKeywords,
-        autor: parseInt(values.autor, 10),
+        autores: values.autores, // ✅ NUEVO: Enviar array de autores
         editores_en_jefe: values.editores_en_jefe,
         estado: parseInt(values.estado, 10),
         solo_para_subscriptores: values.solo_para_subscriptores || false,
+        es_contenido_exclusivo: values.es_contenido_exclusivo || false, // ✅ NUEVO
         subtitulo: values.subtitulo || 'default content',
         imagen_cabecera: values.imagen_cabecera || '',
         imagen_1: values.imagen_1 || '',
@@ -825,8 +884,8 @@ const NewsManagement = () => {
         })
         .catch(error => {
           console.error('Error:', error);
+          console.error('Detalles:', error.response?.data);
           message.error('Error al guardar la noticia');
-          setIsModalVisible(false);
         });
     });
   }, [form, editingId, invalidateNewsCache, fetchPaginatedNews, pageSize, publicationStates, cleanKeywords]);
@@ -871,7 +930,6 @@ const NewsManagement = () => {
     console.log('Navigating to preview for news ID:', record.id);
   }, [generateNewsUrl, navigate]);
 
-  // Configuración de tabla optimizada con memoización
   const tableColumns = useMemo(() => [
     { 
       title: 'Detalles de la Noticia', 
@@ -1180,20 +1238,28 @@ const NewsManagement = () => {
             <Input />
           </Form.Item>
 
+          {/* ✅ ACTUALIZADO: Campo de múltiples autores */}
           <Form.Item 
-            name="autor" 
-            label="Autor" 
-            rules={[{ required: true, message: '¡Por favor seleccione un autor!' }]}
+            name="autores" 
+            label="Autores" 
+            rules={[{ 
+              required: true, 
+              message: '¡Por favor seleccione al menos un autor!' 
+            }]}
+            extra="Selecciona uno o más autores para esta noticia"
           >
             <Select
+              mode="multiple"
               showSearch
-              placeholder="Seleccione un autor"
+              placeholder="Seleccione uno o más autores"
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
               {getSortedEditors.map(editor => (
-                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
+                <Option key={editor.id} value={editor.id}>
+                  {`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}
+                </Option>
               ))}
             </Select>
           </Form.Item>
@@ -1212,7 +1278,9 @@ const NewsManagement = () => {
               }
             >
               {getSortedEditors.map(editor => (
-                <Option key={editor.id} value={editor.id}>{`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}</Option>
+                <Option key={editor.id} value={editor.id}>
+                  {`${editor.nombre} ${editor.apellido} (ID: ${editor.id})`}
+                </Option>
               ))}
             </Select>
           </Form.Item>
@@ -1240,9 +1308,38 @@ const NewsManagement = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="solo_para_subscriptores" valuePropName="checked">
-            <Checkbox>Solo para Suscriptores</Checkbox>
-          </Form.Item>
+          {/* ✅ Checkboxes agrupados visualmente */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '24px', 
+            marginBottom: '16px',
+            padding: '12px',
+            background: '#fafafa',
+            borderRadius: '6px',
+            border: '1px solid #e8e8e8'
+          }}>
+            <Form.Item 
+              name="solo_para_subscriptores" 
+              valuePropName="checked"
+              style={{ marginBottom: 0 }}
+            >
+              <Checkbox>Solo para Suscriptores</Checkbox>
+            </Form.Item>
+
+            {/* ✅ NUEVO: Checkbox de contenido exclusivo */}
+            <Form.Item 
+              name="es_contenido_exclusivo" 
+              valuePropName="checked"
+              style={{ marginBottom: 0 }}
+            >
+              <Checkbox>
+                <span style={{ fontWeight: '500', color: '#faad14' }}>
+                  <StarOutlined style={{ marginRight: '4px' }} />
+                  Contenido Exclusivo
+                </span>
+              </Checkbox>
+            </Form.Item>
+          </div>
 
           <Form.Item 
             name="estado" 
